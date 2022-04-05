@@ -31,6 +31,11 @@
 #ifdef ZTS
 #include "TSRM.h"
 #endif
+
+#ifdef __OS2__
+#include "httpd.h"			// 2022-03-20 SHL HTTP_INSUFFICIENT_STORAGE OK
+#endif
+
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #elif defined(PHP_WIN32)
@@ -69,13 +74,15 @@ static void sapi_globals_dtor(sapi_globals_struct *sapi_globals)
 SAPI_API sapi_module_struct sapi_module;
 
 
-SAPI_API void sapi_startup(sapi_module_struct *sf)
+SAPI_API int sapi_startup(sapi_module_struct *sf)
 {
 	sf->ini_entries = NULL;
 	sapi_module = *sf;
 
 #ifdef ZTS
-	ts_allocate_fast_id(&sapi_globals_id, &sapi_globals_offset, sizeof(sapi_globals_struct), (ts_allocate_ctor) sapi_globals_ctor, (ts_allocate_dtor) sapi_globals_dtor);
+	// 2022-03-14 SHL If insufficient memory to get started, tell the world
+	if (!ts_allocate_fast_id(&sapi_globals_id, &sapi_globals_offset, sizeof(sapi_globals_struct), (ts_allocate_ctor) sapi_globals_ctor, (ts_allocate_dtor) sapi_globals_dtor))
+		return HTTP_INSUFFICIENT_STORAGE;
 # ifdef PHP_WIN32
 	_configthreadlocale(_ENABLE_PER_THREAD_LOCALE);
 # endif
@@ -88,6 +95,8 @@ SAPI_API void sapi_startup(sapi_module_struct *sf)
 #endif
 
 	reentrancy_startup();
+
+	return OK;
 }
 
 SAPI_API void sapi_shutdown(void)

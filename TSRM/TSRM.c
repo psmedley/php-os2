@@ -12,6 +12,10 @@
 
 #include "TSRM.h"
 
+#ifdef __OS2__
+#include "httpd.h"			// 2022-03-20 SHL HTTP_INSUFFICIENT_STORAGE OK
+#endif
+
 #ifdef ZTS
 
 #include <stdio.h>
@@ -285,9 +289,10 @@ TSRM_API void tsrm_env_unlock() {
 } /* }}} */
 
 /* enlarge the arrays for the already active threads */
-static void tsrm_update_active_threads(void)
+static int tsrm_update_active_threads(void)
 {/*{{{*/
 	int i;
+	int err = 0;		// 2022-03-14 SHL
 
 	for (i=0; i<tsrm_tls_table_size; i++) {
 		tsrm_tls_entry *p = tsrm_tls_table[i];
@@ -305,6 +310,9 @@ static void tsrm_update_active_threads(void)
 					}
 					if (resource_types_table[j].ctor) {
 						resource_types_table[j].ctor(p->storage[j]);
+						// 2022-03-11 SHL return error if alloc failed
+						if (!p->storage[j])
+							err = HTTP_INSUFFICIENT_STORAGE;
 					}
 				}
 				p->count = id_count;
@@ -312,12 +320,14 @@ static void tsrm_update_active_threads(void)
 			p = p->next;
 		}
 	}
+	return err;			// 2022-03-14 SHL
 }/*}}}*/
 
 
 /* allocates a new thread-safe-resource id */
 TSRM_API ts_rsrc_id ts_allocate_id(ts_rsrc_id *rsrc_id, size_t size, ts_allocate_ctor ctor, ts_allocate_dtor dtor)
 {/*{{{*/
+	int err = 0;			// 2022-03-14 SHL
 	TSRM_ERROR((TSRM_ERROR_LEVEL_CORE, "Obtaining a new resource id, %d bytes", size));
 
 	tsrm_mutex_lock(tsmm_mutex);
@@ -345,11 +355,14 @@ TSRM_API ts_rsrc_id ts_allocate_id(ts_rsrc_id *rsrc_id, size_t size, ts_allocate
 	resource_types_table[TSRM_UNSHUFFLE_RSRC_ID(*rsrc_id)].fast_offset = 0;
 	resource_types_table[TSRM_UNSHUFFLE_RSRC_ID(*rsrc_id)].done = 0;
 
-	tsrm_update_active_threads();
+	err = tsrm_update_active_threads();
 	tsrm_mutex_unlock(tsmm_mutex);
 
-	TSRM_ERROR((TSRM_ERROR_LEVEL_CORE, "Successfully allocated new resource id %d", *rsrc_id));
-	return *rsrc_id;
+	// 2022-03-14 SHL FIXME to free partially updated rsrc_id rather than leak, if needed
+
+	if (err == OK)
+		TSRM_ERROR((TSRM_ERROR_LEVEL_CORE, "Successfully allocated new resource id %d", *rsrc_id));
+	return err != OK ? 0 : *rsrc_id;	// 2022-03-14 SHL
 }/*}}}*/
 
 
@@ -364,6 +377,7 @@ TSRM_API void tsrm_reserve(size_t size)
 /* allocates a new fast thread-safe-resource id */
 TSRM_API ts_rsrc_id ts_allocate_fast_id(ts_rsrc_id *rsrc_id, size_t *offset, size_t size, ts_allocate_ctor ctor, ts_allocate_dtor dtor)
 {/*{{{*/
+	int err;			// 2022-03-20 SHL
 	TSRM_ERROR((TSRM_ERROR_LEVEL_CORE, "Obtaining a new fast resource id, %d bytes", size));
 
 	tsrm_mutex_lock(tsmm_mutex);
@@ -403,15 +417,19 @@ TSRM_API ts_rsrc_id ts_allocate_fast_id(ts_rsrc_id *rsrc_id, size_t *offset, siz
 	resource_types_table[TSRM_UNSHUFFLE_RSRC_ID(*rsrc_id)].fast_offset = *offset;
 	resource_types_table[TSRM_UNSHUFFLE_RSRC_ID(*rsrc_id)].done = 0;
 
-	tsrm_update_active_threads();
+	err = tsrm_update_active_threads();	// 2022-03-20 SHL
 	tsrm_mutex_unlock(tsmm_mutex);
 
+	if (err) {
+		TSRM_ERROR((TSRM_ERROR_LEVEL_ERROR, "Resource allocation failed with error %d", err));
+		return 0;
+	}
 	TSRM_ERROR((TSRM_ERROR_LEVEL_CORE, "Successfully allocated new resource id %d", *rsrc_id));
 	return *rsrc_id;
 }/*}}}*/
 
 
-static void allocate_new_resource(tsrm_tls_entry **thread_resources_ptr, THREAD_T thread_id)
+static int allocate_new_resource(tsrm_tls_entry **thread_resources_ptr, THREAD_T thread_id)
 {/*{{{*/
 	int i;
 
@@ -442,7 +460,10 @@ static void allocate_new_resource(tsrm_tls_entry **thread_resources_ptr, THREAD_
 				(*thread_resources_ptr)->storage[i] = (void *) malloc(resource_types_table[i].size);
 			}
 			if (resource_types_table[i].ctor) {
+				// 2022-03-11 SHL If cannot alloc storage, complain
 				resource_types_table[i].ctor((*thread_resources_ptr)->storage[i]);
+				if ((*thread_resources_ptr)->storage[i] == NULL)
+				  return HTTP_INSUFFICIENT_STORAGE;
 			}
 		}
 	}
@@ -452,6 +473,8 @@ static void allocate_new_resource(tsrm_tls_entry **thread_resources_ptr, THREAD_
 	}
 
 	tsrm_mutex_unlock(tsmm_mutex);
+
+	return 0;
 }/*}}}*/
 
 

@@ -1843,6 +1843,22 @@ static void zend_mm_free_huge(zend_mm_heap *heap, void *ptr ZEND_FILE_LINE_DC ZE
 
 static zend_mm_heap *zend_mm_init(void)
 {
+#if defined(__OS2__) && defined(ZEND_MM_ERROR)
+	unsigned int retries;
+	zend_mm_chunk *chunk;
+	zend_mm_heap *heap;
+	for (retries = 1; retries <= 10; retries++) {
+		chunk = (zend_mm_chunk*)zend_mm_chunk_alloc_int(ZEND_MM_CHUNK_SIZE, ZEND_MM_CHUNK_SIZE);
+		if (UNEXPECTED(chunk == NULL)) {
+			fprintf(stderr, "\nCan't initialize heap: [%d] %s - retry %u %s(%u)\n", errno, strerror(errno), retries, __FILE__, __LINE__);
+			sleep(2);
+		}
+		else
+			break;
+	}
+	if (retries >= 10)
+		return NULL;
+#else /* not OS2 */
 	zend_mm_chunk *chunk = (zend_mm_chunk*)zend_mm_chunk_alloc_int(ZEND_MM_CHUNK_SIZE, ZEND_MM_CHUNK_SIZE);
 	zend_mm_heap *heap;
 
@@ -1856,6 +1872,7 @@ static zend_mm_heap *zend_mm_init(void)
 #endif
 		return NULL;
 	}
+#endif /* not OS2 */
 	heap = &chunk->heap_slot;
 	chunk->heap = heap;
 	chunk->next = chunk;
@@ -2534,6 +2551,11 @@ ZEND_API void ZEND_FASTCALL _efree_huge(void *ptr, size_t size)
 ZEND_API void* ZEND_FASTCALL _emalloc(size_t size ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 #if ZEND_MM_CUSTOM
+#ifdef __OS2__	// 2022-03-28 SHL In case heap init failed, caller must check returned pointer before use
+	if (!AG(mm_heap))
+		return 0;
+	else
+#endif
 	if (UNEXPECTED(AG(mm_heap)->use_custom_heap)) {
 		return _malloc_custom(size ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 	}
@@ -2777,7 +2799,9 @@ static void alloc_globals_ctor(zend_alloc_globals *alloc_globals)
 #ifdef ZTS
 static void alloc_globals_dtor(zend_alloc_globals *alloc_globals)
 {
-	zend_mm_shutdown(alloc_globals->mm_heap, 1, 1);
+	// 2022-03-11 SHL bypass call if heap NULL
+	if (alloc_globals->mm_heap == NULL)
+		zend_mm_shutdown(alloc_globals->mm_heap, 1, 1);
 }
 #endif
 
