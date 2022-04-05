@@ -71,11 +71,9 @@ php_apache_sapi_ub_write(const char *str, size_t str_length)
 
 	ctx = SG(server_context);
 	r = ctx->r;
-
 	if (ap_rwrite(str, str_length, r) < 0) {
 		php_handle_aborted_connection();
 	}
-
 	return str_length; /* we always consume all the data passed to us. */
 }
 
@@ -229,6 +227,7 @@ php_apache_sapi_get_stat(void)
 static char *
 php_apache_sapi_read_cookies(void)
 {
+
 	php_struct *ctx = SG(server_context);
 	const char *http_cookie;
 
@@ -477,6 +476,8 @@ php_apache_server_startup(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp
 	php_tsrm_startup();
 # ifdef PHP_WIN32
 	ZEND_TSRMLS_CACHE_UPDATE();
+# elif defined(__OS2__)
+	os2_tsrmls_cache_update();
 # endif
 #endif
 
@@ -577,6 +578,8 @@ static int php_handler(request_rec *r)
 	(void)ts_resource(0);
 # ifdef PHP_WIN32
 	ZEND_TSRMLS_CACHE_UPDATE();
+# elif defined(__OS2__)
+	os2_tsrmls_cache_update();
 # endif
 #endif
 
@@ -644,7 +647,6 @@ normal:
 		ap_add_common_vars(r);
 		ap_add_cgi_vars(r);
 	}
-
 zend_first_try {
 
 	if (ctx == NULL) {
@@ -681,12 +683,10 @@ zend_first_try {
 		ctx->r = r;
 		brigade = ctx->brigade;
 	}
-
 	if (AP2(last_modified)) {
 		ap_update_mtime(r, r->finfo.mtime);
 		ap_set_last_modified(r);
 	}
-
 	/* Determine if we need to parse the file or show the source */
 	if (strncmp(r->handler, PHP_SOURCE_MAGIC_TYPE, sizeof(PHP_SOURCE_MAGIC_TYPE) - 1) == 0) {
 		zend_syntax_highlighter_ini syntax_highlighter_ini;
@@ -726,7 +726,6 @@ zend_first_try {
 	} else {
 		ctx->r = parent_req;
 	}
-
 	return OK;
 }
 

@@ -34,6 +34,9 @@
 #ifdef HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif
+#ifdef __OS2__
+#include <io.h>
+#endif
 #include "SAPI.h"
 
 #include "php_streams_int.h"
@@ -1082,6 +1085,9 @@ PHPAPI php_stream *_php_stream_fopen(const char *filename, const char *mode, zen
 #else
 	fd = open(realpath, open_flags, 0666);
 #endif
+#ifdef __OS2__
+          setmode(fd, O_BINARY);
+#endif
 	if (fd != -1)	{
 
 		if (options & STREAM_OPEN_FOR_INCLUDE) {
@@ -1246,7 +1252,7 @@ static int php_plain_files_rename(php_stream_wrapper *wrapper, const char *url_f
 			if (php_copy_file(url_from, url_to) == SUCCESS) {
 				if (VCWD_STAT(url_from, &sb) == 0) {
 					success = 1;
-#  if !defined(TSRM_WIN32)
+#  if !defined(TSRM_WIN32) && !defined(TSRM_OS2)
 					/*
 					 * Try to set user and permission info on the target.
 					 * If we're not root, then some of these may fail.
@@ -1572,7 +1578,7 @@ not_relative_path:
 		return php_stream_fopen_rel(filename, mode, opened_path, options);
 	}
 
-#ifdef PHP_WIN32
+#if defined(PHP_WIN32) || defined(PHP_OS2)
 	if (IS_SLASH(filename[0])) {
 		size_t cwd_len;
 		char *cwd;

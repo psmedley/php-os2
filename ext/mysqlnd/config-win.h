@@ -1,19 +1,23 @@
 /* Copyright Abandoned 1996 TCX DataKonsult AB & Monty Program KB & Detron HB
 This file is public domain and comes with NO WARRANTY of any kind */
 
-/* Defines for Win32 to make it compatible for MySQL */
+/* Defines for Win32 and OS/2 to make it compatible for MySQL */
 
 #ifndef _MYSQLND_CONFIG_WIN_H
 #define _MYSQLND_CONFIG_WIN_H
 
+#ifndef __OS2__
 #include <sys/locking.h>
 #include <windows.h>
+#endif
 #include <math.h>			/* Because of rint() */
 #include <fcntl.h>
 #include <io.h>
 #include <malloc.h>
 
+#ifndef __OS2__
 #include <win32/php_stdint.h>
+#endif
 
 #ifndef HAVE_INT8_T
 #define HAVE_INT8_T
@@ -41,6 +45,7 @@ This file is public domain and comes with NO WARRANTY of any kind */
 #endif
 
 
+#ifndef __OS2__
 #ifndef _WIN64
 #ifndef _WIN32
 #define _WIN32				/* Compatible with old source */
@@ -51,6 +56,7 @@ This file is public domain and comes with NO WARRANTY of any kind */
 #endif /* _WIN64 */
 #ifndef __WIN__
 #define __WIN__				/* To make it easier in VC++ */
+#endif
 #endif
 
 /* Type information */

@@ -34,7 +34,7 @@ This file is public domain and comes with NO WARRANTY of any kind */
 #undef __WIN32__
 #endif /* __CYGWIN__ */
 
-#if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(WIN32)
+#if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(WIN32) || defined(__OS2__)
 #  include "ext/mysqlnd/config-win.h"
 #endif /* _WIN32... */
 

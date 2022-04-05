@@ -49,6 +49,10 @@
 # include <sqltypes.h>
 #endif
 
+#ifdef __OS2__
+typedef long            SQLLEN;
+#endif
+
 #if HAVE_SQLUCODE_H
 # include <sqlucode.h>
 #endif

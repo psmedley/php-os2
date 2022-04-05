@@ -107,7 +107,7 @@ PHPAPI int php_exec(int type, char *cmd, zval *array, zval *return_value)
 	sig_handler = signal (SIGCHLD, SIG_DFL);
 #endif
 
-#ifdef PHP_WIN32
+#if defined(PHP_WIN32) || defined(__OS2__)
 	fp = VCWD_POPEN(cmd, "rb");
 #else
 	fp = VCWD_POPEN(cmd, "r");

@@ -333,6 +333,7 @@ int php_do_setsockopt_ipv6_mcast(php_socket *php_sock,
 			return SUCCESS;
 		}
 
+#ifndef __OS2__
 	case IPV6_MULTICAST_IF:
 		if (php_get_if_index_from_zval(arg4, &if_index) == FAILURE) {
 			return FAILURE;
@@ -354,6 +355,7 @@ int php_do_setsockopt_ipv6_mcast(php_socket *php_sock,
 			return FAILURE;
 		}
 		ov = (int) Z_LVAL_P(arg4);
+#endif
 ipv6_loop_hops:
 		opt_ptr = &ov;
 		optlen	= sizeof(ov);
@@ -735,6 +737,8 @@ int php_if_index_to_addr4(unsigned if_index, php_socket *php_sock, struct in_add
 	if (ioctl(php_sock->bsd_socket, SIOCGIFNAME, &if_req) == -1) {
 #elif defined(HAVE_IF_INDEXTONAME)
 	if (if_indextoname(if_index, if_req.ifr_name) == NULL) {
+#elif defined(__OS2__)
+	if (1) {
 #else
 #error Neither SIOCGIFNAME nor if_indextoname are available
 #endif
@@ -815,6 +819,9 @@ int php_add4_to_if_index(struct in_addr *addr, php_socket *php_sock, unsigned *i
 #elif defined(HAVE_IF_NAMETOINDEX)
 			unsigned index_tmp;
 			if ((index_tmp = if_nametoindex(cur_req.ifr_name)) == 0) {
+#elif defined(__OS2__)
+			unsigned index_tmp;
+			if (1) {
 #else
 #error Neither SIOCGIFINDEX nor if_nametoindex are available
 #endif

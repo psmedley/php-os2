@@ -2587,6 +2587,7 @@ void php_module_shutdown(void)
  */
 PHPAPI int php_execute_script(zend_file_handle *primary_file)
 {
+//printf("Entered php_execute_script\n");
 	zend_file_handle *prepend_file_p, *append_file_p;
 	zend_file_handle prepend_file, append_file;
 #if HAVE_BROKEN_GETCWD
@@ -2692,6 +2693,7 @@ PHPAPI int php_execute_script(zend_file_handle *primary_file)
 	}
 	free_alloca(old_cwd, use_heap);
 #endif
+
 	return retval;
 }
 /* }}} */

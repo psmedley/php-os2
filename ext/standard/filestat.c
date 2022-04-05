@@ -40,7 +40,8 @@
 #endif
 
 #ifdef OS2
-#  define INCL_DOS
+//#  define INCL_DOS
+#  define INCL_DOSFILEMGR
 #  include <os2.h>
 #endif
 
@@ -431,7 +432,7 @@ PHP_FUNCTION(chgrp)
 #if HAVE_LCHOWN
 PHP_FUNCTION(lchgrp)
 {
-# if !defined(WINDOWS)
+# if !defined(WINDOWS) /*&& !defined(OS2)*/
 	php_do_chgrp(INTERNAL_FUNCTION_PARAM_PASSTHRU, 1);
 # else
 	RETURN_FALSE;
@@ -567,9 +568,9 @@ PHP_FUNCTION(chown)
 /* {{{ proto bool chown(string filename, mixed user)
    Change file owner */
 #if HAVE_LCHOWN
-PHP_FUNCTION(lchown)
+PHP_FUNCTION(lchown) 
 {
-# if !defined(WINDOWS)
+# if !defined(WINDOWS) /*&& !defined(OS2)*/
 	RETVAL_TRUE;
 	php_do_chown(INTERNAL_FUNCTION_PARAM_PASSTHRU, 1);
 # else

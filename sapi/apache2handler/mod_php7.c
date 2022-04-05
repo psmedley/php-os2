@@ -23,7 +23,11 @@
 #include "php.h"
 #include "php_apache.h"
 
+#ifndef __OS2__
 AP_MODULE_DECLARE_DATA module php7_module = {
+#else
+__declspec(dllexport) module php7_module = {
+#endif
 	STANDARD20_MODULE_STUFF,
 	create_php_config,		/* create per-directory config structure */
 	merge_php_config,		/* merge per-directory config structures */

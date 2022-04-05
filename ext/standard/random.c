@@ -25,6 +25,9 @@
 #include "zend_exceptions.h"
 #include "php_random.h"
 
+#ifdef __OS2__
+#include "php_mt_rand.h"
+#endif
 #ifdef PHP_WIN32
 # include "win32/winutil.h"
 #endif
@@ -85,6 +88,26 @@ PHP_MSHUTDOWN_FUNCTION(random)
 }
 /* }}} */
 
+#ifdef __OS2__
+void os2_randget(char * buffer, int length)
+{
+	unsigned int idx;
+
+	// Fill buffer with as many random ulongs as will fit
+	for (idx = 0; idx < (length & ~3); idx += sizeof(unsigned int))
+		*(unsigned int *)(buffer + idx) = php_mt_rand();
+
+	if (length & 3) {
+		// Fill tail
+		unsigned int ulrandom = php_mt_rand();
+		for (; idx < length; idx++) {
+			buffer[idx] = (char)ulrandom;
+			ulrandom >>= 4;
+		}
+	}
+}
+#endif
+
 /* {{{ php_random_bytes */
 PHPAPI int php_random_bytes(void *bytes, size_t size, zend_bool should_throw)
 {
@@ -96,6 +119,8 @@ PHPAPI int php_random_bytes(void *bytes, size_t size, zend_bool should_throw)
 		}
 		return FAILURE;
 	}
+#elif __OS2__
+	os2_randget(bytes, size);
 #elif HAVE_DECL_ARC4RANDOM_BUF && ((defined(__OpenBSD__) && OpenBSD >= 201405) || (defined(__NetBSD__) && __NetBSD_Version__ >= 700000001))
 	arc4random_buf(bytes, size);
 #else

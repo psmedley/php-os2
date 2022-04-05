@@ -632,7 +632,10 @@ dnl
 dnl Set libtool variable.
 dnl
 AC_DEFUN([PHP_SET_LIBTOOL_VARIABLE],[
-  if test -z "$LIBTOOL"; then
+  if test "$ac_cv_emxos2" = "yes"; then
+    LIBTOOL='build/aplibtool.exe $1'
+    gcc -DUSE_OMF $CFLAGS $CPPFLAGS -o build/aplibtool.exe build/aplibtool.c
+  elif test -z "$LIBTOOL"; then
     LIBTOOL='$(SHELL) $(top_builddir)/libtool $1'
   else
     LIBTOOL="$LIBTOOL $1"
@@ -848,10 +851,10 @@ AC_DEFUN([PHP_SHARED_MODULE],[
   PHP_SUBST($2)
   cat >>Makefile.objects<<EOF
 \$(phplibdir)/$1.$suffix: $3/$1.$suffix
-	\$(LIBTOOL) --mode=install cp $3/$1.$suffix \$(phplibdir)
+	\$(LIBTOOL) --mode=install -module cp $3/$1.$suffix \$(phplibdir)
 
 $3/$1.$suffix: \$($2) \$(translit($1,a-z_-,A-Z__)_SHARED_DEPENDENCIES)
-	\$(LIBTOOL) --mode=link ifelse($4,,[\$(CC)],[\$(CXX)]) \$(COMMON_FLAGS) \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(LDFLAGS) $additional_flags -o [\$]@ -export-dynamic -avoid-version -prefer-pic -module -rpath \$(phplibdir) \$(EXTRA_LDFLAGS) \$($2) \$(translit($1,a-z_-,A-Z__)_SHARED_LIBADD)
+	\$(LIBTOOL) --mode=link ifelse($4,,[\$(CC)],[\$(CXX)]) \$(COMMON_FLAGS) \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(LDFLAGS) $additional_flags -o [\$]@ -export-dynamic -avoid-version -prefer-pic -module -rpath \$(phplibdir) \$(EXTRA_LDFLAGS) libphp7.la \$(EXTRA_LIBS) \$($2) \$(translit($1,a-z_-,A-Z__)_SHARED_LIBADD)
 
 EOF
 ])

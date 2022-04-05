@@ -83,8 +83,8 @@
 
 #include "TSRM.h"
 
-/* Only need mutex for popen() in Windows because it doesn't chdir() on UNIX */
-#if defined(ZEND_WIN32) && defined(ZTS)
+/* Only need mutex for popen() in Windows & OS/2 because it doesn't chdir() on UNIX */
+#if (defined(ZEND_WIN32) || defined(__OS2__)) && defined(ZTS)
 MUTEX_T cwd_mutex;
 #endif
 
@@ -199,7 +199,7 @@ void virtual_cwd_main_cwd_init(uint8_t reinit) /* {{{ */
 	}
 
 	main_cwd_state.cwd_length = strlen(cwd);
-#ifdef ZEND_WIN32
+#if defined(ZEND_WIN32) || defined(__OS2__)
 	if (main_cwd_state.cwd_length >= 2 && cwd[1] == ':') {
 		cwd[0] = toupper(cwd[0]);
 	}
@@ -217,7 +217,7 @@ CWD_API void virtual_cwd_startup(void) /* {{{ */
 	cwd_globals_ctor(&cwd_globals);
 #endif
 
-#if (defined(ZEND_WIN32)) && defined(ZTS)
+#if (defined(ZEND_WIN32) || defined(__OS2__)) && defined(ZTS)
 	cwd_mutex = tsrm_mutex_alloc();
 #endif
 }
@@ -228,7 +228,7 @@ CWD_API void virtual_cwd_shutdown(void) /* {{{ */
 #ifndef ZTS
 	cwd_globals_dtor(&cwd_globals);
 #endif
-#if (defined(ZEND_WIN32)) && defined(ZTS)
+#if (defined(ZEND_WIN32) || defined(__OS2__)) && defined(ZTS)
 	tsrm_mutex_free(cwd_mutex);
 #endif
 
@@ -271,7 +271,7 @@ CWD_API char *virtual_getcwd_ex(size_t *length) /* {{{ */
 		return retval;
 	}
 
-#ifdef ZEND_WIN32
+#if defined(ZEND_WIN32) || defined(__OS2__)
 	/* If we have something like C: */
 	if (state->cwd_length == 2 && state->cwd[state->cwd_length-1] == ':') {
 		char *retval;
@@ -1046,7 +1046,7 @@ CWD_API int virtual_file_ex(cwd_state *state, const char *path, verify_path_func
 		} else {
 			size_t state_cwd_length = state->cwd_length;
 
-#ifdef ZEND_WIN32
+#if defined(ZEND_WIN32) || defined(__OS2__)
 			if (IS_SLASH(path[0])) {
 				if (state->cwd[1] == ':') {
 					/* Copy only the drive name */
@@ -1090,7 +1090,7 @@ CWD_API int virtual_file_ex(cwd_state *state, const char *path, verify_path_func
 			}
 		}
 	} else {
-#ifdef ZEND_WIN32
+#if defined(ZEND_WIN32) || defined(__OS2__)
 		if (path_length > 2 && path[1] == ':' && !IS_SLASH(path[2])) {
 			resolved_path[0] = path[0];
 			resolved_path[1] = ':';
@@ -1102,15 +1102,17 @@ CWD_API int virtual_file_ex(cwd_state *state, const char *path, verify_path_func
 		memcpy(resolved_path, path, path_length + 1);
 	}
 
-#ifdef ZEND_WIN32
+#if defined(ZEND_WIN32) || defined(__OS2__)
 	if (memchr(resolved_path, '*', path_length) ||
 		memchr(resolved_path, '?', path_length)) {
+#ifdef ZEND_WIN32
 		SET_ERRNO_FROM_WIN32_CODE(ERROR_INVALID_NAME);
+#endif
 		return 1;
 	}
 #endif
 
-#ifdef ZEND_WIN32
+#if defined(ZEND_WIN32) || defined(__OS2__)
 	if (IS_UNC_PATH(resolved_path, path_length)) {
 		/* skip UNC name */
 		resolved_path[0] = DEFAULT_SLASH;
@@ -1161,7 +1163,7 @@ CWD_API int virtual_file_ex(cwd_state *state, const char *path, verify_path_func
 	}
 	resolved_path[path_length] = 0;
 
-#ifdef ZEND_WIN32
+#if defined(ZEND_WIN32) || defined(__OS2__)
 verify:
 #endif
 	if (verify_path) {
@@ -1513,6 +1515,10 @@ CWD_API int virtual_rename(const char *oldname, const char *newname) /* {{{ */
 	/* MoveFileEx returns 0 on failure, other way 'round for this function */
 	retval = php_win32_ioutil_rename(oldname, newname);
 #else
+#ifdef __OS2__
+/* rename of OS/2 also fails if newname already exists, unlink it first */
+	unlink(newname);
+#endif
 	retval = rename(oldname, newname);
 #endif
 

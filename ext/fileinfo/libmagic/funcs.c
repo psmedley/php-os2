@@ -243,7 +243,7 @@ file_buffer(struct magic_set *ms, php_stream *stream, zend_stat_t *st,
 		    &code, &code_mime, &ftype);
 	}
 
-#ifdef __EMX__
+#if defined(__EMX__) && !defined(__KLIBC__)
 	if ((ms->flags & MAGIC_NO_CHECK_APPTYPE) == 0 && inname) {
 		m = file_os2_apptype(ms, inname, &b);
 		if ((ms->flags & MAGIC_DEBUG) != 0)

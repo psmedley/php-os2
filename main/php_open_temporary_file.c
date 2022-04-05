@@ -101,7 +101,7 @@ static int php_do_open_temporary_file(const char *path, const char *pfx, zend_st
 	int fd = -1;
 #ifndef HAVE_MKSTEMP
 	int open_flags = O_CREAT | O_TRUNC | O_RDWR
-#ifdef PHP_WIN32
+#if (defined(PHP_WIN32)||defined(__OS2__))
 		| _O_BINARY
 #endif
 		;
@@ -179,6 +179,9 @@ static int php_do_open_temporary_file(const char *path, const char *pfx, zend_st
 	free(pfxw);
 #elif defined(HAVE_MKSTEMP)
 	fd = mkstemp(opened_path);
+#ifdef __OS2__
+          setmode(fd, O_BINARY);
+#endif /* if PHP_OS2 */
 #else
 	if (mktemp(opened_path)) {
 		fd = VCWD_OPEN(opened_path, open_flags);

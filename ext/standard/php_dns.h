@@ -50,7 +50,7 @@
 
 #endif
 
-#if defined(HAVE_DNS_SEARCH) || defined(HAVE_RES_NSEARCH) || defined(HAVE_RES_SEARCH)
+#if (defined(HAVE_DNS_SEARCH) || defined(HAVE_RES_NSEARCH) || defined(HAVE_RES_SEARCH))
 #define HAVE_DNS_SEARCH_FUNC 1
 #endif
 

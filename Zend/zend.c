@@ -1693,6 +1693,7 @@ ZEND_API int zend_execute_scripts(int type, zval *retval, int file_count, ...) /
 			return FAILURE;
 		}
 	}
+
 	va_end(files);
 
 	return SUCCESS;

@@ -92,12 +92,13 @@ SAPI_API void sapi_startup(sapi_module_struct *sf)
 
 SAPI_API void sapi_shutdown(void)
 {
+#ifndef __OS2__
 #ifdef ZTS
 	ts_free_id(sapi_globals_id);
 #else
 	sapi_globals_dtor(&sapi_globals);
 #endif
-
+#endif /* __OS2__ */
 	reentrancy_shutdown();
 
 #ifdef PHP_WIN32

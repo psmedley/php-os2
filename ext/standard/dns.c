@@ -371,7 +371,7 @@ PHP_FUNCTION(dns_check_record)
 	struct sockaddr_storage from;
 	uint32_t fromsize = sizeof(from);
 	dns_handle_t handle;
-#elif defined(HAVE_RES_NSEARCH)
+#elif defined(HAVE_RES_NSEARCH) && !defined(__OS2__)
 	struct __res_state state;
 	struct __res_state *handle = &state;
 #endif
@@ -412,7 +412,7 @@ PHP_FUNCTION(dns_check_record)
 	if (handle == NULL) {
 		RETURN_FALSE;
 	}
-#elif defined(HAVE_RES_NSEARCH)
+#elif defined(HAVE_RES_NSEARCH) && !defined(__OS2__)
     memset(&state, 0, sizeof(state));
     if (res_ninit(handle)) {
 			RETURN_FALSE;
@@ -813,7 +813,7 @@ PHP_FUNCTION(dns_get_record)
 	struct sockaddr_storage from;
 	uint32_t fromsize = sizeof(from);
 	dns_handle_t handle;
-#elif defined(HAVE_RES_NSEARCH)
+#elif defined(HAVE_RES_NSEARCH) && !defined(__OS2__)
 	struct __res_state state;
 	struct __res_state *handle = &state;
 #endif
@@ -945,7 +945,7 @@ PHP_FUNCTION(dns_get_record)
 				zend_array_destroy(Z_ARR_P(return_value));
 				RETURN_FALSE;
 			}
-#elif defined(HAVE_RES_NSEARCH)
+#elif defined(HAVE_RES_NSEARCH) && !defined(__OS2__)
 		    memset(&state, 0, sizeof(state));
 		    if (res_ninit(handle)) {
 		    	zend_array_destroy(Z_ARR_P(return_value));
@@ -1059,7 +1059,7 @@ PHP_FUNCTION(dns_get_mx)
 	struct sockaddr_storage from;
 	uint32_t fromsize = sizeof(from);
 	dns_handle_t handle;
-#elif defined(HAVE_RES_NSEARCH)
+#elif defined(HAVE_RES_NSEARCH) && !defined(__OS2__)
 	struct __res_state state;
 	struct __res_state *handle = &state;
 #endif
@@ -1088,7 +1088,7 @@ PHP_FUNCTION(dns_get_mx)
 	if (handle == NULL) {
 		RETURN_FALSE;
 	}
-#elif defined(HAVE_RES_NSEARCH)
+#elif defined(HAVE_RES_NSEARCH) && !defined(__OS2__)
     memset(&state, 0, sizeof(state));
     if (res_ninit(handle)) {
 			RETURN_FALSE;

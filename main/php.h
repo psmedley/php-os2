@@ -66,6 +66,14 @@
 #	endif
 #	define PHP_DIR_SEPARATOR '\\'
 #	define PHP_EOL "\r\n"
+#elif defined(__OS2__x)
+#	ifdef PHP_EXPORTS
+#		define PHPAPI __declspec(dllexport)
+#	else
+#		define PHPAPI __declspec(dllimport)
+#	endif
+#	define PHP_DIR_SEPARATOR '/'
+#	define PHP_EOL "\r\n"
 #else
 #	if defined(__GNUC__) && __GNUC__ >= 4
 #		define PHPAPI __attribute__ ((visibility("default")))
@@ -96,6 +104,12 @@ typedef int uid_t;
 typedef int gid_t;
 typedef char * caddr_t;
 typedef int pid_t;
+
+#ifdef __EMX__
+#define PHP_OS2 1
+#define _O_TEXT O_TEXT
+#define _O_BINARY O_BINARY
+#endif
 
 # ifndef PHP_DEBUG
 #  ifdef inline
@@ -196,6 +210,7 @@ END_EXTERN_C()
 #endif
 
 #ifndef HAVE_SOCKLEN_T
+#define HAVE_SOCKLEN_T
 # ifdef PHP_WIN32
 typedef int socklen_t;
 # else

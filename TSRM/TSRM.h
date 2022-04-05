@@ -22,6 +22,19 @@
 
 #include "main/php_stdint.h"
 
+#ifdef __KLIBC__
+#ifndef PTHREADS
+#define PTHREADS
+#endif
+# define TSRM_OS2
+# ifndef OS2
+#  define OS2
+# endif
+#ifdef __cplusplus
+ extern "C" void* os2_get_tsrm_ls_cache();
+#endif
+#endif
+
 #ifdef TSRM_WIN32
 #	ifdef TSRM_EXPORTS
 #		define TSRM_API __declspec(dllexport)
@@ -50,6 +63,14 @@ typedef uintptr_t tsrm_uintptr_t;
 # include <pth.h>
 #elif defined(PTHREADS)
 # include <pthread.h>
+#elif defined(TSRM_OS2) && !defined(PTHREADS)
+//# define INCL_DOS
+# define INCL_DOSPROCESS
+# define INCL_DOSSEMAPHORES
+# define INCL_DOSMISC
+# define INCL_DOSMODULEMGR
+# include <os2.h>
+# include <stddef.h>
 #elif defined(TSRM_ST)
 # include <st.h>
 #endif
@@ -74,6 +95,9 @@ typedef int ts_rsrc_id;
 #elif defined(PTHREADS)
 # define THREAD_T pthread_t
 # define MUTEX_T pthread_mutex_t *
+#elif defined(TSRM_OS2) && !defined(PTHREADS)
+# define THREAD_T TID
+# define MUTEX_T HMTX
 #elif defined(TSRM_ST)
 # define THREAD_T st_thread_t
 # define MUTEX_T st_mutex_t
@@ -171,9 +195,17 @@ TSRM_API const char *tsrm_api_name(void);
 #define TSRMG_FAST_BULK(offset, type)	((type) (((char*) tsrm_get_ls_cache())+(offset)))
 
 #define TSRMG_STATIC(id, type, element)	(TSRMG_BULK_STATIC(id, type)->element)
+#ifndef __OS2__
 #define TSRMG_BULK_STATIC(id, type)	((type) (*((void ***) TSRMLS_CACHE))[TSRM_UNSHUFFLE_RSRC_ID(id)])
+#else
+#define TSRMG_BULK_STATIC(id, type)	((type) (*((void ***) os2_get_tsrm_ls_cache()))[TSRM_UNSHUFFLE_RSRC_ID(id)])
+#endif
 #define TSRMG_FAST_STATIC(offset, type, element)	(TSRMG_FAST_BULK_STATIC(offset, type)->element)
+#ifndef __OS2__
 #define TSRMG_FAST_BULK_STATIC(offset, type)	((type) (((char*) TSRMLS_CACHE)+(offset)))
+#else
+#define TSRMG_FAST_BULK_STATIC(offset, type)	((type) (((char*) os2_get_tsrm_ls_cache())+(offset)))
+#endif
 #define TSRMLS_CACHE_EXTERN() extern TSRM_TLS void *TSRMLS_CACHE;
 #define TSRMLS_CACHE_DEFINE() TSRM_TLS void *TSRMLS_CACHE = NULL;
 #define TSRMLS_CACHE_UPDATE() TSRMLS_CACHE = tsrm_get_ls_cache()

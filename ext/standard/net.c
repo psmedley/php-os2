@@ -51,7 +51,7 @@ PHPAPI zend_string* php_inet_ntop(const struct sockaddr *addr) {
 	/* Prefer inet_ntop() as it's more task-specific and doesn't have to be demangled */
 #if HAVE_INET_NTOP
 	switch (addr->sa_family) {
-#ifdef AF_INET6
+#if defined( AF_INET6 ) && !defined(__OS2__)
 		case AF_INET6: {
 			zend_string *ret = zend_string_alloc(INET6_ADDRSTRLEN, 0);
 			if (inet_ntop(AF_INET6, &(((struct sockaddr_in6*)addr)->sin6_addr), ZSTR_VAL(ret), INET6_ADDRSTRLEN)) {
@@ -76,7 +76,7 @@ PHPAPI zend_string* php_inet_ntop(const struct sockaddr *addr) {
 
 	/* Fallback on getnameinfo() */
 	switch (addr->sa_family) {
-#ifdef AF_INET6
+#if defined( AF_INET6 ) && !defined(__OS2__)
 		case AF_INET6:
 			addrlen = sizeof(struct sockaddr_in6);
 			/* fallthrough */
@@ -235,6 +235,7 @@ PHP_FUNCTION(net_get_interfaces) {
 					                     (struct sockaddr*)&sin_mask, NULL, NULL);
 					break;
 				}
+#ifndef __OS2__
 				case AF_INET6: {
 					ULONG i, j;
 					struct sockaddr_in6 sin6_mask;
@@ -250,6 +251,7 @@ PHP_FUNCTION(net_get_interfaces) {
 										 (struct sockaddr*)&sin6_mask, NULL, NULL);
 					break;
 				}
+#endif
 			}
 		}
 		add_assoc_zval(&iface, "unicast", &unicast);

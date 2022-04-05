@@ -76,11 +76,13 @@ ZEND_API void zend_stream_init_filename(zend_file_handle *handle, const char *fi
 ZEND_API int zend_stream_open(const char *filename, zend_file_handle *handle) /* {{{ */
 {
 	zend_string *opened_path;
+
 	if (zend_stream_open_function) {
 		return zend_stream_open_function(filename, handle);
 	}
 
 	zend_stream_init_fp(handle, zend_fopen(filename, &opened_path), filename);
+
 	handle->opened_path = opened_path;
 	return handle->handle.fp ? SUCCESS : FAILURE;
 } /* }}} */

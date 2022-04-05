@@ -59,6 +59,9 @@
 #  include <net/if.h>
 # endif
 #endif
+#ifdef __OS2__
+#include <libcx/net.h>
+#endif
 
 #include <stddef.h>
 

@@ -99,6 +99,11 @@ if test "$PHP_APXS2" != "no"; then
     SAPI_SHARED=libs/libphp7.so
     INSTALL_IT="$INSTALL_IT $SAPI_SHARED"
     ;;
+  *os2*)
+    EXTRA_LDFLAGS="$EXTRA_LDFLAGS libphp7.la \$(EXTRA_LIBS)"
+    PHP_SELECT_SAPI(apache2handler, shared, mod_php7.c sapi_apache2.c apache_config.c php_functions.c, $APACHE_CFLAGS)
+    INSTALL_IT="$INSTALL_IT $SAPI_LIBTOOL"
+    ;;
   *)
     PHP_SELECT_SAPI(apache2handler, shared, mod_php7.c sapi_apache2.c apache_config.c php_functions.c, $APACHE_CFLAGS)
     INSTALL_IT="$INSTALL_IT $SAPI_LIBTOOL"

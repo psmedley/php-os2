@@ -491,6 +491,16 @@ int php_init_config(void)
 		free_ini_search_path = 1;
 		php_ini_search_path[0] = 0;
 
+#if defined OS2
+		default_location = getenv("ETC");
+		if (default_location) {
+			if (*php_ini_search_path) {
+				strcat(php_ini_search_path, paths_separator);
+			}
+			strcat(php_ini_search_path, default_location);
+                }
+#endif
+
 		/* Add environment location */
 		if (env_location[0]) {
 			if (*php_ini_search_path) {

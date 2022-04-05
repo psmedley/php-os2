@@ -40,6 +40,11 @@
 #include <sys/socket.h>
 #endif
 
+#ifdef __OS2__
+#include <unidef.h> /* for TRUE / FALSE */
+#include <sys/filio.h> /* for FIONBIO */
+#endif
+
 #ifndef _FCNTL_H
 #include <fcntl.h>
 #endif
@@ -288,6 +293,12 @@ typedef u_long php_non_blocking_flags_t;
      save = TRUE; ioctlsocket(sock, FIONBIO, &save)
 #  define RESTORE_SOCKET_BLOCKING_MODE(sock, save) \
 	 ioctlsocket(sock, FIONBIO, &save)
+# elif defined __KLIBC__
+typedef u_long php_non_blocking_flags_t;
+#  define SET_SOCKET_BLOCKING_MODE(sock, save) \
+     save = TRUE; os2_ioctl(sock, FIONBIO, (char) &save, sizeof(save))
+#  define RESTORE_SOCKET_BLOCKING_MODE(sock, save) \
+	 os2_ioctl(sock, FIONBIO, (char) &save, sizeof(save))
 #else
 typedef int php_non_blocking_flags_t;
 #  define SET_SOCKET_BLOCKING_MODE(sock, save) \

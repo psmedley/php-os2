@@ -85,6 +85,8 @@ if test "$TSRM_PTH" != "no"; then
   TSRM_CHECK_PTH($TSRM_PTH)
 elif test "$TSRM_ST" != "no"; then
   TSRM_CHECK_ST($TSRM_ST)
+elif test "$ac_cv_emxos2" = "yes"; then
+  AC_DEFINE(PTHREADS, 1, Whether to use Pthreads)
 elif test "$TSRM_PTHREADS" != "no"; then
   TSRM_CHECK_PTHREADS
 fi

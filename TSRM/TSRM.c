@@ -24,6 +24,10 @@
 # define TSRM_ASSERT
 #endif
 
+#ifdef TSRM_OS2
+#include "zend.h"
+#endif
+
 typedef struct _tsrm_tls_entry tsrm_tls_entry;
 
 /* TSRMLS_CACHE_DEFINE; is already done in Zend, this is being always compiled statically. */
@@ -123,6 +127,13 @@ static DWORD tls_key;
 # define tsrm_tls_set(what)		TlsSetValue(tls_key, (void*)(what))
 # define tsrm_tls_get()			TlsGetValue(tls_key)
 
+#elif defined(TSRM_OS2) && !defined(PTHREADS)
+static ULONG *tls_key;
+//# define tsrm_tls_set(what)		*tls_key = (ULONG)*thread_resources_ptr;
+# define tsrm_tls_set(what)		*tls_key = (ULONG*)(what);
+# define tsrm_tls_get()			(tsrm_tls_entry *)*tls_key;
+
+
 #else
 # define tsrm_tls_set(what)
 # define tsrm_tls_get()			NULL
@@ -145,6 +156,12 @@ TSRM_API int tsrm_startup(int expected_threads, int expected_resources, int debu
 	st_key_create(&tls_key, 0);
 #elif defined(TSRM_WIN32)
 	tls_key = TlsAlloc();
+#elif defined(TSRM_OS2) && !defined(PTHREADS)
+	if (expected_threads > 1) {
+		DosAllocThreadLocalMemory(1, &tls_key);
+	} else {
+		tls_key = calloc(1, sizeof(*tls_key));
+	}
 #endif
 
 	/* ensure singleton */
@@ -239,6 +256,12 @@ TSRM_API void tsrm_shutdown(void)
 	pthread_key_delete(tls_key);
 #elif defined(TSRM_WIN32)
 	TlsFree(tls_key);
+#elif defined(TSRM_OS2) && !defined(PTHREADS)
+	if (tsrm_tls_table_size > 1) {
+		DosFreeThreadLocalMemory(tls_key);
+	} else {
+		free(tls_key);
+	}
 #endif
 	if (tsrm_shutdown_handler) {
 		tsrm_shutdown_handler();
@@ -530,7 +553,11 @@ void *tsrm_set_interpreter_context(void *new_ctx)
 	 * it with the new context, protected by mutex where/if appropriate */
 
 	/* Set thread local storage to this new thread resources structure */
-	tsrm_tls_set(new_ctx);
+#ifndef __INNOTEK_LIBC__xx
+ 	tsrm_tls_set(new_ctx);
+#else
+        *tls_key = (ULONG)new_ctx;
+#endif  
 
 	/* return old context, so caller can restore it when they're done */
 	return current;
@@ -589,7 +616,12 @@ void ts_free_thread(void)
 			} else {
 				tsrm_tls_table[hash_value] = thread_resources->next;
 			}
-			tsrm_tls_set(0);
+#ifndef __INNOTEK_LIBC__xx
+ 			tsrm_tls_set(0);
+#else
+                        *tls_key = 0;
+#endif
+
 			free(thread_resources);
 			break;
 		}
@@ -606,7 +638,6 @@ void ts_free_id(ts_rsrc_id id)
 {/*{{{*/
 	int i;
 	int j = TSRM_UNSHUFFLE_RSRC_ID(id);
-
 	tsrm_mutex_lock(tsmm_mutex);
 
 	TSRM_ERROR((TSRM_ERROR_LEVEL_CORE, "Freeing resource id %d", id));
@@ -614,7 +645,6 @@ void ts_free_id(ts_rsrc_id id)
 	if (tsrm_tls_table) {
 		for (i=0; i<tsrm_tls_table_size; i++) {
 			tsrm_tls_entry *p = tsrm_tls_table[i];
-
 			while (p) {
 				if (p->count > j && p->storage[j]) {
 					if (resource_types_table && resource_types_table[j].dtor) {
@@ -630,9 +660,7 @@ void ts_free_id(ts_rsrc_id id)
 		}
 	}
 	resource_types_table[j].done = 1;
-
 	tsrm_mutex_unlock(tsmm_mutex);
-
 	TSRM_ERROR((TSRM_ERROR_LEVEL_CORE, "Successfully freed resource id %d", id));
 }/*}}}*/
 
@@ -654,6 +682,8 @@ TSRM_API THREAD_T tsrm_thread_id(void)
 	return pthread_self();
 #elif defined(TSRM_ST)
 	return st_thread_self();
+#elif defined(TSRM_OS2) && !defined(PTHREADS)
+	return *_threadid;
 #endif
 }/*}}}*/
 
@@ -695,6 +725,8 @@ TSRM_API void tsrm_mutex_free(MUTEX_T mutexp)
 		free(mutexp);
 #elif defined(TSRM_ST)
 		st_mutex_destroy(mutexp);
+#elif defined(TSRM_OS2) && !defined(PTHREADS)
+		DosCloseMutexSem(mutexp);
 #endif
 	}
 #ifdef THR_DEBUG
@@ -722,6 +754,8 @@ TSRM_API int tsrm_mutex_lock(MUTEX_T mutexp)
 	return pthread_mutex_lock(mutexp);
 #elif defined(TSRM_ST)
 	return st_mutex_lock(mutexp);
+#elif defined(TSRM_OS2) && !defined(PTHREADS)
+	return DosReleaseMutexSem(mutexp);
 #endif
 }/*}}}*/
 
@@ -866,5 +900,15 @@ TSRM_API const char *tsrm_api_name(void)
 	return "Unknown";
 #endif
 }/*}}}*/
+
+#ifdef __OS2__
+TSRM_API void os2_tsrmls_cache_update() {
+  ZEND_TSRMLS_CACHE_UPDATE();
+}
+
+void* os2_get_tsrm_ls_cache() {
+  return _tsrm_ls_cache;
+}
+#endif
 
 #endif /* ZTS */

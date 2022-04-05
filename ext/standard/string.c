@@ -1542,7 +1542,7 @@ PHPAPI zend_string *php_basename(const char *s, size_t len, char *suffix, size_t
 			case 0:
 				goto quit_loop;
 			case 1:
-#if defined(PHP_WIN32)
+#if defined(PHP_WIN32) || defined (OS2) 
 				if (*c == '/' || *c == '\\') {
 #else
 				if (*c == '/') {

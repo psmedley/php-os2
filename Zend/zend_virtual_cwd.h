@@ -86,6 +86,29 @@ typedef unsigned short mode_t;
 #define IS_ABSOLUTE_PATH(path, len) \
 	(len >= 2 && (/* is local */isalpha(path[0]) && path[1] == ':' || /* is UNC */IS_SLASH(path[0]) && IS_SLASH(path[1])))
 
+#elif defined(__OS2__)
+
+#ifdef HAVE_DIRENT_H
+#include <dirent.h>
+#endif
+
+#ifndef __KLIBC__
+/* Defined in tsrm_virtual_cwd.c */
+char *realpath(const char *path, char resolved_path[]);
+#define HAVE_REALPATH 1
+#endif
+
+#define DEFAULT_SLASH '\\'
+#define DEFAULT_DIR_SEPARATOR	';'
+#define IS_SLASH(c)	((c) == '/' || (c) == '\\')
+#define IS_SLASH_P(c)	(*(c) == '/' || *(c) == '\\')
+#define COPY_WHEN_ABSOLUTE(path) (IS_SLASH(path[0]) ? 0 : 2)
+#define IS_ABSOLUTE_PATH(path, len) \
+	(len >= 2 && (/* is local */isalpha(path[0]) && path[1] == ':' || /* is UNC */IS_SLASH(path[0]) && IS_SLASH(path[1])))
+#define IS_UNC_PATH(path, len) \
+	(len >= 2 && IS_SLASH(path[0]) && IS_SLASH(path[1]))
+
+
 #else
 #ifdef HAVE_DIRENT_H
 #include <dirent.h>

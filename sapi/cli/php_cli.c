@@ -1220,6 +1220,8 @@ int main(int argc, char *argv[])
 	php_tsrm_startup();
 # ifdef PHP_WIN32
 	ZEND_TSRMLS_CACHE_UPDATE();
+# elif defined(__OS2__)
+	os2_tsrmls_cache_update();
 # endif
 #endif
 
@@ -1230,6 +1232,16 @@ int main(int argc, char *argv[])
 	setmode(_fileno(stdin), O_BINARY);		/* make the stdio mode be binary */
 	setmode(_fileno(stdout), O_BINARY);		/* make the stdio mode be binary */
 	setmode(_fileno(stderr), O_BINARY);		/* make the stdio mode be binary */
+#endif
+
+#ifdef PHP_OS2
+	if (!isatty(fileno(stdin))) {
+		_fsetmode(stdin,  "b");
+	}
+
+	if (!isatty(fileno(stdout))) {
+		_fsetmode(stdout, "b");
+	}
 #endif
 
 	while ((c = php_getopt(argc, argv, OPTIONS, &php_optarg, &php_optind, 1, 2))!=-1) {

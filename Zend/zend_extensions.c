@@ -329,3 +329,74 @@ ZEND_API size_t zend_extensions_op_array_persist(zend_op_array *op_array, void *
 	}
 	return 0;
 }
+
+#ifdef OS2
+//# define INCL_DOS
+//# define INCL_DOSMISC
+//# define INCL_DOSMODULEMGR
+#define INCL_DOS
+#define INCL_DOSERRORS
+#include <os2.h>
+static char errormodule[260];
+static ULONG errorcode;
+
+DL_HANDLE zend_os2_load_module(char *libname)
+{
+	DL_HANDLE handle;
+
+	errorcode = DosLoadModule(errormodule, sizeof(errormodule), libname, &handle);
+
+	if (errorcode == 0) {
+		return handle;
+	}
+
+	return 0;
+}
+
+void *zend_os2_query_symbol(DL_HANDLE handle, const char *sym)
+{
+	PFN func;
+
+	if (DosQueryProcAddr(handle, 0, sym, &func) == 0) {
+		return func;
+	}
+
+	return NULL;
+}
+
+const char *zend_os2_module_error()
+{
+	static char result[1024];
+	unsigned char message[1024];
+	ULONG len;
+	char *pos;
+	int c;
+
+	if (DosGetMessage(NULL, 0, message, sizeof(message), errorcode,
+					  "OSO001.MSG", &len) == 0) {
+		len--;
+		message[len] = 0;
+		pos = result;
+
+		if (len >= sizeof(result))
+		  len = sizeof(result-1);
+
+		for (c=0; c<len; c++) {
+		/* skip multiple whitespace */
+			while (isspace(message[c]) && isspace(message[c+1]))
+				c++;
+			*(pos++) = isspace(message[c]) ? ' ' : message[c];
+		}
+
+		*pos = 0;
+	} 
+	else {
+		sprintf(result, "OS/2 error %d", errorcode);
+	}
+
+	strcat(message, " (");
+	strcat(message, errormodule);
+	strcat(message, ")");
+	return result;
+}
+#endif

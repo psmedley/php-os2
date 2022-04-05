@@ -453,7 +453,7 @@ PHP_FUNCTION(glob)
 		if (!result) {
 			cwd[0] = '\0';
 		}
-#ifdef PHP_WIN32
+#if defined(PHP_WIN32)
 		if (IS_SLASH(*pattern)) {
 			cwd[2] = '\0';
 		}
@@ -467,6 +467,15 @@ PHP_FUNCTION(glob)
 
 
 	memset(&globbuf, 0, sizeof(glob_t));
+#if defined(PHP_OS2)
+/* Glob doesn't work from Apache2 if backslash is used - convert any \ to / */
+ 	char	   *p;
+ 	for (p = pattern; *p; p++)
+ 	{
+ 		if (*p == '\\')
+ 			*p = '/';
+ 	}
+#endif
 	globbuf.gl_offs = 0;
 	if (0 != (ret = glob(pattern, flags & GLOB_FLAGMASK, NULL, &globbuf))) {
 #ifdef GLOB_NOMATCH

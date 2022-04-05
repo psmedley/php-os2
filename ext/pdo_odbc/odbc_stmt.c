@@ -27,6 +27,9 @@
 #include "pdo/php_pdo_driver.h"
 #include "php_pdo_odbc.h"
 #include "php_pdo_odbc_int.h"
+#ifdef __OS2__
+#define SQLULEN unsigned long
+#endif
 
 enum pdo_odbc_conv_result {
 	PDO_ODBC_CONV_NOT_REQUIRED,

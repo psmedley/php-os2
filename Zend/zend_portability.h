@@ -36,7 +36,7 @@
 #ifdef ZEND_WIN32
 # include "zend_config.w32.h"
 # define ZEND_PATHS_SEPARATOR		';'
-#elif defined(__riscos__)
+#elif defined(__riscos__) || defined(__EMX__)
 # include <zend_config.h>
 # define ZEND_PATHS_SEPARATOR		';'
 #else
@@ -167,6 +167,22 @@
 # define DL_UNLOAD					FreeLibrary
 # define DL_HANDLE					HMODULE
 # define ZEND_EXTENSIONS_SUPPORT	1
+#elif defined(__OS2__)
+//# define INCL_DOSMODULEMGR
+//# define INCL_DOSMISC
+# define INCL_DOS
+# include <os2.h>
+# define DL_LOAD(libname)			zend_os2_load_module(libname)
+# define DL_UNLOAD(handle)			DosFreeModule(handle)
+# define DL_FETCH_SYMBOL(h,s)		zend_os2_query_symbol(h,s)
+# define DL_ERROR					zend_os2_module_error
+# define DL_HANDLE					HMODULE
+# define ZEND_EXTENSIONS_SUPPORT	1
+DL_HANDLE zend_os2_load_module(char *libname);
+void *zend_os2_query_symbol(DL_HANDLE handle, const char *sym);
+const char *zend_os2_module_error();
+//#define strcasecmp(s1, s2) stricmp(s1, s2)
+//#define strncasecmp(s1, s2, n) strnicmp(s1, s2, n)
 #else
 # define DL_HANDLE					void *
 # define ZEND_EXTENSIONS_SUPPORT	0

@@ -33,7 +33,7 @@ FILE_RCSID("@(#)$File: apptype.c,v 1.14 2018/09/09 20:33:28 christos Exp $")
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef __EMX__
+#if defined(__EMX__) && !defined(__KLIBC__)
 #include <io.h>
 #define INCL_DOSSESMGR
 #define INCL_DOSERRORS

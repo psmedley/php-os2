@@ -40,7 +40,7 @@
 #include "util_script.h"
 #include "http_core.h"
 #include "ap_mpm.h"
-#ifndef PHP_WIN32
+#if !defined(PHP_WIN32) && !defined(__OS2__)
 #include "unixd.h"
 #endif
 
@@ -369,7 +369,7 @@ PHP_MINFO_FUNCTION(apache)
 	int n, max_requests;
 	char *p;
 	server_rec *serv = ((php_struct *) SG(server_context))->r->server;
-#ifndef PHP_WIN32
+#if !defined(PHP_WIN32) && !defined(__OS2__)
 # if MODULE_MAGIC_NUMBER_MAJOR >= 20081201
 	AP_DECLARE_DATA extern unixd_config_rec ap_unixd_config;
 # else
@@ -408,7 +408,7 @@ PHP_MINFO_FUNCTION(apache)
 	snprintf(tmp, sizeof(tmp), "%s:%u", serv->server_hostname, serv->port);
 	php_info_print_table_row(2, "Hostname:Port", tmp);
 
-#ifndef PHP_WIN32
+#if !defined(PHP_WIN32) && !defined(__OS2__)
 #if MODULE_MAGIC_NUMBER_MAJOR >= 20081201
 	snprintf(tmp, sizeof(tmp), "%s(%d)/%d", ap_unixd_config.user_name, ap_unixd_config.user_id, ap_unixd_config.group_id);
 #else

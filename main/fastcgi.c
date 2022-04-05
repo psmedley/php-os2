@@ -87,7 +87,12 @@ static int is_impersonate = 0;
 #define INADDR_NONE ((unsigned long) -1)
 #endif
 
+#ifdef __OS2__
+#define INET6_ADDRSTRLEN (48)
+#endif
+
 # ifndef HAVE_SOCKLEN_T
+#define HAVE_SOCKLEN_T
 	typedef unsigned int socklen_t;
 # endif
 
@@ -241,7 +246,9 @@ typedef union _sa_t {
 	struct sockaddr     sa;
 	struct sockaddr_un  sa_unix;
 	struct sockaddr_in  sa_inet;
+#ifdef HAVE_IPV6
 	struct sockaddr_in6 sa_inet6;
+#endif
 } sa_t;
 
 static HashTable fcgi_mgmt_vars;

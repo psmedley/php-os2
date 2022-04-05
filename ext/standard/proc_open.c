@@ -383,6 +383,9 @@ static inline HANDLE dup_fd_as_handle(int fd)
 # define close_descriptor(fd)	close(fd)
 #endif
 
+#ifdef __OS2__
+# define pipe(pair) socketpair(AF_UNIX, SOCK_STREAM, 0, pair)
+#endif
 #define DESC_PIPE		1
 #define DESC_FILE		2
 #define DESC_REDIRECT	3
@@ -711,7 +714,7 @@ PHP_FUNCTION(proc_open)
 				descriptors[ndesc].parentend = dup_handle(descriptors[ndesc].parentend, FALSE, TRUE);
 #endif
 				descriptors[ndesc].mode_flags = descriptors[ndesc].mode & DESC_PARENT_MODE_WRITE ? O_WRONLY : O_RDONLY;
-#ifdef PHP_WIN32
+#if defined(PHP_WIN32) || defined(__OS2__)
 				if (Z_STRLEN_P(zmode) >= 2 && Z_STRVAL_P(zmode)[1] == 'b')
 					descriptors[ndesc].mode_flags |= O_BINARY;
 #endif
