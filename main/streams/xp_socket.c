@@ -164,6 +164,10 @@ static ssize_t php_sockop_read(php_stream *stream, char *buf, size_t count)
 			return 0;
 	}
 
+#ifdef __OS2__
+	memset(buf,  0, sizeof(buf)); // Fix issues with recv failing
+#endif
+
 	nr_bytes = recv(sock->socket, buf, XP_SOCK_BUF_SIZE(count), (sock->is_blocked && sock->timeout.tv_sec != -1) ? MSG_DONTWAIT : 0);
 	err = php_socket_errno();
 
