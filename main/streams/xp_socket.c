@@ -301,6 +301,9 @@ static inline int sock_recvfrom(php_netstream_data_t *sock, char *buf, size_t bu
 			}
 		}
 	} else {
+#ifdef __OS2__
+	memset(buf,  0, sizeof(buf)); // Fix issues with recv failing
+#endif
 		ret = recv(sock->socket, buf, XP_SOCK_BUF_SIZE(buflen), flags);
 		ret = (ret == SOCK_CONN_ERR) ? -1 : ret;
 	}
@@ -347,6 +350,9 @@ static int php_sockop_set_option(php_stream *stream, int option, int value, void
 #endif
 					int err;
 
+#ifdef __OS2__
+	memset(buf,  0, sizeof(buf)); // Fix issues with recv failing
+#endif
 					ret = recv(sock->socket, &buf, sizeof(buf), MSG_PEEK);
 					err = php_socket_errno();
 					if (0 == ret || /* the counterpart did properly shutdown*/
