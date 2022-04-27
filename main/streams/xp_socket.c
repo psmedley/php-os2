@@ -165,7 +165,7 @@ static ssize_t php_sockop_read(php_stream *stream, char *buf, size_t count)
 	}
 
 #ifdef __OS2__
-	memset(buf,  0, sizeof(buf)); // Fix issues with recv failing
+	memset(buf,  0, count); // Fix issues with recv failing
 #endif
 
 	nr_bytes = recv(sock->socket, buf, XP_SOCK_BUF_SIZE(count), (sock->is_blocked && sock->timeout.tv_sec != -1) ? MSG_DONTWAIT : 0);
@@ -302,7 +302,7 @@ static inline int sock_recvfrom(php_netstream_data_t *sock, char *buf, size_t bu
 		}
 	} else {
 #ifdef __OS2__
-	memset(buf,  0, sizeof(buf)); // Fix issues with recv failing
+	memset(buf,  0, buflen); // Fix issues with recv failing
 #endif
 		ret = recv(sock->socket, buf, XP_SOCK_BUF_SIZE(buflen), flags);
 		ret = (ret == SOCK_CONN_ERR) ? -1 : ret;
@@ -351,7 +351,7 @@ static int php_sockop_set_option(php_stream *stream, int option, int value, void
 					int err;
 
 #ifdef __OS2__
-	memset(buf,  0, sizeof(buf)); // Fix issues with recv failing
+	memset(&buf,  0, sizeof(buf)); // Fix issues with recv failing
 #endif
 					ret = recv(sock->socket, &buf, sizeof(buf), MSG_PEEK);
 					err = php_socket_errno();
