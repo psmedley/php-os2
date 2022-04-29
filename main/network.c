@@ -296,9 +296,9 @@ typedef u_long php_non_blocking_flags_t;
 # elif defined __KLIBC__
 typedef u_long php_non_blocking_flags_t;
 #  define SET_SOCKET_BLOCKING_MODE(sock, save) \
-     save = TRUE; os2_ioctl(sock, FIONBIO, (char) &save, sizeof(save))
+     save = TRUE; os2_ioctl(sock, FIONBIO, (char*) &save, sizeof(save))
 #  define RESTORE_SOCKET_BLOCKING_MODE(sock, save) \
-	 os2_ioctl(sock, FIONBIO, (char) &save, sizeof(save))
+	 os2_ioctl(sock, FIONBIO, (char*) &save, sizeof(save))
 #else
 typedef int php_non_blocking_flags_t;
 #  define SET_SOCKET_BLOCKING_MODE(sock, save) \

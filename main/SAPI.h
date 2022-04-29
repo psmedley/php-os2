@@ -145,7 +145,8 @@ SAPI_API extern size_t sapi_globals_offset;
 extern SAPI_API sapi_globals_struct sapi_globals;
 #endif
 
-SAPI_API void sapi_startup(sapi_module_struct *sf);
+// 2022-03-16 SHL was void
+SAPI_API int sapi_startup(sapi_module_struct *sf);
 SAPI_API void sapi_shutdown(void);
 SAPI_API void sapi_activate(void);
 SAPI_API void sapi_deactivate(void);

@@ -105,10 +105,11 @@ static cwd_state main_cwd_state; /* True global */
 #include "zend_globals_macros.h"
 #endif
 
+// 2022-03-28 SHL Allow emalloc to return 0
 #define CWD_STATE_COPY(d, s)				\
 	(d)->cwd_length = (s)->cwd_length;		\
 	(d)->cwd = (char *) emalloc((s)->cwd_length+1);	\
-	memcpy((d)->cwd, (s)->cwd, (s)->cwd_length+1);
+	(d)->cwd && memcpy((d)->cwd, (s)->cwd, (s)->cwd_length+1);
 
 #define CWD_STATE_FREE(s)			\
 	efree((s)->cwd); \
@@ -148,6 +149,7 @@ static int php_is_file_ok(const cwd_state *state)  /* {{{ */
 
 static void cwd_globals_ctor(virtual_cwd_globals *cwd_g) /* {{{ */
 {
+	// 2022-03-28 SHL Underlying emalloc can fail, caller must check pointers before use
 	CWD_STATE_COPY(&cwd_g->cwd, &main_cwd_state);
 	cwd_g->realpath_cache_size = 0;
 	cwd_g->realpath_cache_size_limit = REALPATH_CACHE_SIZE;

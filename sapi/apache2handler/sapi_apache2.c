@@ -449,11 +449,18 @@ static int php_pre_config(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp
 	return OK;
 }
 
+# // 2022-03-16 SHL avoid warnings
+# if defined(__OS2__)
+extern TSRM_API void os2_tsrmls_cache_update();
+# endif
+
+
 static int
 php_apache_server_startup(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s)
 {
 	void *data = NULL;
 	const char *userdata_key = "apache2hook_post_config";
+	int err;
 
 	/* Apache will load, unload and then reload a DSO module. This
 	 * prevents us from starting PHP until the second load. */
@@ -473,7 +480,14 @@ php_apache_server_startup(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp
 		apache2_sapi_module.php_ini_path_override = apache2_php_ini_path_override;
 	}
 #ifdef ZTS
+#ifdef __OS2__
+	// 2022-03-14 SHL Get out if startup failed
+	err = php_tsrm_startup();
+	if (err != OK)
+		return err;
+#else
 	php_tsrm_startup();
+#endif
 # ifdef PHP_WIN32
 	ZEND_TSRMLS_CACHE_UPDATE();
 # elif defined(__OS2__)
@@ -481,9 +495,17 @@ php_apache_server_startup(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp
 # endif
 #endif
 
-	zend_signal_startup();
+	err = zend_signal_startup();		// 2022-03-20 SHL
 
-	sapi_startup(&apache2_sapi_module);
+	if (err == OK)
+		err = sapi_startup(&apache2_sapi_module);
+
+	// 2022-03-14 SHL if startup failed, tell the world
+	if (err != OK) {
+		// 2022-03-16 SHL FIXME to be sure this is really needed
+		apr_pool_cleanup_register(pconf, NULL, php_apache_server_shutdown, apr_pool_cleanup_null);
+		return err;
+	}
 	if (apache2_sapi_module.startup(&apache2_sapi_module) != SUCCESS) {
 		return DONE;
 	}

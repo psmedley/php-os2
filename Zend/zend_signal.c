@@ -38,6 +38,12 @@
 
 #ifdef ZEND_SIGNALS
 
+#ifdef __OS2__
+//#include "httpd.h"			// 2022-03-20 SHL HTTP_INSUFFICIENT_STORAGE OK
+#define HTTP_INSUFFICIENT_STORAGE            507
+#define OK 0                    /**< Module has handled this stage. */
+#endif
+
 #include "zend_signal.h"
 
 #ifdef ZTS
@@ -409,11 +415,15 @@ void zend_signal_init(void) /* {{{ */
 
 /* {{{ zend_signal_startup
  * alloc zend signal globals */
-ZEND_API void zend_signal_startup(void)
+ZEND_API int zend_signal_startup(void)
 {
 
 #ifdef ZTS
-	ts_allocate_fast_id(&zend_signal_globals_id, &zend_signal_globals_offset, sizeof(zend_signal_globals_t), (ts_allocate_ctor) zend_signal_globals_ctor, NULL);
+	// 2022-03-20 SHL
+	int err;
+	err = ts_allocate_fast_id(&zend_signal_globals_id, &zend_signal_globals_offset, sizeof(zend_signal_globals_t), (ts_allocate_ctor) zend_signal_globals_ctor, NULL);
+	if (err != OK)
+		return err;
 #else
 	zend_signal_globals_ctor(&zend_signal_globals);
 #endif
