@@ -39,7 +39,9 @@
 #ifdef ZEND_SIGNALS
 
 #ifdef __OS2__
-#include "httpd.h"			// 2022-03-20 SHL HTTP_INSUFFICIENT_STORAGE OK
+//#include "httpd.h"			// 2022-03-20 SHL HTTP_INSUFFICIENT_STORAGE OK
+#define HTTP_INSUFFICIENT_STORAGE            507
+#define OK 0                    /**< Module has handled this stage. */
 #endif
 
 #include "zend_signal.h"
