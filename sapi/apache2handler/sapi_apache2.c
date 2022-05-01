@@ -460,7 +460,10 @@ php_apache_server_startup(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp
 {
 	void *data = NULL;
 	const char *userdata_key = "apache2hook_post_config";
+#ifdef __OS2__
+	int ok;
 	int err;
+#endif
 
 	/* Apache will load, unload and then reload a DSO module. This
 	 * prevents us from starting PHP until the second load. */
@@ -481,10 +484,10 @@ php_apache_server_startup(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp
 	}
 #ifdef ZTS
 #ifdef __OS2__
-	// 2022-03-14 SHL Get out if startup failed
-	err = php_tsrm_startup();
-	if (err != OK)
-		return err;
+	// 2022-04-30 SHL Get out if startup failed
+	ok = php_tsrm_startup();
+	if (!ok)
+		return HTTP_INSUFFICIENT_STORAGE;
 #else
 	php_tsrm_startup();
 #endif
