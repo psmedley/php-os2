@@ -87,7 +87,11 @@ ZEND_API void zend_signal_handler_unblock(void);
 void zend_signal_activate(void);
 void zend_signal_deactivate(void);
 BEGIN_EXTERN_C()
-ZEND_API int zend_signal_startup(void);	// 2022-03-20 SHL
+#ifdef __OS2__				// 2022-05-01 SHL
+ZEND_API int zend_signal_startup(void);
+#else
+ZEND_API void zend_signal_startup(void);
+#endif
 END_EXTERN_C()
 void zend_signal_init(void);
 

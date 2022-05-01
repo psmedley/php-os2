@@ -498,9 +498,10 @@ php_apache_server_startup(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp
 # endif
 #endif
 
-	err = zend_signal_startup();		// 2022-03-20 SHL
+#ifdef __OS2__
+	ok = zend_signal_startup();		// 2022-03-20 SHL
 
-	if (err == OK)
+	if (ok)
 		err = sapi_startup(&apache2_sapi_module);
 
 	// 2022-03-14 SHL if startup failed, tell the world
@@ -509,6 +510,9 @@ php_apache_server_startup(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp
 		apr_pool_cleanup_register(pconf, NULL, php_apache_server_shutdown, apr_pool_cleanup_null);
 		return err;
 	}
+#else
+	zend_signal_startup();
+#endif
 	if (apache2_sapi_module.startup(&apache2_sapi_module) != SUCCESS) {
 		return DONE;
 	}

@@ -105,11 +105,17 @@ static cwd_state main_cwd_state; /* True global */
 #include "zend_globals_macros.h"
 #endif
 
-// 2022-03-28 SHL Allow emalloc to return 0
+#ifdef __OS2__				// 2022-05-01 SHL Allow emalloc to return 0, avoid -Wall warnings
 #define CWD_STATE_COPY(d, s)				\
 	(d)->cwd_length = (s)->cwd_length;		\
 	(d)->cwd = (char *) emalloc((s)->cwd_length+1);	\
-	(d)->cwd && memcpy((d)->cwd, (s)->cwd, (s)->cwd_length+1);
+	{ if ((d)->cwd) memcpy((d)->cwd, (s)->cwd, (s)->cwd_length+1); }
+#else
+#define CWD_STATE_COPY(d, s)				\
+	(d)->cwd_length = (s)->cwd_length;		\
+	(d)->cwd = (char *) emalloc((s)->cwd_length+1);	\
+	memcpy((d)->cwd, (s)->cwd, (s)->cwd_length+1);
+#endif
 
 #define CWD_STATE_FREE(s)			\
 	efree((s)->cwd); \

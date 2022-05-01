@@ -76,15 +76,23 @@ static void sapi_globals_dtor(sapi_globals_struct *sapi_globals)
 SAPI_API sapi_module_struct sapi_module;
 
 
+#ifdef __OS2__				// 2022-05-01 SHL
 SAPI_API int sapi_startup(sapi_module_struct *sf)
+#else
+SAPI_API void sapi_startup(sapi_module_struct *sf)
+#endif
 {
 	sf->ini_entries = NULL;
 	sapi_module = *sf;
 
 #ifdef ZTS
+#ifdef __OS2__
 	// 2022-03-14 SHL If insufficient memory to get started, tell the world
 	if (!ts_allocate_fast_id(&sapi_globals_id, &sapi_globals_offset, sizeof(sapi_globals_struct), (ts_allocate_ctor) sapi_globals_ctor, (ts_allocate_dtor) sapi_globals_dtor))
 		return HTTP_INSUFFICIENT_STORAGE;
+#else
+	ts_allocate_fast_id(&sapi_globals_id, &sapi_globals_offset, sizeof(sapi_globals_struct), (ts_allocate_ctor) sapi_globals_ctor, (ts_allocate_dtor) sapi_globals_dtor);
+#endif
 # ifdef PHP_WIN32
 	_configthreadlocale(_ENABLE_PER_THREAD_LOCALE);
 # endif

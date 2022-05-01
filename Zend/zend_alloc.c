@@ -2799,9 +2799,12 @@ static void alloc_globals_ctor(zend_alloc_globals *alloc_globals)
 #ifdef ZTS
 static void alloc_globals_dtor(zend_alloc_globals *alloc_globals)
 {
-	// 2022-03-11 SHL bypass call if heap NULL
+#ifdef __OS2__				// 2022-05-01 SHL bypass call if heap NULL
 	if (alloc_globals->mm_heap == NULL)
 		zend_mm_shutdown(alloc_globals->mm_heap, 1, 1);
+#else
+	zend_mm_shutdown(alloc_globals->mm_heap, 1, 1);
+#endif
 }
 #endif
 
