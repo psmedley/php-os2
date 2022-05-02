@@ -415,15 +415,21 @@ void zend_signal_init(void) /* {{{ */
 
 /* {{{ zend_signal_startup
  * alloc zend signal globals */
+#ifdef __OS2__				// 2022-03-20 SHL
 ZEND_API int zend_signal_startup(void)
-{
+#else
+ZEND_API void zend_signal_startup(void)
+#endif
 
+{
 #ifdef ZTS
-	// 2022-03-20 SHL
-	int err;
-	err = ts_allocate_fast_id(&zend_signal_globals_id, &zend_signal_globals_offset, sizeof(zend_signal_globals_t), (ts_allocate_ctor) zend_signal_globals_ctor, NULL);
-	if (err != OK)
-		return err;
+#ifdef __OS2__				// 2022-05-01 SHL
+	int id = ts_allocate_fast_id(&zend_signal_globals_id, &zend_signal_globals_offset, sizeof(zend_signal_globals_t), (ts_allocate_ctor) zend_signal_globals_ctor, NULL);
+	if (!id)
+		return HTTP_INSUFFICIENT_STORAGE;
+#else
+	ts_allocate_fast_id(&zend_signal_globals_id, &zend_signal_globals_offset, sizeof(zend_signal_globals_t), (ts_allocate_ctor) zend_signal_globals_ctor, NULL);
+#endif
 #else
 	zend_signal_globals_ctor(&zend_signal_globals);
 #endif
@@ -451,6 +457,10 @@ ZEND_API int zend_signal_startup(void)
 #endif
 
 	zend_signal_init();
+#ifdef __OS2__
+	return OK;
+#endif
+
 }
 /* }}} */
 
