@@ -499,9 +499,9 @@ php_apache_server_startup(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp
 #endif
 
 #ifdef __OS2__
-	ok = zend_signal_startup();		// 2022-03-20 SHL
+	err = zend_signal_startup();		// 2022-03-20 SHL
 
-	if (ok)
+	if (err == OK)
 		err = sapi_startup(&apache2_sapi_module);
 
 	// 2022-03-14 SHL if startup failed, tell the world
