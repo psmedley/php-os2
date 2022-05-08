@@ -159,7 +159,7 @@ static inline void touch_pages(char* buf, int bufbytes)
 	int touched;
         for (; cnt < bufbytes; p += 4096, cnt += touched) {
                 *p=0; 
-		touched = 4096  - (~(unsigned int)p & 0xfff);
+		touched = 4096  - ((unsigned int)p & 0xfff);
 	}
 }
 #endif
