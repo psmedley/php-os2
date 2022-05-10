@@ -157,8 +157,8 @@ static inline void touch_pages(char* buf, int bufbytes)
         char *p = buf;
         int cnt = 0;
 	int touched;
-        for (; cnt < bufbytes; p += 4096, cnt += touched) {
-                *p=0; 
+        for (; cnt < bufbytes; p += touched, cnt += touched) {
+		*p = 0;
 		touched = 4096  - ((unsigned int)p & 0xfff);
 	}
 }
