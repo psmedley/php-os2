@@ -1,11 +1,9 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
@@ -37,7 +35,6 @@
 extern "C" {
 #include "php_intl.h"
 #include "msgformat_class.h"
-#include "msgformat_format.h"
 #include "msgformat_helpers.h"
 #include "intl_convert.h"
 #define USE_TIMEZONE_POINTER
@@ -311,14 +308,13 @@ static void umsg_set_timezone(MessageFormatter_object *mfo,
 		return; /* already done */
 	}
 
-	/* There is a bug in ICU which prevents MessageFormatter::getFormats()
+#if U_ICU_VERSION_MAJOR_NUM < 65
+	/* There is a bug in ICU < 64.1 (ICU-12584) which prevents MessageFormatter::getFormats()
 	   to handle more than 10 formats correctly. The enumerator could be
 	   used to walk through the present formatters using getFormat(), which
 	   however seems to provide just a readonly access. This workaround
 	   prevents crash when there are > 10 formats but doesn't set any error.
-	   As a result, only DateFormatters with > 10 subformats are affected.
-	   This workaround should be ifdef'd out, when the bug has been fixed
-	   in ICU. */
+	   As a result, only DateFormatters with > 10 subformats are affected. */
 	icu::StringEnumeration* fnames = mf->getFormatNames(err.code);
 	if (!fnames || U_FAILURE(err.code)) {
 		return;
@@ -328,6 +324,7 @@ static void umsg_set_timezone(MessageFormatter_object *mfo,
 	if (count > 10) {
 		return;
 	}
+#endif
 
 	formats = mf->getFormats(count);
 

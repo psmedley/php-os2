@@ -1,9 +1,9 @@
 --TEST--
 mysqli_field_seek()
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 ?>
 --FILE--
@@ -56,15 +56,6 @@ require_once('skipifconnectfailure.inc');
 
     require_once("connect.inc");
 
-    $tmp    = NULL;
-    $link   = NULL;
-
-    if (!is_null($tmp = @mysqli_field_seek()))
-        printf("[001] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-    if (!is_null($tmp = @mysqli_field_seek($link)))
-        printf("[002] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
     require('table.inc');
 
     // Make sure that client, connection and result charsets are all the
@@ -78,7 +69,11 @@ require_once('skipifconnectfailure.inc');
         printf("[003] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
     }
 
-    var_dump(mysqli_field_seek($res, -1));
+    try {
+        var_dump(mysqli_field_seek($res, -1));
+    } catch (\ValueError $e) {
+        echo $e->getMessage() . \PHP_EOL;
+    }
     var_dump(mysqli_fetch_field($res));
     var_dump(mysqli_field_seek($res, 0));
     var_dump(mysqli_fetch_field($res));
@@ -97,12 +92,12 @@ require_once('skipifconnectfailure.inc');
     }
 
     var_dump(mysqli_field_tell($res));
-    var_dump(mysqli_field_seek($res, 2));
+    try {
+        var_dump(mysqli_field_seek($res, 2));
+    } catch (\ValueError $e) {
+        echo $e->getMessage() . \PHP_EOL;
+    }
     var_dump(mysqli_fetch_field($res));
-    var_dump(mysqli_field_seek($res, PHP_INT_MAX + 1));
-
-    if (!is_null($tmp = @mysqli_field_seek($res, 0, "too many")))
-        printf("[004] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
 
     mysqli_free_result($res);
 
@@ -114,7 +109,11 @@ require_once('skipifconnectfailure.inc');
 
     mysqli_free_result($res);
 
-    var_dump(mysqli_field_seek($res, 0));
+    try {
+        mysqli_field_seek($res, 0);
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     mysqli_close($link);
     print "done!";
@@ -124,8 +123,7 @@ require_once('skipifconnectfailure.inc');
     require_once("clean_table.inc");
 ?>
 --EXPECTF--
-Warning: mysqli_field_seek(): Invalid field offset in %s on line %d
-bool(false)
+mysqli_field_seek(): Argument #2 ($index) must be greater than or equal to 0
 object(stdClass)#%d (13) {
   ["name"]=>
   string(2) "id"
@@ -213,13 +211,8 @@ object(stdClass)#%d (13) {
   int(0)
 }
 int(2)
-
-Warning: mysqli_field_seek(): Invalid field offset in %s on line %d
+mysqli_field_seek(): Argument #2 ($index) must be less than the number of fields for this result set
 bool(false)
-bool(false)
-
-Warning: mysqli_field_seek() expects parameter 2 to be int, float given in %s on line %d
-NULL
 bool(true)
 object(stdClass)#%d (13) {
   ["name"]=>
@@ -249,7 +242,5 @@ object(stdClass)#%d (13) {
   ["decimals"]=>
   int(0)
 }
-
-Warning: mysqli_field_seek(): Couldn't fetch mysqli_result in %s on line %d
-bool(false)
+mysqli_result object is already closed
 done!

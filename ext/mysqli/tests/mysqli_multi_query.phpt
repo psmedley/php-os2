@@ -1,23 +1,14 @@
 --TEST--
 mysqli_multi_query()
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 ?>
 --FILE--
 <?php
     require_once("connect.inc");
-
-    $tmp    = NULL;
-    $link   = NULL;
-
-    if (!is_null($tmp = @mysqli_multi_query()))
-        printf("[001] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-    if (!is_null($tmp = @mysqli_multi_query($link)))
-        printf("[002] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
 
     require('table.inc');
 
@@ -111,7 +102,11 @@ require_once('skipifconnectfailure.inc');
 
     mysqli_close($link);
 
-    var_dump(mysqli_multi_query($link, "SELECT id, label FROM test"));
+    try {
+        mysqli_multi_query($link, "SELECT id, label FROM test");
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     print "done!";
 ?>
@@ -119,12 +114,10 @@ require_once('skipifconnectfailure.inc');
 <?php
     require_once("clean_table.inc");
 ?>
---EXPECTF--
+--EXPECT--
 [006] 3
 [008] 0
 [009] [2014] Commands out of sync; you can't run this command now
 [010] 7
-
-Warning: mysqli_multi_query(): Couldn't fetch mysqli in %s on line %d
-bool(false)
+mysqli object is already closed
 done!

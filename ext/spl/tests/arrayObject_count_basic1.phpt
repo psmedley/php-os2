@@ -4,7 +4,7 @@ SPL: ArrayObject::count() and ArrayIterator::count() basic functionality.
 ==ArrayObject==
 <?php
 class C extends ArrayObject {
-  function count() {
+  function count(): int {
     return 99;
   }
 }
@@ -25,14 +25,11 @@ var_dump(count($c), count($ao));
 unset($c[0]);
 unset($ao[0]);
 var_dump($c->count(), $ao->count());
-
-//Extra args are ignored.
-var_dump($ao->count('blah'));
 ?>
 ==ArrayIterator==
 <?php
 class D extends ArrayIterator {
-  function count() {
+  function count(): int {
     return 99;
   }
 }
@@ -53,11 +50,8 @@ var_dump(count($c), count($ao));
 unset($c[0]);
 unset($ao[0]);
 var_dump($c->count(), $ao->count());
-
-//Extra args are ignored.
-var_dump($ao->count('blah'));
 ?>
---EXPECTF--
+--EXPECT--
 ==ArrayObject==
 int(99)
 int(0)
@@ -67,9 +61,6 @@ int(99)
 int(2)
 int(99)
 int(1)
-
-Warning: ArrayObject::count() expects exactly 0 parameters, 1 given in %s on line %d
-NULL
 ==ArrayIterator==
 int(99)
 int(0)
@@ -79,6 +70,3 @@ int(99)
 int(2)
 int(99)
 int(1)
-
-Warning: ArrayIterator::count() expects exactly 0 parameters, 1 given in %s on line %d
-NULL

@@ -1,12 +1,11 @@
 --TEST--
 mysqli_options()
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 ?>
-<?php require_once('skipifemb.inc'); ?>
 --FILE--
 <?php
     /* see mysqli.c for details */

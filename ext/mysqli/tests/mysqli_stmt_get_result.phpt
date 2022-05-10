@@ -1,9 +1,9 @@
 --TEST--
 mysqli_stmt_get_result()
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 
 if (!function_exists('mysqli_stmt_get_result'))
@@ -18,23 +18,17 @@ if (!function_exists('mysqli_stmt_get_result'))
     */
     require_once("connect.inc");
 
-    $tmp	= NULL;
-    $link   = NULL;
-
-    if (!is_null($tmp = @mysqli_stmt_get_result()))
-        printf("[001] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-    if (!is_null($tmp = @mysqli_stmt_get_result($link)))
-        printf("[002] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
     require('table.inc');
 
     if (!$stmt = mysqli_stmt_init($link))
         printf("[003] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
 
     // stmt object status test
-    if (false !== ($tmp = mysqli_stmt_fetch($stmt)))
-        printf("[004] Expecting false, got %s/%s\n", gettype($tmp), var_export($tmp, 1));
+    try {
+        mysqli_stmt_fetch($stmt);
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     if (!mysqli_stmt_prepare($stmt, "SELECT id, label FROM test ORDER BY id LIMIT 2"))
         printf("[005] [%d] %s\n", mysqli_stmt_errno($stmt), mysqli_stmt_error($stmt));
@@ -58,8 +52,11 @@ if (!function_exists('mysqli_stmt_get_result'))
         printf("[010] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
 
     // stmt object status test
-    if (false !== ($tmp = mysqli_stmt_fetch($stmt)))
-        printf("[011] Expecting false, got %s/%s\n", gettype($tmp), var_export($tmp, 1));
+    try {
+        mysqli_stmt_fetch($stmt);
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     if (!mysqli_stmt_prepare($stmt, "SELECT id, label FROM test ORDER BY id LIMIT 2"))
         printf("[012] [%d] %s\n", mysqli_stmt_errno($stmt), mysqli_stmt_error($stmt));
@@ -81,8 +78,11 @@ if (!function_exists('mysqli_stmt_get_result'))
         printf("[017] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
 
     // stmt object status test
-    if (false !== ($tmp = mysqli_stmt_get_result($stmt)))
-        printf("[018] Expecting false, got %s/%s\n", gettype($tmp), var_export($tmp, 1));
+    try {
+        mysqli_stmt_get_result($stmt);
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     if (!mysqli_stmt_prepare($stmt, "SELECT id, label FROM test ORDER BY id LIMIT 2"))
         printf("[019] [%d] %s\n", mysqli_stmt_errno($stmt), mysqli_stmt_error($stmt));
@@ -158,34 +158,32 @@ if (!function_exists('mysqli_stmt_get_result'))
     }
     mysqli_free_result($result);
 
-    if (!mysqli_kill($link, mysqli_thread_id($link)))
-        printf("[042] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
+	if (!mysqli_kill($link, mysqli_thread_id($link)))
+		printf("[042] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
 
-    if (false !== ($tmp = mysqli_stmt_get_result($stmt)))
-        printf("[043] Expecting false, got %s/%s\n", gettype($tmp), var_export($tmp, 1));
+	if (false !== ($tmp = mysqli_stmt_get_result($stmt)))
+		printf("[043] Expecting false, got %s/%s\n", gettype($tmp), var_export($tmp, 1));
 
-    mysqli_stmt_close($stmt);
+	mysqli_stmt_close($stmt);
 
-    if (false !== ($tmp = mysqli_stmt_fetch($stmt)))
-        printf("[044] Expecting false, got %s/%s\n", gettype($tmp), var_export($tmp, 1));
+	try {
+        mysqli_stmt_fetch($stmt);
+    } catch (Error $exception) {
+        echo $exception->getMessage(), "\n";
+    }
 
-    mysqli_close($link);
+	mysqli_close($link);
 
-    print "done!";
+	print "done!";
 ?>
 --CLEAN--
 <?php
     require_once("clean_table.inc");
 ?>
 --EXPECTF--
-Warning: mysqli_stmt_fetch(): invalid object or resource mysqli_stmt
- in %s on line %d
-
-Warning: mysqli_stmt_fetch(): invalid object or resource mysqli_stmt
- in %s on line %d
-
-Warning: mysqli_stmt_get_result(): invalid object or resource mysqli_stmt
- in %s on line %d
+mysqli_stmt object is not fully initialized
+mysqli_stmt object is not fully initialized
+mysqli_stmt object is not fully initialized
 array(2) {
   ["id"]=>
   int(1)
@@ -212,6 +210,5 @@ array(2) {
   ["label"]=>
   %s(1) "b"
 }
-
-Warning: mysqli_stmt_fetch(): Couldn't fetch mysqli_stmt in %s on line %d
+mysqli_stmt object is already closed
 done!

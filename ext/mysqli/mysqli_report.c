@@ -1,13 +1,11 @@
 /*
   +----------------------------------------------------------------------+
-  | PHP Version 7                                                        |
-  +----------------------------------------------------------------------+
   | Copyright (c) The PHP Group                                          |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
   | available through the world-wide-web at the following url:           |
-  | http://www.php.net/license/3_01.txt                                  |
+  | https://www.php.net/license/3_01.txt                                 |
   | If you did not receive a copy of the PHP license and are unable to   |
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
@@ -27,15 +25,14 @@
 
 extern void php_mysqli_throw_sql_exception(char *sqlstate, int errorno, char *format, ...);
 
-/* {{{ proto bool mysqli_report(int flags)
-   sets report level */
+/* {{{ sets report level */
 PHP_FUNCTION(mysqli_report)
 {
 	zend_long flags;
 
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "l", &flags) == FAILURE) {
-		return;
+		RETURN_THROWS();
 	}
 
 	MyG(report_mode) = flags;

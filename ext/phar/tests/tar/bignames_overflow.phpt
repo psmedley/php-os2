@@ -1,7 +1,7 @@
 --TEST--
 Phar: tar with huge filenames, buffer overflow
---SKIPIF--
-<?php if (!extension_loaded("phar")) die("skip"); ?>
+--EXTENSIONS--
+phar
 --INI--
 phar.require_hash=0
 --FILE--
@@ -20,13 +20,12 @@ $tar->close();
 
 $p1 = new PharData($fname);
 foreach ($p1 as $file) {
-	echo $file->getFileName(), "\n";
+    echo $file->getFileName(), "\n";
 }
 echo $p1['a/' . str_repeat('a', 100)]->getContent() . "\n";
 echo $p1[str_repeat('a', 155) . '/' . str_repeat('a', 100)]->getContent() . "\n";
 
 ?>
-===DONE===
 --CLEAN--
 <?php
 unlink(__DIR__ . '/' . basename(__FILE__, '.clean.php') . '.tar');
@@ -37,4 +36,3 @@ a
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 hi
 hi2
-===DONE===

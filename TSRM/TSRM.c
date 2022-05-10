@@ -23,11 +23,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#ifdef ZEND_DEBUG
+#if ZEND_DEBUG
 # include <assert.h>
-# define TSRM_ASSERT assert
+# define TSRM_ASSERT(c) assert(c)
 #else
-# define TSRM_ASSERT
+# define TSRM_ASSERT(c)
 #endif
 
 #ifdef TSRM_OS2
@@ -84,7 +84,7 @@ int tsrm_error(int level, const char *format, ...);
 static int tsrm_error_level;
 static FILE *tsrm_error_file;
 
-#if TSRM_DEBUG
+#ifdef TSRM_DEBUG
 #define TSRM_ERROR(args) tsrm_error args
 #define TSRM_SAFE_RETURN_RSRC(array, offset, range)																		\
 	{																													\
@@ -112,62 +112,26 @@ static FILE *tsrm_error_file;
 	}
 #endif
 
-#if defined(GNUPTH)
-static pth_key_t tls_key;
-# define tsrm_tls_set(what)		pth_key_setdata(tls_key, (void*)(what))
-# define tsrm_tls_get()			pth_key_getdata(tls_key)
-
-#elif defined(PTHREADS)
-/* Thread local storage */
-static pthread_key_t tls_key;
-# define tsrm_tls_set(what)		pthread_setspecific(tls_key, (void*)(what))
-# define tsrm_tls_get()			pthread_getspecific(tls_key)
-
-#elif defined(TSRM_ST)
-static int tls_key;
-# define tsrm_tls_set(what)		st_thread_setspecific(tls_key, (void*)(what))
-# define tsrm_tls_get()			st_thread_getspecific(tls_key)
-
-#elif defined(TSRM_WIN32)
+#ifdef TSRM_WIN32
 static DWORD tls_key;
 # define tsrm_tls_set(what)		TlsSetValue(tls_key, (void*)(what))
 # define tsrm_tls_get()			TlsGetValue(tls_key)
-
-#elif defined(TSRM_OS2) && !defined(PTHREADS)
-static ULONG *tls_key;
-//# define tsrm_tls_set(what)		*tls_key = (ULONG)*thread_resources_ptr;
-# define tsrm_tls_set(what)		*tls_key = (ULONG*)(what);
-# define tsrm_tls_get()			(tsrm_tls_entry *)*tls_key;
-
-
 #else
-# define tsrm_tls_set(what)
-# define tsrm_tls_get()			NULL
-# warning tsrm_set_interpreter_context is probably broken on this platform
+static pthread_key_t tls_key;
+# define tsrm_tls_set(what)		pthread_setspecific(tls_key, (void*)(what))
+# define tsrm_tls_get()			pthread_getspecific(tls_key)
 #endif
 
 TSRM_TLS uint8_t in_main_thread = 0;
 TSRM_TLS uint8_t is_thread_shutdown = 0;
 
 /* Startup TSRM (call once for the entire process) */
-TSRM_API int tsrm_startup(int expected_threads, int expected_resources, int debug_level, char *debug_filename)
+TSRM_API int tsrm_startup(int expected_threads, int expected_resources, int debug_level, const char *debug_filename)
 {/*{{{*/
-#if defined(GNUPTH)
-	pth_init();
-	pth_key_create(&tls_key, 0);
-#elif defined(PTHREADS)
-	pthread_key_create( &tls_key, 0 );
-#elif defined(TSRM_ST)
-	st_init();
-	st_key_create(&tls_key, 0);
-#elif defined(TSRM_WIN32)
+#ifdef TSRM_WIN32
 	tls_key = TlsAlloc();
-#elif defined(TSRM_OS2) && !defined(PTHREADS)
-	if (expected_threads > 1) {
-		DosAllocThreadLocalMemory(1, &tls_key);
-	} else {
-		tls_key = calloc(1, sizeof(*tls_key));
-	}
+#else
+	pthread_key_create(&tls_key, 0);
 #endif
 
 	/* ensure singleton */
@@ -234,11 +198,16 @@ TSRM_API void tsrm_shutdown(void)
 			next_p = p->next;
 			for (j=0; j<p->count; j++) {
 				if (p->storage[j]) {
-					if (resource_types_table && !resource_types_table[j].done && resource_types_table[j].dtor) {
-						resource_types_table[j].dtor(p->storage[j]);
-					}
-					if (!resource_types_table[j].fast_offset) {
-						free(p->storage[j]);
+					if (resource_types_table) {
+						if (!resource_types_table[j].done) {
+							if (resource_types_table[j].dtor) {
+								resource_types_table[j].dtor(p->storage[j]);
+							}
+
+							if (!resource_types_table[j].fast_offset) {
+								free(p->storage[j]);
+							}
+						}
 					}
 				}
 			}
@@ -255,19 +224,11 @@ TSRM_API void tsrm_shutdown(void)
 	if (tsrm_error_file!=stderr) {
 		fclose(tsrm_error_file);
 	}
-#if defined(GNUPTH)
-	pth_kill();
-#elif defined(PTHREADS)
+#ifdef TSRM_WIN32
+	TlsFree(tls_key);
+#else
 	pthread_setspecific(tls_key, 0);
 	pthread_key_delete(tls_key);
-#elif defined(TSRM_WIN32)
-	TlsFree(tls_key);
-#elif defined(TSRM_OS2) && !defined(PTHREADS)
-	if (tsrm_tls_table_size > 1) {
-		DosFreeThreadLocalMemory(tls_key);
-	} else {
-		free(tls_key);
-	}
 #endif
 	if (tsrm_shutdown_handler) {
 		tsrm_shutdown_handler();
@@ -282,12 +243,12 @@ TSRM_API void tsrm_shutdown(void)
 
 /* {{{ */
 /* environ lock api */
-TSRM_API void tsrm_env_lock() {
-    tsrm_mutex_lock(tsrm_env_mutex);
+TSRM_API void tsrm_env_lock(void) {
+	tsrm_mutex_lock(tsrm_env_mutex);
 }
 
-TSRM_API void tsrm_env_unlock() {
-    tsrm_mutex_unlock(tsrm_env_mutex);
+TSRM_API void tsrm_env_unlock(void) {
+	tsrm_mutex_unlock(tsrm_env_mutex);
 } /* }}} */
 
 /* enlarge the arrays for the already active threads */
@@ -572,71 +533,6 @@ TSRM_API void *ts_resource_ex(ts_rsrc_id id, THREAD_T *th_id)
 	TSRM_SAFE_RETURN_RSRC(thread_resources->storage, id, thread_resources->count);
 }/*}}}*/
 
-/* frees an interpreter context.  You are responsible for making sure that
- * it is not linked into the TSRM hash, and not marked as the current interpreter */
-void tsrm_free_interpreter_context(void *context)
-{/*{{{*/
-	tsrm_tls_entry *next, *thread_resources = (tsrm_tls_entry*)context;
-	int i;
-
-	while (thread_resources) {
-		next = thread_resources->next;
-
-		for (i=0; i<thread_resources->count; i++) {
-			if (resource_types_table[i].dtor) {
-				resource_types_table[i].dtor(thread_resources->storage[i]);
-			}
-		}
-		for (i=0; i<thread_resources->count; i++) {
-			if (!resource_types_table[i].fast_offset) {
-				free(thread_resources->storage[i]);
-			}
-		}
-		free(thread_resources->storage);
-		free(thread_resources);
-		thread_resources = next;
-	}
-}/*}}}*/
-
-void *tsrm_set_interpreter_context(void *new_ctx)
-{/*{{{*/
-	tsrm_tls_entry *current;
-
-	current = tsrm_tls_get();
-
-	/* TODO: unlink current from the global linked list, and replace it
-	 * it with the new context, protected by mutex where/if appropriate */
-
-	/* Set thread local storage to this new thread resources structure */
-#ifndef __INNOTEK_LIBC__xx
- 	tsrm_tls_set(new_ctx);
-#else
-        *tls_key = (ULONG)new_ctx;
-#endif  
-
-	/* return old context, so caller can restore it when they're done */
-	return current;
-}/*}}}*/
-
-
-/* allocates a new interpreter context */
-void *tsrm_new_interpreter_context(void)
-{/*{{{*/
-	tsrm_tls_entry *new_ctx, *current;
-	THREAD_T thread_id;
-
-	thread_id = tsrm_thread_id();
-	tsrm_mutex_lock(tsmm_mutex);
-
-	current = tsrm_tls_get();
-
-	allocate_new_resource(&new_ctx, thread_id);
-
-	/* switch back to the context that was in use prior to our creation
-	 * of the new one */
-	return tsrm_set_interpreter_context(current);
-}/*}}}*/
-
 
 /* frees all resources allocated for the current thread */
 void ts_free_thread(void)
@@ -702,11 +598,13 @@ void ts_free_id(ts_rsrc_id id)
 			tsrm_tls_entry *p = tsrm_tls_table[i];
 			while (p) {
 				if (p->count > j && p->storage[j]) {
-					if (resource_types_table && resource_types_table[j].dtor) {
-						resource_types_table[j].dtor(p->storage[j]);
-					}
-					if (!resource_types_table[j].fast_offset) {
-						free(p->storage[j]);
+					if (resource_types_table) {
+						if (resource_types_table[j].dtor) {
+							resource_types_table[j].dtor(p->storage[j]);
+						}
+						if (!resource_types_table[j].fast_offset) {
+							free(p->storage[j]);
+						}
 					}
 					p->storage[j] = NULL;
 				}
@@ -720,8 +618,6 @@ void ts_free_id(ts_rsrc_id id)
 }/*}}}*/
 
 
-
-
 /*
  * Utility Functions
  */
@@ -731,14 +627,8 @@ TSRM_API THREAD_T tsrm_thread_id(void)
 {/*{{{*/
 #ifdef TSRM_WIN32
 	return GetCurrentThreadId();
-#elif defined(GNUPTH)
-	return pth_self();
-#elif defined(PTHREADS)
+#else
 	return pthread_self();
-#elif defined(TSRM_ST)
-	return st_thread_self();
-#elif defined(TSRM_OS2) && !defined(PTHREADS)
-	return *_threadid;
 #endif
 }/*}}}*/
 
@@ -750,14 +640,9 @@ TSRM_API MUTEX_T tsrm_mutex_alloc(void)
 #ifdef TSRM_WIN32
 	mutexp = malloc(sizeof(CRITICAL_SECTION));
 	InitializeCriticalSection(mutexp);
-#elif defined(GNUPTH)
-	mutexp = (MUTEX_T) malloc(sizeof(*mutexp));
-	pth_mutex_init(mutexp);
-#elif defined(PTHREADS)
+#else
 	mutexp = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
 	pthread_mutex_init(mutexp,NULL);
-#elif defined(TSRM_ST)
-	mutexp = st_mutex_new();
 #endif
 #ifdef THR_DEBUG
 	printf("Mutex created thread: %d\n",mythreadid());
@@ -773,15 +658,9 @@ TSRM_API void tsrm_mutex_free(MUTEX_T mutexp)
 #ifdef TSRM_WIN32
 		DeleteCriticalSection(mutexp);
 		free(mutexp);
-#elif defined(GNUPTH)
-		free(mutexp);
-#elif defined(PTHREADS)
+#else
 		pthread_mutex_destroy(mutexp);
 		free(mutexp);
-#elif defined(TSRM_ST)
-		st_mutex_destroy(mutexp);
-#elif defined(TSRM_OS2) && !defined(PTHREADS)
-		DosCloseMutexSem(mutexp);
 #endif
 	}
 #ifdef THR_DEBUG
@@ -800,17 +679,8 @@ TSRM_API int tsrm_mutex_lock(MUTEX_T mutexp)
 #ifdef TSRM_WIN32
 	EnterCriticalSection(mutexp);
 	return 0;
-#elif defined(GNUPTH)
-	if (pth_mutex_acquire(mutexp, 0, NULL)) {
-		return 0;
-	}
-	return -1;
-#elif defined(PTHREADS)
+#else
 	return pthread_mutex_lock(mutexp);
-#elif defined(TSRM_ST)
-	return st_mutex_lock(mutexp);
-#elif defined(TSRM_OS2) && !defined(PTHREADS)
-	return DosReleaseMutexSem(mutexp);
 #endif
 }/*}}}*/
 
@@ -825,15 +695,8 @@ TSRM_API int tsrm_mutex_unlock(MUTEX_T mutexp)
 #ifdef TSRM_WIN32
 	LeaveCriticalSection(mutexp);
 	return 0;
-#elif defined(GNUPTH)
-	if (pth_mutex_release(mutexp)) {
-		return 0;
-	}
-	return -1;
-#elif defined(PTHREADS)
+#else
 	return pthread_mutex_unlock(mutexp);
-#elif defined(TSRM_ST)
-	return st_mutex_unlock(mutexp);
 #endif
 }/*}}}*/
 
@@ -844,12 +707,8 @@ TSRM_API int tsrm_mutex_unlock(MUTEX_T mutexp)
 TSRM_API int tsrm_sigmask(int how, const sigset_t *set, sigset_t *oldset)
 {/*{{{*/
 	TSRM_ERROR((TSRM_ERROR_LEVEL_INFO, "Changed sigmask in thread: %ld", tsrm_thread_id()));
-	/* TODO: add support for other APIs */
-#ifdef PTHREADS
-	return pthread_sigmask(how, set, oldset);
-#else
-	return sigprocmask(how, set, oldset);
-#endif
+
+    return pthread_sigmask(how, set, oldset);
 }/*}}}*/
 #endif
 
@@ -885,7 +744,7 @@ TSRM_API void *tsrm_set_shutdown_handler(tsrm_shutdown_func_t shutdown_handler)
  * Debug support
  */
 
-#if TSRM_DEBUG
+#ifdef TSRM_DEBUG
 int tsrm_error(int level, const char *format, ...)
 {/*{{{*/
 	if (level<=tsrm_error_level) {
@@ -906,11 +765,11 @@ int tsrm_error(int level, const char *format, ...)
 #endif
 
 
-void tsrm_error_set(int level, char *debug_filename)
+void tsrm_error_set(int level, const char *debug_filename)
 {/*{{{*/
 	tsrm_error_level = level;
 
-#if TSRM_DEBUG
+#ifdef TSRM_DEBUG
 	if (tsrm_error_file!=stderr) { /* close files opened earlier */
 		fclose(tsrm_error_file);
 	}
@@ -931,6 +790,44 @@ TSRM_API void *tsrm_get_ls_cache(void)
 	return tsrm_tls_get();
 }/*}}}*/
 
+/* Returns offset of tsrm_ls_cache slot from Thread Control Block address */
+TSRM_API size_t tsrm_get_ls_cache_tcb_offset(void)
+{/*{{{*/
+#if defined(__APPLE__) && defined(__x86_64__)
+    // TODO: Implement support for fast JIT ZTS code ???
+	return 0;
+#elif defined(__x86_64__) && defined(__GNUC__) && !defined(__FreeBSD__) && !defined(__OpenBSD__) && !defined(__MUSL__)
+	size_t ret;
+
+	asm ("movq _tsrm_ls_cache@gottpoff(%%rip),%0"
+          : "=r" (ret));
+	return ret;
+#elif defined(__i386__) && defined(__GNUC__) && !defined(__FreeBSD__) && !defined(__OpenBSD__) && !defined(__MUSL__)
+	size_t ret;
+
+	asm ("leal _tsrm_ls_cache@ntpoff,%0"
+          : "=r" (ret));
+	return ret;
+#elif defined(__aarch64__)
+	size_t ret;
+
+# ifdef __APPLE__
+	// Points to struct TLVDecriptor for _tsrm_ls_cache in macOS.
+	asm("adrp %0, #__tsrm_ls_cache@TLVPPAGE\n\t"
+	    "ldr %0, [%0, #__tsrm_ls_cache@TLVPPAGEOFF]"
+	     : "=r" (ret));
+# else
+	asm("mov %0, xzr\n\t"
+	    "add %0, %0, #:tprel_hi12:_tsrm_ls_cache, lsl #12\n\t"
+	    "add %0, %0, #:tprel_lo12_nc:_tsrm_ls_cache"
+	     : "=r" (ret));
+# endif
+	return ret;
+#else
+	return 0;
+#endif
+}/*}}}*/
+
 TSRM_API uint8_t tsrm_is_main_thread(void)
 {/*{{{*/
 	return in_main_thread;
@@ -938,21 +835,15 @@ TSRM_API uint8_t tsrm_is_main_thread(void)
 
 TSRM_API uint8_t tsrm_is_shutdown(void)
 {/*{{{*/
-    return is_thread_shutdown;
+	return is_thread_shutdown;
 }/*}}}*/
 
 TSRM_API const char *tsrm_api_name(void)
 {/*{{{*/
-#if defined(GNUPTH)
-	return "GNU Pth";
-#elif defined(PTHREADS)
-	return "POSIX Threads";
-#elif defined(TSRM_ST)
-	return "State Threads";
-#elif defined(TSRM_WIN32)
+#ifdef TSRM_WIN32
 	return "Windows Threads";
 #else
-	return "Unknown";
+	return "POSIX Threads";
 #endif
 }/*}}}*/
 

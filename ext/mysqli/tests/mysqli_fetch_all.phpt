@@ -1,25 +1,14 @@
 --TEST--
 mysqli_fetch_all()
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
-if (!function_exists('mysqli_fetch_all'))
-    die("skip: function only available with mysqlnd");
 ?>
 --FILE--
 <?php
     require_once("connect.inc");
-
-    $tmp    = NULL;
-    $link   = NULL;
-
-    if (!is_null($tmp = @mysqli_fetch_all()))
-            printf("[001] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-    if (!is_null($tmp = @mysqli_fetch_all($link)))
-            printf("[002] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
 
     require('table.inc');
     if (!$res = mysqli_query($link, "SELECT * FROM test ORDER BY id LIMIT 2")) {
@@ -80,15 +69,12 @@ if (!function_exists('mysqli_fetch_all'))
             exit(1);
     }
 
-    do {
-            $illegal_mode = mt_rand(-10000, 10000);
-    } while (in_array($illegal_mode, array(MYSQLI_ASSOC, MYSQLI_NUM, MYSQLI_BOTH)));
-    // NOTE: for BC reasons with ext/mysql, ext/mysqli accepts invalid result modes.
-    $tmp = mysqli_fetch_all($res, $illegal_mode);
-    if (false !== $tmp)
-            printf("[019] Expecting boolean/false although, got %s/%s. [%d] %s\n",
-                    gettype($tmp), $tmp, mysqli_errno($link), mysqli_error($link));
-
+    // Illegal mode
+    try {
+        mysqli_fetch_all($res, -10);
+    } catch (\ValueError $e) {
+        echo $e->getMessage() . \PHP_EOL;
+    }
     mysqli_free_result($res);
 
     function func_mysqli_fetch_all($link, $engine, $sql_type, $sql_value, $php_value, $offset, $regexp_comparison = NULL) {
@@ -296,8 +282,11 @@ if (!function_exists('mysqli_fetch_all'))
 
     mysqli_close($link);
 
-    if (false !== ($tmp = mysqli_fetch_array($res, MYSQLI_ASSOC)))
-        printf("[015] Expecting false, got %s/%s\n", gettype($tmp), $tmp);
+    try {
+        mysqli_fetch_array($res, MYSQLI_ASSOC);
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     if (!$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)) {
         printf("[016] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
@@ -318,14 +307,13 @@ if (!function_exists('mysqli_fetch_all'))
         var_dump($rows);
     }
 
-
     print "done!";
 ?>
 --CLEAN--
 <?php
     // require_once("clean_table.inc");
 ?>
---EXPECTF--
+--EXPECT--
 [005]
 array(2) {
   [0]=>
@@ -453,8 +441,6 @@ array(1) {
     string(1) "1"
   }
 }
-
-Warning: mysqli_fetch_all(): Mode can be only MYSQLI_FETCH_NUM, MYSQLI_FETCH_ASSOC or MYSQLI_FETCH_BOTH in %s on line %d
-
-Warning: mysqli_fetch_array(): Couldn't fetch mysqli_result in %s on line %d
+mysqli_fetch_all(): Argument #2 ($mode) must be one of MYSQLI_NUM, MYSQLI_ASSOC, or MYSQLI_BOTH
+mysqli_result object is already closed
 done!

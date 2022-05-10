@@ -1,9 +1,9 @@
 --TEST--
 PAM: SHA-256, mysqlnd.sha256_server_public_key
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 
 ob_start();
@@ -58,10 +58,8 @@ if (strlen($key) != fwrite($fp, $key)) {
     die(sprintf("skip Failed to create pub key file"));
 }
 
-
-if (!$link->query("SET @@session.old_passwords=2")) {
-    die(sprintf("skip Cannot set @@session.old_passwords=2 [%d] %s", $link->errno, $link->error));
-}
+// Ignore errors because this variable exists only in MySQL 5.6 and 5.7
+$link->query("SET @@session.old_passwords=2");
 
 $link->query('DROP USER shatest');
 $link->query("DROP USER shatest@localhost");
@@ -72,8 +70,8 @@ if (!$link->query('CREATE USER shatest@"%" IDENTIFIED WITH sha256_password') ||
     die(sprintf("skip CREATE USER failed [%d] %s", $link->errno, $link->error));
 }
 
-if (!$link->query('SET PASSWORD FOR shatest@"%" = PASSWORD("shatest")') ||
-    !$link->query('SET PASSWORD FOR shatest@"localhost" = PASSWORD("shatest")')) {
+if (!$link->query('SET PASSWORD FOR shatest@"%" = "shatest"') ||
+    !$link->query('SET PASSWORD FOR shatest@"localhost" = "shatest"')) {
     die(sprintf("skip SET PASSWORD failed [%d] %s", $link->errno, $link->error));
 }
 
@@ -89,6 +87,7 @@ if (!$link->query(sprintf("GRANT SELECT ON TABLE %s.test TO shatest@'%%'", $db))
 }
 
 $link->close();
+echo "nocache";
 ?>
 --INI--
 mysqlnd.sha256_server_public_key="test_sha256_ini"
@@ -116,11 +115,11 @@ mysqlnd.sha256_server_public_key="test_sha256_ini"
 ?>
 --CLEAN--
 <?php
-    require_once("clean_table.inc");
-    $link->query('DROP USER shatest');
-    $link->query('DROP USER shatest@localhost');
-    $file = "test_sha256_ini";
-    @unlink($file);
+	require_once("clean_table.inc");
+	$link->query('DROP USER shatest');
+	$link->query('DROP USER shatest@localhost');
+	$file = "test_sha256_ini";
+	@unlink($file);
 ?>
 --EXPECTF--
 Warning: mysqli::__construct(): (HY000/1045): %s in %s on line %d

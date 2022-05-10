@@ -1,8 +1,8 @@
 --TEST--
 Phar::convertToTar() bz2 compressed
---SKIPIF--
-<?php if (!extension_loaded("phar")) die("skip"); ?>
-<?php if (!extension_loaded("bz2")) die("skip"); ?>
+--EXTENSIONS--
+phar
+bz2
 --INI--
 phar.require_hash=0
 phar.readonly=0
@@ -41,7 +41,6 @@ var_dump($phar->isCompressed() == Phar::BZ2);
 var_dump($phar->getStub());
 
 ?>
-===DONE===
 --CLEAN--
 <?php
 unlink(__DIR__ . '/' . basename(__FILE__, '.clean.php') . '.phar.tar.bz2');
@@ -62,4 +61,3 @@ bool(true)
 bool(true)
 string(60) "<?php // tar-based phar archive stub file
 __HALT_COMPILER();"
-===DONE===

@@ -1,7 +1,7 @@
 --TEST--
 Bug #69846 Segmenation fault (access violation) when iterating over DOMNodeList
---SKIPIF--
-<?php require_once('skipif.inc'); ?>
+--EXTENSIONS--
+dom
 --FILE--
 <?php
 
@@ -28,10 +28,9 @@ foreach ($dataNodes AS $node) {
 }
 
 ?>
-===DONE===
 --EXPECTF--
 int(3)
-object(DOMText)#%d (19) {
+object(DOMText)#%d (21) {
   ["wholeText"]=>
   string(3) "
   "
@@ -40,6 +39,10 @@ object(DOMText)#%d (19) {
   "
   ["length"]=>
   int(3)
+  ["previousElementSibling"]=>
+  NULL
+  ["nextElementSibling"]=>
+  NULL
   ["nodeName"]=>
   string(5) "#text"
   ["nodeValue"]=>
@@ -75,11 +78,21 @@ object(DOMText)#%d (19) {
   string(3) "
   "
 }
-object(DOMElement)#%d (18) {
-  ["tagName"]=>
-  string(5) "form1"
+object(DOMElement)#7 (23) {
   ["schemaTypeInfo"]=>
   NULL
+  ["tagName"]=>
+  string(5) "form1"
+  ["firstElementChild"]=>
+  string(22) "(object value omitted)"
+  ["lastElementChild"]=>
+  string(22) "(object value omitted)"
+  ["childElementCount"]=>
+  int(3)
+  ["previousElementSibling"]=>
+  NULL
+  ["nextElementSibling"]=>
+  NULL
   ["nodeName"]=>
   string(5) "form1"
   ["nodeValue"]=>
@@ -121,7 +134,7 @@ object(DOMElement)#%d (18) {
     Value C
   "
 }
-object(DOMText)#%d (19) {
+object(DOMText)#%d (21) {
   ["wholeText"]=>
   string(1) "
 "
@@ -130,6 +143,10 @@ object(DOMText)#%d (19) {
 "
   ["length"]=>
   int(1)
+  ["previousElementSibling"]=>
+  NULL
+  ["nextElementSibling"]=>
+  NULL
   ["nodeName"]=>
   string(5) "#text"
   ["nodeValue"]=>
@@ -165,4 +182,3 @@ object(DOMText)#%d (19) {
   string(1) "
 "
 }
-===DONE===

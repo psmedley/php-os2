@@ -1,0 +1,98 @@
+#! /bin/sh
+
+SED="u:/extras/bin/sed.exe"
+prefix="/php7"
+datarootdir="/php7/php"
+exec_prefix="${prefix}"
+version="7.4.28"
+vernum="70428"
+include_dir="u:/extras/include/apr-1/php"
+includes="-I$include_dir -I$include_dir/main -I$include_dir/TSRM -I$include_dir/Zend -I$include_dir/ext -I$include_dir/ext/date/lib"
+ldflags=" -L/extras/lib"
+libs="  -lstdc++ -lm -L/openldap/lib -lpthread -lldap -llber -lssl -lcrypto -lz -lexpat -lssh2 -lgcrypt -lgpg-error  -lbz2 -llzma /extras/lib/iconv.a -lcx -lidn -lpthread -lxml2 -lsqlite3 -lz -lxml2 -lssl -lcrypto -lxml2 -lxml2 -lxml2 -lxml2 -lxml2 -lz -lssl -lcrypto "
+extension_dir='/php7/lib/php/extensions/no-debug-zts-20190902'
+man_dir=`eval echo ${datarootdir}/man`
+program_prefix=""
+program_suffix=""
+exe_extension=".exe"
+php_cli_binary=NONE
+php_cgi_binary=NONE
+configure_options=" '--prefix=/php7' '--includedir=/extras/include' '--with-xml=shared' '--disable-rpath' '--enable-ftp' '--enable-exif=shared' '--with-zlib=u:/extras' '--enable-gd=shared' '--with-gettext=shared' '--enable-mbstring=shared,all' '--disable-mbregex' '--with-curl=shared,u:/extras' '--with-mysql-sock=\socket\MySQL' '--with-mysqli=shared,mysqlnd' '--with-bz2=shared,u:/extras' '--with-pdo-mysql=shared,mysqlnd' '--includedir=u:/extras/include/apr-1' '--with-apxs2=/apache24/bin/apxs' '--with-unixODBC=shared,/unixodbc' '--enable-sockets' '--with-xsl=shared,/extras' '--with-zip=shared' '--with-iconv=shared' '--enable-soap' '--with-xmlrpc=shared,/extras' '--enable-bcmath' '--enable-calendar' '--enable-maintainer-zts' '--with-sqlite3' '--with-pdo-sqlite=shared' '--with-openssl=shared,u:/extras' '--with-tidy=shared,/extras' '--disable-phpdbg' '--disable-phpdbg-webhelper' '--disable-ipv6' '--with-pgsql=shared,u:/pgsql' '--with-pdo-pgsql=shared,u:/pgsql' '--with-readline=shared,/extras' '--with-jpeg=/extras' '--with-webp=/extras' '--with-freetype=/extras' '--enable-intl=shared' 'PKG_CONFIG_PATH=u:/extras/lib/pkgconfig;e:/usr/lib/pkgconfig' 'LDFLAGS=-Zmap -Zhigh-mem -static-libgcc' 'LIBS=-L/openldap/lib -lpthread -lldap -llber -lssl -lcrypto -lz -lexpat -lssh2 -lgcrypt -lgpg-error -lbz2 -llzma /extras/lib/iconv.a -lcx -lidn'"
+php_sapis=" apache2handler cli cgi"
+ini_dir=""
+ini_path="/php7/lib"
+
+# Set php_cli_binary and php_cgi_binary if available
+for sapi in $php_sapis; do
+  case $sapi in
+  cli)
+    php_cli_binary="${exec_prefix}/bin/${program_prefix}php${program_suffix}${exe_extension}"
+    ;;
+  cgi)
+    php_cgi_binary="${exec_prefix}/bin/${program_prefix}php-cgi${program_suffix}${exe_extension}"
+    ;;
+  esac
+done
+
+# Determine which (if any) php binary is available
+if test "$php_cli_binary" != "NONE"; then
+  php_binary="$php_cli_binary"
+else
+  php_binary="$php_cgi_binary"
+fi
+
+# Remove quotes
+configure_options=`echo $configure_options | $SED -e "s#'##g"`
+
+case "$1" in
+--prefix)
+  echo $prefix;;
+--includes)
+  echo $includes;;
+--ldflags)
+  echo $ldflags;;
+--libs)
+  echo $libs;;
+--extension-dir)
+  echo $extension_dir;;
+--include-dir)
+  echo $include_dir;;
+--php-binary)
+  echo $php_binary;;
+--php-sapis)
+  echo $php_sapis;;
+--configure-options)
+  echo $configure_options;;
+--man-dir)
+  echo $man_dir;;
+--ini-path)
+  echo $ini_path;;
+--ini-dir)
+  echo $ini_dir;;
+--version)
+  echo $version;;
+--vernum)
+  echo $vernum;;
+*)
+  cat << EOF
+Usage: $0 [OPTION]
+Options:
+  --prefix            [$prefix]
+  --includes          [$includes]
+  --ldflags           [$ldflags]
+  --libs              [$libs]
+  --extension-dir     [$extension_dir]
+  --include-dir       [$include_dir]
+  --man-dir           [$man_dir]
+  --php-binary        [$php_binary]
+  --php-sapis         [$php_sapis]
+  --ini-path          [$ini_path]
+  --ini-dir           [$ini_dir]
+  --configure-options [$configure_options]
+  --version           [$version]
+  --vernum            [$vernum]
+EOF
+  exit 1;;
+esac
+
+exit 0

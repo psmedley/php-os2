@@ -1,13 +1,11 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
    | Copyright (c) The PHP Group                                          |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
@@ -42,16 +40,11 @@
 #endif
 #endif
 #if HAVE_GRP_H
-#ifdef PHP_WIN32
-#include "win32/grp.h"
-#else
-#include <grp.h>
-#endif
+# include <grp.h>
 #endif
 #include <errno.h>
 #include <ctype.h>
 
-#include "php_link.h"
 #include "php_string.h"
 
 #ifndef VOLUME_NAME_NT
@@ -62,8 +55,7 @@
 #define VOLUME_NAME_DOS 0x0
 #endif
 
-/* {{{ proto string readlink(string filename)
-   Return the target of a symbolic link */
+/* {{{ Return the target of a symbolic link */
 PHP_FUNCTION(readlink)
 {
 	char *link;
@@ -96,8 +88,7 @@ PHP_FUNCTION(readlink)
 }
 /* }}} */
 
-/* {{{ proto int linkinfo(string filename)
-   Returns the st_dev field of the UNIX C stat structure describing the link */
+/* {{{ Returns the st_dev field of the UNIX C stat structure describing the link */
 PHP_FUNCTION(linkinfo)
 {
 	char *link;
@@ -130,8 +121,7 @@ PHP_FUNCTION(linkinfo)
 }
 /* }}} */
 
-/* {{{ proto int symlink(string target, string link)
-   Create a symbolic link */
+/* {{{ Create a symbolic link */
 PHP_FUNCTION(symlink)
 {
 	char *topath, *frompath;
@@ -189,8 +179,7 @@ PHP_FUNCTION(symlink)
 }
 /* }}} */
 
-/* {{{ proto int link(string target, string link)
-   Create a hard link */
+/* {{{ Create a hard link */
 PHP_FUNCTION(link)
 {
 	char *topath, *frompath;

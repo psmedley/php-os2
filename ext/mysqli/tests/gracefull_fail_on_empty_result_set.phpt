@@ -1,9 +1,9 @@
 --TEST--
 Fail gracefully on empty result set
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 ?>
 --FILE--
@@ -24,7 +24,6 @@ require_once('skipifconnectfailure.inc');
 
     $link->close();
 ?>
-=== DONE ===
 --CLEAN--
 <?php
     require_once("clean_table.inc");
@@ -56,4 +55,3 @@ object(mysqli_result)#3 (5) {
   ["type"]=>
   int(1)
 }
-=== DONE ===

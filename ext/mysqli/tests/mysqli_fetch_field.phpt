@@ -1,24 +1,16 @@
 --TEST--
 mysqli_fetch_field()
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 ?>
 --FILE--
 <?php
     require_once("connect.inc");
 
-    $tmp    = NULL;
-    $link   = NULL;
-
     // Note: no SQL type tests, internally the same function gets used as for mysqli_fetch_array() which does a lot of SQL type test
-    if (!is_null($tmp = @mysqli_fetch_field()))
-        printf("[001] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-    if (!is_null($tmp = @mysqli_fetch_field($link)))
-        printf("[002] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
 
     require('table.inc');
 
@@ -44,10 +36,6 @@ require_once('skipifconnectfailure.inc');
         printf("[004] Expecting charset %s/%d got %d\n",
             $charsetInfo->charset, $charsetInfo->number, $tmp->charsetnr);
     }
-    if ($tmp->length != $charsetInfo->max_length) {
-        printf("[005] Expecting length %d got %d\n",
-            $charsetInfo->max_length, $tmp->max_length);
-    }
     if ($tmp->db != $db) {
         printf("011] Expecting database '%s' got '%s'\n",
             $db, $tmp->db);
@@ -58,8 +46,11 @@ require_once('skipifconnectfailure.inc');
     mysqli_free_result($res);
 
     // Read http://bugs.php.net/bug.php?id=42344 on defaults!
-    if (false !== ($tmp = mysqli_fetch_field($res)))
-        printf("[006] Expecting false, got %s/%s\n", gettype($tmp), $tmp);
+    try {
+        mysqli_fetch_field($res);
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     if (!mysqli_query($link, "DROP TABLE IF EXISTS test"))
         printf("[007] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
@@ -103,7 +94,7 @@ object(stdClass)#%d (13) {
   ["catalog"]=>
   string(%d) "%s"
   ["max_length"]=>
-  int(1)
+  int(0)
   ["length"]=>
   int(11)
   ["charsetnr"]=>
@@ -144,8 +135,7 @@ object(stdClass)#%d (13) {
   int(0)
 }
 bool(false)
-
-Warning: mysqli_fetch_field(): Couldn't fetch mysqli_result in %s on line %d
+mysqli_result object is already closed
 array(1) {
   ["_default_test"]=>
   string(1) "2"
@@ -166,7 +156,7 @@ object(stdClass)#%d (13) {
   ["catalog"]=>
   string(%d) "%s"
   ["max_length"]=>
-  int(1)
+  int(0)
   ["length"]=>
   int(11)
   ["charsetnr"]=>

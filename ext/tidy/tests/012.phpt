@@ -1,7 +1,7 @@
 --TEST--
 Accessing children nodes
---SKIPIF--
-<?php if (!extension_loaded("tidy")) print "skip"; ?>
+--EXTENSIONS--
+tidy
 --FILE--
 <?php
 
@@ -25,7 +25,7 @@ Accessing children nodes
 
         }
 
-    	$a = tidy_parse_string("<HTML><BODY BGCOLOR=#FFFFFF ALINK=#000000><B>Hi</B><I>Bye<U>Test</U></I></BODY></HTML>", array('newline' => 'LF'));
+        $a = tidy_parse_string("<HTML><BODY BGCOLOR=#FFFFFF ALINK=#000000><B>Hi</B><I>Bye<U>Test</U></I></BODY></HTML>", array('newline' => 'LF'));
         $html = $a->html();
         dump_nodes($html);
 

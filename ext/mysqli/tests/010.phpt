@@ -2,9 +2,10 @@
 mysqli fetch float values
 --INI--
 precision=12
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
 require_once('skipifconnectfailure.inc');
 ?>
 --FILE--
@@ -68,12 +69,12 @@ array(7) {
   [2]=>
   float(0)
   [3]=>
-  float(1.0E+12)
+  float(1000000000000)
   [4]=>
   float(0.564642)
   [5]=>
   float(1)
   [6]=>
-  float(8.88889E+14)
+  float(888889000000000)
 }
 done!

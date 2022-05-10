@@ -1,8 +1,9 @@
 --TEST--
 Bug #77812 (Interactive mode does not support PHP 7.3-style heredoc)
+--EXTENSIONS--
+readline
 --SKIPIF--
 <?php
-if (!extension_loaded('readline')) die('skip readline extension not available');
 if (READLINE_LIB !== "readline") die('skip readline only');
 if (!function_exists('proc_open')) die('skip proc_open() not available');
 ?>
@@ -40,7 +41,10 @@ xxx
 php > FOO
 php > ;
 
-Warning: Use of undefined constant FOO - assumed 'FOO' (this will throw an Error in a future version of PHP) in php shell code on line %d
+Warning: Uncaught Error: Undefined constant "FOO" in php shell code:1
+Stack trace:
+#0 {main}
+  thrown in php shell code on line 1
 php > echo <<<FOO
 <<< > FOOL
 <<< > FOO

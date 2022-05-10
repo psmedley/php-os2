@@ -1,17 +1,15 @@
 --TEST--
 Bug #79096 (FFI Struct Segfault)
---SKIPIF--
-<?php
-if (!extension_loaded('ffi')) die('skip ffi extension not available');
-if (!extension_loaded('zend-test')) die('skip zend-test extension not available');
-?>
+--EXTENSIONS--
+ffi
+zend_test
 --FILE--
 <?php
 require_once('utils.inc');
 $header = <<<HEADER
 struct bug79096 {
-	uint64_t a;
-	uint64_t b;
+    uint64_t a;
+    uint64_t b;
 };
 
 struct bug79096 bug79096(void);

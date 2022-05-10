@@ -1,10 +1,9 @@
 --TEST--
 mb_substr()
---SKIPIF--
-<?php extension_loaded('mbstring') or die('skip mbstring not available'); ?>
+--EXTENSIONS--
+mbstring
 --INI--
 output_handler=
-mbstring.func_overload=0
 --FILE--
 <?php
 // TODO: Add more encodings

@@ -1,28 +1,16 @@
 --TEST--
 mysqli_real_escape_string()
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 ?>
 --FILE--
 <?php
     require_once("connect.inc");
 
-    $tmp	= NULL;
-    $link	= NULL;
-
-    if (NULL !== ($tmp = @mysqli_real_escape_string()))
-        printf("[001] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-    if (NULL !== ($tmp = @mysqli_real_escape_string($link)))
-        printf("[002] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
     require('table.inc');
-
-    if (NULL !== ($tmp =@mysqli_real_escape_string($link, "фуу", "бар")))
-        printf("[003] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
 
     if ('фу\\\\бар' !== ($tmp = mysqli_real_escape_string($link, 'фу\\бар')))
         printf("[004] Expecting фу\\\\бар, got %s\n", $tmp);
@@ -74,8 +62,11 @@ require_once('skipifconnectfailure.inc');
 
     mysqli_close($link);
 
-    if (false !== ($tmp = mysqli_real_escape_string($link, 'foo')))
-        printf("[018] Expecting false, got %s/%s\n", gettype($tmp), $tmp);
+    try {
+        mysqli_real_escape_string($link, 'foo');
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     print "done!";
 ?>
@@ -83,6 +74,6 @@ require_once('skipifconnectfailure.inc');
 <?php
     require_once("clean_table.inc");
 ?>
---EXPECTF--
-Warning: mysqli_real_escape_string(): Couldn't fetch mysqli in %s on line %d
+--EXPECT--
+mysqli object is already closed
 done!

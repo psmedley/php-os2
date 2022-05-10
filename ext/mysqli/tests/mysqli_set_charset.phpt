@@ -1,9 +1,9 @@
 --TEST--
 mysqli_set_charset()
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 
 if (!function_exists('mysqli_set_charset'))
@@ -47,18 +47,6 @@ if ((($res = mysqli_query($link, 'SHOW CHARACTER SET LIKE "latin1"', MYSQLI_STOR
 --FILE--
 <?php
     require_once("connect.inc");
-
-    $tmp    = NULL;
-    $link   = NULL;
-
-    if (!is_null($tmp = @mysqli_set_charset()))
-        printf("[001] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-    if (!is_null($tmp = @mysqli_set_charset($link)))
-        printf("[002] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-    if (!is_null($tmp = @mysqli_set_charset($link, $link)))
-        printf("[003] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
 
     require('table.inc');
 
@@ -114,10 +102,27 @@ if ((($res = mysqli_query($link, 'SHOW CHARACTER SET LIKE "latin1"', MYSQLI_STOR
     }
     mysqli_free_result($res);
 
+    // Make sure that set_charset throws an exception in exception mode
+    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+    try {
+        $link->set_charset('invalid');
+    } catch (\mysqli_sql_exception $exception) {
+        echo "Exception: " . $exception->getMessage() . "\n";
+    }
+
+    try {
+        $link->set_charset('ucs2');
+    } catch (\mysqli_sql_exception $exception) {
+        echo "Exception: " . $exception->getMessage() . "\n";
+    }
+
     mysqli_close($link);
 
-    if (false !== ($tmp = mysqli_set_charset($link, $new_charset)))
-        printf("[019] Expecting false, got %s/%s\n", gettype($tmp), $tmp);
+    try {
+        mysqli_set_charset($link, $new_charset);
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     print "done!";
 ?>
@@ -126,5 +131,7 @@ if ((($res = mysqli_query($link, 'SHOW CHARACTER SET LIKE "latin1"', MYSQLI_STOR
     require_once("clean_table.inc");
 ?>
 --EXPECTF--
-Warning: mysqli_set_charset(): Couldn't fetch mysqli in %s on line %d
+Exception: %s
+Exception: Variable 'character_set_client' can't be set to the value of 'ucs2'
+mysqli object is already closed
 done!

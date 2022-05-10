@@ -1,0 +1,458 @@
+** EXPERIMENTAL (HLL) ** Open Watcom Linker Version 2.0beta1 Limited Availability by SHL on Jul  2 2020
+Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
+Created on:       22/05/09 08:07:34
+Executable Image: sapi/cli/php.exe
+creating an OS/2 EMX executable
+
+
+                        +------------+
+                        |   Groups   |
+                        +------------+
+
+Group                           Address              Size
+=====                           =======              ====
+
+CGROUP                          0001:00000000        00017a70
+DGROUP                          0002:00000000        00000d20
+
+
+
+                        +--------------+
+                        |   Segments   |
+                        +--------------+
+
+Segment                Class          Group          Address         Size
+=======                =====          =====          =======         ====
+
+TEXT32                 CODE           CGROUP         0001:00000000   00017a70
+________TEXT           CODE           CGROUP         0001:00017a70   00000000
+DATA32                 DATA           DGROUP         0002:00000000   00000750
+SET1__os2dll           DATA           DGROUP         0002:00000750   00000004
+SET2__os2dll           DATA           DGROUP         0002:00000754   00000000
+SET3__os2dll           DATA           DGROUP         0002:00000754   00000004
+SET1___CTOR_LIST__     DATA           DGROUP         0002:00000758   00000004
+SET2___CTOR_LIST__     DATA           DGROUP         0002:0000075c   00000000
+SET3___CTOR_LIST__     DATA           DGROUP         0002:0000075c   00000004
+SET1___DTOR_LIST__     DATA           DGROUP         0002:00000760   00000004
+SET2___DTOR_LIST__     DATA           DGROUP         0002:00000764   00000000
+SET3___DTOR_LIST__     DATA           DGROUP         0002:00000764   00000004
+SET1___crtinit1__      DATA           DGROUP         0002:00000768   00000004
+SET2___crtinit1__      DATA           DGROUP         0002:0000076c   00000000
+SET3___crtinit1__      DATA           DGROUP         0002:0000076c   00000004
+SET1___crtexit1__      DATA           DGROUP         0002:00000770   00000004
+SET2___crtexit1__      DATA           DGROUP         0002:00000774   00000000
+SET3___crtexit1__      DATA           DGROUP         0002:00000774   00000004
+SET1___eh_frame__      DATA           DGROUP         0002:00000778   00000004
+SET2___eh_frame__      DATA           DGROUP         0002:0000077c   0000000c
+SET3___eh_frame__      DATA           DGROUP         0002:00000788   00000004
+SET1___eh_init__       DATA           DGROUP         0002:0000078c   00000004
+SET2___eh_init__       DATA           DGROUP         0002:00000790   00000004
+SET3___eh_init__       DATA           DGROUP         0002:00000794   00000004
+SET1___eh_term__       DATA           DGROUP         0002:00000798   00000004
+SET2___eh_term__       DATA           DGROUP         0002:0000079c   00000004
+SET3___eh_term__       DATA           DGROUP         0002:000007a0   00000004
+SET1___fork_parent1__  DATA           DGROUP         0002:000007a4   00000004
+SET2___fork_parent1__  DATA           DGROUP         0002:000007a8   00000000
+SET3___fork_parent1__  DATA           DGROUP         0002:000007a8   00000004
+SET1___fork_child1__   DATA           DGROUP         0002:000007ac   00000004
+SET2___fork_child1__   DATA           DGROUP         0002:000007b0   00000000
+SET3___fork_child1__   DATA           DGROUP         0002:000007b0   00000004
+________DATA           DATA           DGROUP         0002:000007c0   00000000
+BSS32                  BSS            DGROUP         0002:000007c0   00000560
+c_common               BSS            DGROUP         0002:00000d20   00000000
+________BSS            BSS            DGROUP         0002:00000d20   00000000
+STACK                  STACK          AUTO           0003:00000000   00100000
+
+
+                        +----------------+
+                        |   Memory Map   |
+                        +----------------+
+
+* = unreferenced symbol
++ = symbol only referenced locally
+
+Address        Symbol
+=======        ======
+
+Module: U:\usr\lib\crt0hi.obj(D:\Temp\ccreGMA2.s)
+0001:00000000* __text
+0002:00000000* __data
+0002:00000000* ___data_start
+0002:000007c0* ___bss_start
+0002:00000750+ __os2dll
+0002:00000758  ___CTOR_LIST__
+0002:00000760  ___DTOR_LIST__
+0002:00000768* ___crtinit1__
+0002:00000770* ___crtexit1__
+0002:00000778  ___eh_frame__
+0002:0000078c  ___eh_init__
+0002:00000798  ___eh_term__
+0002:000007a4+ ___fork_parent1__
+0002:000007ac+ ___fork_child1__
+Module: U:\dev\php-7-os2\sapi\cli\php_cli.obj(U:\dev\php-7-os2\sapi\cli\php_cli.c)
+0001:000033c0  _OPTIONS
+0001:0000284f* _php_cli_get_shell_callbacks
+0001:00002855* _sapi_cli_single_write
+0001:00002923  _main
+0001:000035a0* _HARDCODED_INI
+0002:000007c0* _cli_shell_callbacks
+0001:00002923* main
+Module: U:\dev\php-7-os2\sapi\cli\php_http_parser.obj(U:\dev\php-7-os2\sapi\cli\php_http_parser.c)
+0001:0000373a  _php_http_parser_execute
+0001:00005e40* _php_http_should_keep_alive
+0001:00005e70  _php_http_method_str
+0001:00005e7f  _php_http_parser_init
+Module: U:\dev\php-7-os2\sapi\cli\php_cli_server.obj(U:\dev\php-7-os2\sapi\cli\php_cli_server.c)
+0001:000063fb* @zif_apache_request_headers@8
+0001:000065b1* @zif_apache_response_headers@8
+0001:0000b6e8* _php_cli_server_get_system_time
+0001:0000b7d3  _do_cli_server
+0001:0000c3e0  _server_additional_functions
+0002:000001b0* _cli_server_module_entry
+0002:00000110  _cli_server_sapi_module
+0002:000007e0* _cli_server_globals_id
+Module: U:\dev\php-7-os2\sapi\cli\ps_title.obj(U:\dev\php-7-os2\sapi\cli\ps_title.c)
+0001:00014aa0  _save_ps_args
+0001:00014aa8  _is_ps_title_available
+0001:00014ac1  _ps_title_errno
+0001:00014ada  _set_ps_title
+0001:00014ae0  _get_ps_title
+0001:00014ae6  _cleanup_ps_args
+Module: U:\dev\php-7-os2\sapi\cli\php_cli_process_title.obj(U:\dev\php-7-os2\sapi\cli\php_cli_process_title.c)
+0001:00014b7b  @zif_cli_set_process_title@8
+0001:00014c27  @zif_cli_get_process_title@8
+Module: U:\usr\lib\libend.lib(src/libend/386/endlink386.asm)
+0002:00000d20  _end
+0002:000007c0  _edata
+Module: U:\usr\lib\libend.lib(src/libend/386/end.asm)
+0001:00017a70* _etext
+0001:00017a70* __etext
+0000:00000000* WEAK$ZERO
+0002:00000d20  __end
+0002:000007c0  __edata
+Module: U:\tmp\ldconv_libgcc_a_b236278462b1785c8.lib(__main.obj)
+0001:00014d50* ___do_global_dtors
+0001:00014d55* ___do_global_ctors
+0001:00014d70  ___main
+Module: U:\tmp\ldconv_libgcc_a_b236278462b1785c8.lib(_chkstk_ms.obj)
+0001:00014da0  ___chkstk_ms
+Module: U:\usr\lib\libc_dll.lib(recv.obj)
+0001:00014dd0  _recv
+Module: U:\usr\lib\libc_dll.lib(send.obj)
+0001:00014ea0  _send
+Module: U:\usr\lib\libc_dll.lib(shutdown.obj)
+0001:00014f70  _shutdown
+Module: U:\usr\lib\libc_dll.lib(accept.obj)
+0001:00015030  _accept
+Module: U:\usr\lib\libc_dll.lib(socket.obj)
+0001:000151b0  _socket
+Module: U:\usr\lib\libc_dll.lib(setsockopt.obj)
+0001:00015240  _setsockopt
+Module: U:\usr\lib\libc_dll.lib(bind.obj)
+0001:00015390  _bind
+Module: U:\usr\lib\libc_dll.lib(listen.obj)
+0001:000154b0  _listen
+Module: U:\tmp\ldconv_libgcc_eh_a_b236278462b173b90.lib(emx-ctordtor.obj)
+0001:00015570  ___ctordtorInit
+0001:000155a6  ___ctordtorTerm
+Module: U:\usr\lib\libc_dll.lib(highmemsocket.obj)
+0001:0001560c* ___libsocket_safe_copy
+0001:000156e4  ___libsocket_safe_addr_pre
+0001:00015804  ___libsocket_safe_addr_post
+0001:000158b5  ___libsocket_safe_addr_free
+Module: U:\tmp\ldconv_libgcc_eh_a_b236278462b173b90.lib(emx-eh.obj)
+0001:000158e0  ___ehInit
+0001:0001591e* ___ehTerm
+Module: U:\tmp\ldconv_libgcc_eh_a_b236278462b173b90.lib(unwind-dw2-fde.obj)
+0001:00016b53* ___register_frame_info_bases
+0001:00016bc5* ___register_frame_info
+0001:00016c3a* ___register_frame
+0001:00016cb4* ___register_frame_info_table_bases
+0001:00016d17* ___register_frame_info_table
+0001:00016d7c  ___register_frame_table
+0001:00016dee* ___deregister_frame_info_bases
+0001:00016e08* ___deregister_frame_info
+0001:00016e22  ___deregister_frame
+0001:00016e45* __Unwind_Find_FDE
+Module: U:\tmp\ldconv_libgcc_a_b236278462b1785c8.lib(gthr-os2.obj)
+0001:00017445* ___gthread_os2_mutex_init
+0001:0001747a* ___gthread_os2_mutex_destroy
+0001:0001749a  ___gthread_os2_mutex_lock
+0001:000174b9* ___gthread_os2_mutex_trylock
+0001:000174d5  ___gthread_os2_mutex_unlock
+0001:000174f5* ___gthread_os2_cond_init
+0001:00017556* ___gthread_os2_cond_destroy
+0001:00017594* ___gthread_os2_cond_wait
+0001:000175b9* ___gthread_os2_cond_wait_recursive
+0001:000175e0* ___gthread_os2_create
+0001:000176ca* ___gthread_os2_join
+0001:00017742* ___gthread_os2_detach
+0001:00017783* ___gthread_os2_equal
+0001:00017794* ___gthread_os2_self
+0001:00017799* ___gthread_os2_yield
+0001:000177b1* ___gthread_os2_mutex_timedlock
+0001:00017856* ___gthread_os2_recursive_mutex_timedlock
+0001:000178fd* ___gthread_os2_cond_signal
+0001:0001796e* ___gthread_os2_cond_broadcast
+0001:000179c1* ___gthread_os2_cond_timedwait
+
+
+                        +----------------------+
+                        |   Imported Symbols   |
+                        +----------------------+
+
+Symbol                              Module
+======                              ======
+
+___libc_ForkRegisterModule          libcn0
+___init_app                         libcx0
+__CRT_init                          libcn0
+__atfork_callback                   libcn0
+___zend_malloc                      php7
+@zend_hash_str_update@16            php7
+___stderrp                          libcn0
+_php_import_environment_variables   php7
+_sapi_module                        php7
+_php_register_variable              php7
+_php_module_startup                 php7
+_php_printf                         php7
+__php_stream_open_wrapper_ex        php7
+_zend_string_init_interned          php7
+_zend_register_constant             php7
+__php_stream_free                   php7
+_virtual_fopen                      php7
+_zend_stream_init_fp                php7
+_os2_get_tsrm_ls_cache              php7
+_executor_globals_offset            php7
+_compiler_globals_offset            php7
+_php_getopt                         php7
+_php_request_startup                php7
+_php_print_info                     php7
+_php_output_end_all                 php7
+@zend_str_tolower_dup@8             php7
+_module_registry                    php7
+@zend_hash_str_find@12              php7
+_php_info_print_module              php7
+@_efree@4                           php7
+_php_request_shutdown               php7
+_get_zend_version                   php7
+_sapi_deactivate                    php7
+@_zend_hash_init@16                 php7
+@zend_hash_copy@12                  php7
+_zend_sort                          php7
+@zend_hash_sort_ex@16               php7
+@zend_hash_destroy@4                php7
+_zend_extensions                    php7
+_zend_llist_copy                    php7
+_zend_llist_sort                    php7
+_zend_llist_apply                   php7
+_zend_llist_destroy                 php7
+_php_output_write                   php7
+_zend_ini_deactivate                php7
+_sapi_globals_offset                php7
+_zend_load_extension                php7
+_virtual_realpath                   php7
+_zend_register_bool_constant        php7
+_zend_is_auto_global_str            php7
+_core_globals_offset                php7
+_reflection_class_ptr               php7
+@_emalloc@4                         php7
+_object_init_ex                     php7
+_zend_call_method                   php7
+_zend_ce_exception                  php7
+_zend_read_property                 php7
+_zend_printf                        php7
+_zval_ptr_dtor                      php7
+_zend_eval_string_ex                php7
+__php_stream_get_line               php7
+_php_ini_opened_path                php7
+_php_ini_scanned_path               php7
+_php_ini_scanned_files              php7
+_php_lint_script                    php7
+_open_file_for_scanning             php7
+_php_get_highlight_struct           php7
+_zend_highlight                     php7
+_zend_strip                         php7
+___stdoutp                          libcn0
+___stdinp                           libcn0
+_php_execute_script                 php7
+_reflection_zend_extension_ptr      php7
+_zend_print_zval                    php7
+_zend_write                         php7
+_display_ini_entries                php7
+_reflection_method_ptr              php7
+_reflection_extension_ptr           php7
+_reflection_function_ptr            php7
+__errno                             libcn0
+_php_handle_aborted_connection      php7
+_file_globals_id                    php7
+_select                             libcx0
+_php_tsrm_startup                   php7
+_os2_tsrmls_cache_update            php7
+_zend_signal_startup                php7
+_sapi_startup                       php7
+_tsrm_shutdown                      php7
+___libc_GLocaleCtype                libcn0
+_sapi_shutdown                      php7
+_php_module_shutdown                php7
+@zif_dl@8                           php7
+_php_module_shutdown_wrapper        php7
+_zend_error                         php7
+__assert                            libcn0
+@_zend_new_array@4                  php7
+@zend_hash_update@12                php7
+@_zend_handle_numeric_str_ex@12     php7
+@zend_hash_index_update@12          php7
+@zend_wrong_parameters_none_error@0 php7
+@_zend_new_array_0@0                php7
+_zend_llist_apply_with_argument     php7
+_add_assoc_stringl_ex               php7
+_zend_unregister_ini_entries        php7
+_ts_allocate_id                     php7
+_zend_register_ini_entries          php7
+_php_register_variable_safe         php7
+_zend_spprintf                      php7
+_zend_hash_apply_with_arguments     php7
+@_estrndup@8                        php7
+_php_format_date                    php7
+@smart_str_realloc@8                php7
+@smart_str_erealloc@8               php7
+@_safe_malloc@12                    php7
+@zend_strndup@8                     php7
+___zend_realloc                     php7
+@zend_str_tolower_copy@12           php7
+@zend_hash_add@12                   php7
+_sapi_send_headers                  php7
+_virtual_getcwd                     php7
+_zend_stream_init_filename          php7
+_zend_execute_scripts               php7
+_virtual_chdir                      php7
+_php_socket_strerror                php7
+@_estrdup@4                         php7
+_php_raw_url_decode                 php7
+_poll                               libcx0
+_close                              libcx0
+_zend_vspprintf                     php7
+@zend_hash_index_find@8             php7
+_php_set_sock_blocking              php7
+_php_network_populate_name_from_sockaddr php7
+@zend_hash_index_del@8              php7
+_zend_llist_get_first_ex            php7
+_zend_llist_get_next_ex             php7
+_php_escape_html_entities_ex        php7
+_ap_php_snprintf                    php7
+_php_handle_auth_data               php7
+_read                               libcx0
+_php_network_getaddresses           php7
+_php_network_freeaddresses          php7
+@zend_hash_str_add@16               php7
+_zend_signal_init                   php7
+_waitpid                            libcx0
+_php_socket_error_str               php7
+_OnUpdateBool                       php7
+_zend_ini_boolean_displayer_cb      php7
+_zend_parse_parameters              php7
+_php_error_docref                   php7
+__std_exit                          libcn0
+__std_fprintf                       libcn0
+__std_strlen                        libcn0
+__std_strrchr                       libcn0
+__std_printf                        libcn0
+__std_strcmp                        libcn0
+__std_stricmp                       libcn0
+__std_sigsetjmp                     libcn0
+__std_free                          libcn0
+__std_strdup                        libcn0
+__std_memset                        libcn0
+__std_puts                          libcn0
+__std_fflush                        libcn0
+__std_fclose                        libcn0
+__std_strstr                        libcn0
+__std_write                         libcn0
+__std_signal                        libcn0
+__std_strchr                        libcn0
+__std_realloc                       libcn0
+__std_memmove                       libcn0
+__std_malloc                        libcn0
+__std_strncpy                       libcn0
+__std_gettimeofday                  libcn0
+__std_getenv                        libcn0
+__std_atol                          libcn0
+__std_calloc                        libcn0
+__std_getpid                        libcn0
+__std_fork                          libcn0
+__std_fwrite                        libcn0
+__std_stat                          libcn0
+___libc_FH                          libcn0
+__libsocket_recv                    tcpip32
+__libsocket_set_errno               tcpip32
+__libsocket_sock_errno              tcpip32
+__libsocket_send                    tcpip32
+__libsocket_shutdown                tcpip32
+__std_localtime_r                   libcn0
+__std_asctime_r                     libcn0
+__std_isatty                        libcn0
+__libsocket_accept                  tcpip32
+___libc_TcpipAllocFH44              libcn0
+__libsocket_soclose                 tcpip32
+__std_bsearch                       libcn0
+__std_strerror                      libcn0
+__std_open                          libcn0
+__std_strncmp                       libcn0
+__std_strtol                        libcn0
+__libsocket_socket                  tcpip32
+__libsocket_setsockopt              tcpip32
+__libsocket_bind                    tcpip32
+__libsocket_listen                  tcpip32
+___ctordtorInit1                    libcn0
+___ctordtorTerm1                    libcn0
+__std_atexit                        libcn0
+DosTIB                              doscalls
+DosSetExceptionHandler              doscalls
+DosUnsetExceptionHandler            doscalls
+__lmalloc                           libcn0
+__std_longjmp                       libcn0
+__std_setjmp                        libcn0
+__std_abort                         libcn0
+DosRequestMutexSem                  doscalls
+DosQueryMutexSem                    doscalls
+___libc_GpFIBLIS                    libcn0
+___fmutex_request_internal          libcn0
+DosCreateMutexSem                   doscalls
+___fmutex_release_internal_must_complete libcn0
+___fmutex_request_internal_must_complete libcn0
+___fmutex_release_internal          libcn0
+DosReleaseMutexSem                  doscalls
+DosCloseEventSem                    doscalls
+DosWaitEventSem                     doscalls
+DosPostEventSem                     doscalls
+DosCreateEventSem                   doscalls
+DosResetEventSem                    doscalls
+DosCloseMutexSem                    doscalls
+__beginthread                       libcx0
+__gettid                            libcn0
+DosSleep                            doscalls
+
+
+                        +--------------------+
+                        |   Libraries Used   |
+                        +--------------------+
+
+U:\extras\lib\libcx.lib
+U:\dev\php-7-os2\.libs\php7.lib
+U:\tmp\ldconv_libgcc_eh_a_b236278462b173b90.lib
+U:\tmp\ldconv_libgcc_a_b236278462b1785c8.lib
+U:\usr\lib\libc_alias.lib
+U:\usr\lib\libc_dll.lib
+U:\usr\lib\libos2.lib
+U:\usr\lib\libend.lib
+
+
+                        +-----------------------+
+                        |   Linker Statistics   |
+                        +-----------------------+
+
+Stack size:  00100000 (1048576.)
+Memory size:  00118790 (1148816.)
+Entry point address: 0001:00000000
+Link time: 00:00.07

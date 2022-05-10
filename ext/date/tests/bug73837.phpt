@@ -6,13 +6,14 @@ $collect = [];
 
 for ( $i = 0; $i < 1000; $i++ )
 {
-	$a = new DateTime();
-	$key = "s" . $a->format( "u" );
-	$collect[$key] = true;
+    $a = new DateTime();
+    $key = "s" . $a->format( "u" );
+    $collect[$key] = true;
 }
 
+// For low-resolution clocks, we may construct many objects in the same tick.
 var_dump($n = count( $collect ));
-echo ( $n > 700 ) ? "microseconds differ\n" : "microseconds do not differ enough ($n)\n";
+echo $n > 200 ? "microseconds differ\n" : "microseconds do not differ enough ($n)\n";
 ?>
 --EXPECTF--
 int(%d)

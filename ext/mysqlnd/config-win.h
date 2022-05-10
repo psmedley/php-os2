@@ -16,7 +16,7 @@ This file is public domain and comes with NO WARRANTY of any kind */
 #include <malloc.h>
 
 #ifndef __OS2__
-#include <win32/php_stdint.h>
+#include <stdint.h>
 #endif
 
 #ifndef HAVE_INT8_T

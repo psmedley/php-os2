@@ -1,9 +1,9 @@
 --TEST--
 mysqli_fetch_object()
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 ?>
 --FILE--
@@ -11,15 +11,6 @@ require_once('skipifconnectfailure.inc');
     include_once("connect.inc");
 
     set_error_handler('handle_catchable_fatal');
-
-    $tmp    = NULL;
-    $link   = NULL;
-
-    if (!is_null($tmp = @mysqli_fetch_object()))
-        printf("[001] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-    if (!is_null($tmp = @mysqli_fetch_object($link)))
-        printf("[002] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
 
     require('table.inc');
     if (!$res = mysqli_query($link, "SELECT id AS ID, label FROM test AS TEST ORDER BY id LIMIT 5")) {
@@ -95,7 +86,11 @@ require_once('skipifconnectfailure.inc');
     }
 
     mysqli_free_result($res);
-    var_dump(mysqli_fetch_object($res));
+    try {
+        mysqli_fetch_object($res);
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     if (!$res = mysqli_query($link, "SELECT id AS ID, label FROM test AS TEST ORDER BY id LIMIT 5"))
             printf("[010] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
@@ -133,8 +128,11 @@ require_once('skipifconnectfailure.inc');
     $obj = mysqli_fetch_object($res, 'mysqli_fetch_object_private_constructor', array('a', 'b'));
     mysqli_free_result($res);
 
-    // Fatal error, script execution will end
-    var_dump(mysqli_fetch_object($res, 'this_class_does_not_exist'));
+    try {
+        var_dump(mysqli_fetch_object($res, 'this_class_does_not_exist'));
+    } catch (TypeError $e) {
+        echo $e->getMessage(), "\n";
+    }
 
 
     mysqli_close($link);
@@ -145,14 +143,11 @@ require_once('skipifconnectfailure.inc');
     require_once("clean_table.inc");
 ?>
 --EXPECTF--
-[E_WARNING] mysqli_fetch_object() expects at least 1 parameter, 0 given in %s on line %d
-[E_WARNING] mysqli_fetch_object() expects parameter 1 to be mysqli_result, null given in %s on line %d
 Exception: Too few arguments to function mysqli_fetch_object_construct::__construct(), 0 passed and exactly 2 expected
 Exception: Too few arguments to function mysqli_fetch_object_construct::__construct(), 1 passed and exactly 2 expected
 NULL
 NULL
-[E_WARNING] mysqli_fetch_object(): Couldn't fetch mysqli_result in %s on line %d
-bool(false)
-[0] Argument 3 passed to mysqli_fetch_object() must be of the type array, string given in %s on line %d
-
-Fatal error: Class 'this_class_does_not_exist' not found in %s on line %d
+mysqli_result object is already closed
+[0] mysqli_fetch_object(): Argument #3 ($constructor_args) must be of type array, string given in %s on line %d
+mysqli_fetch_object(): Argument #2 ($class) must be a valid class name, this_class_does_not_exist given
+done!

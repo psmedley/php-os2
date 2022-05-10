@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.4.1.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2019 Free Software Foundation,
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
    Inc.
 
    This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -31,318 +31,205 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-/* Undocumented macros, especially those whose name start with YY_,
-   are private implementation details.  Do not rely on them.  */
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
 
-#ifndef YY_ZEND_U_DEV_PHP_7_4_28_ZEND_ZEND_LANGUAGE_PARSER_H_INCLUDED
-# define YY_ZEND_U_DEV_PHP_7_4_28_ZEND_ZEND_LANGUAGE_PARSER_H_INCLUDED
+#ifndef YY_ZEND_ZEND_ZEND_LANGUAGE_PARSER_H_INCLUDED
+# define YY_ZEND_ZEND_ZEND_LANGUAGE_PARSER_H_INCLUDED
 /* Debug traces.  */
-#ifndef YYDEBUG
-# define YYDEBUG 0
-#endif
+#ifndef ZENDDEBUG
+# if defined YYDEBUG
 #if YYDEBUG
+#   define ZENDDEBUG 1
+#  else
+#   define ZENDDEBUG 0
+#  endif
+# else /* ! defined YYDEBUG */
+#  define ZENDDEBUG 0
+# endif /* ! defined YYDEBUG */
+#endif  /* ! defined ZENDDEBUG */
+#if ZENDDEBUG
 extern int zenddebug;
 #endif
 /* "%code requires" blocks.  */
-#line 49 "U:/dev/php-7.4.28/Zend/zend_language_parser.y"
+
+#include "zend_compile.h"
 
 
-#line 51 "U:/dev/php-7.4.28/Zend/zend_language_parser.h"
-
-/* Token type.  */
-#include "zend.h"
-#ifndef YYTOKENTYPE
-# define YYTOKENTYPE
-  enum yytokentype
+/* Token kinds.  */
+#ifndef ZENDTOKENTYPE
+# define ZENDTOKENTYPE
+  enum zendtokentype
   {
-    END = 0,
-    PREC_ARROW_FUNCTION = 258,
-    T_INCLUDE = 259,
-    T_INCLUDE_ONCE = 260,
-    T_REQUIRE = 261,
-    T_REQUIRE_ONCE = 262,
-    T_LOGICAL_OR = 263,
-    T_LOGICAL_XOR = 264,
-    T_LOGICAL_AND = 265,
-    T_PRINT = 266,
-    T_YIELD = 267,
-    T_DOUBLE_ARROW = 268,
-    T_YIELD_FROM = 269,
-    T_PLUS_EQUAL = 270,
-    T_MINUS_EQUAL = 271,
-    T_MUL_EQUAL = 272,
-    T_DIV_EQUAL = 273,
-    T_CONCAT_EQUAL = 274,
-    T_MOD_EQUAL = 275,
-    T_AND_EQUAL = 276,
-    T_OR_EQUAL = 277,
-    T_XOR_EQUAL = 278,
-    T_SL_EQUAL = 279,
-    T_SR_EQUAL = 280,
-    T_POW_EQUAL = 281,
-    T_COALESCE_EQUAL = 282,
-    T_COALESCE = 283,
-    T_BOOLEAN_OR = 284,
-    T_BOOLEAN_AND = 285,
-    T_IS_EQUAL = 286,
-    T_IS_NOT_EQUAL = 287,
-    T_IS_IDENTICAL = 288,
-    T_IS_NOT_IDENTICAL = 289,
-    T_SPACESHIP = 290,
-    T_IS_SMALLER_OR_EQUAL = 291,
-    T_IS_GREATER_OR_EQUAL = 292,
-    T_SL = 293,
-    T_SR = 294,
-    T_INSTANCEOF = 295,
-    T_INT_CAST = 296,
-    T_DOUBLE_CAST = 297,
-    T_STRING_CAST = 298,
-    T_ARRAY_CAST = 299,
-    T_OBJECT_CAST = 300,
-    T_BOOL_CAST = 301,
-    T_UNSET_CAST = 302,
-    T_POW = 303,
-    T_NEW = 304,
-    T_CLONE = 305,
-    T_NOELSE = 306,
-    T_ELSEIF = 307,
-    T_ELSE = 308,
-    T_LNUMBER = 309,
-    T_DNUMBER = 310,
-    T_STRING = 311,
-    T_VARIABLE = 312,
-    T_INLINE_HTML = 313,
-    T_ENCAPSED_AND_WHITESPACE = 314,
-    T_CONSTANT_ENCAPSED_STRING = 315,
-    T_STRING_VARNAME = 316,
-    T_NUM_STRING = 317,
-    T_EVAL = 318,
-    T_INC = 319,
-    T_DEC = 320,
-    T_EXIT = 321,
-    T_IF = 322,
-    T_ENDIF = 323,
-    T_ECHO = 324,
-    T_DO = 325,
-    T_WHILE = 326,
-    T_ENDWHILE = 327,
-    T_FOR = 328,
-    T_ENDFOR = 329,
-    T_FOREACH = 330,
-    T_ENDFOREACH = 331,
-    T_DECLARE = 332,
-    T_ENDDECLARE = 333,
-    T_AS = 334,
-    T_SWITCH = 335,
-    T_ENDSWITCH = 336,
-    T_CASE = 337,
-    T_DEFAULT = 338,
-    T_BREAK = 339,
-    T_CONTINUE = 340,
-    T_GOTO = 341,
-    T_FUNCTION = 342,
-    T_FN = 343,
-    T_CONST = 344,
-    T_RETURN = 345,
-    T_TRY = 346,
-    T_CATCH = 347,
-    T_FINALLY = 348,
-    T_THROW = 349,
-    T_USE = 350,
-    T_INSTEADOF = 351,
-    T_GLOBAL = 352,
-    T_STATIC = 353,
-    T_ABSTRACT = 354,
-    T_FINAL = 355,
-    T_PRIVATE = 356,
-    T_PROTECTED = 357,
-    T_PUBLIC = 358,
-    T_VAR = 359,
-    T_UNSET = 360,
-    T_ISSET = 361,
-    T_EMPTY = 362,
-    T_HALT_COMPILER = 363,
-    T_CLASS = 364,
-    T_TRAIT = 365,
-    T_INTERFACE = 366,
-    T_EXTENDS = 367,
-    T_IMPLEMENTS = 368,
-    T_OBJECT_OPERATOR = 369,
-    T_LIST = 370,
-    T_ARRAY = 371,
-    T_CALLABLE = 372,
-    T_LINE = 373,
-    T_FILE = 374,
-    T_DIR = 375,
-    T_CLASS_C = 376,
-    T_TRAIT_C = 377,
-    T_METHOD_C = 378,
-    T_FUNC_C = 379,
-    T_COMMENT = 380,
-    T_DOC_COMMENT = 381,
-    T_OPEN_TAG = 382,
-    T_OPEN_TAG_WITH_ECHO = 383,
-    T_CLOSE_TAG = 384,
-    T_WHITESPACE = 385,
-    T_START_HEREDOC = 386,
-    T_END_HEREDOC = 387,
-    T_DOLLAR_OPEN_CURLY_BRACES = 388,
-    T_CURLY_OPEN = 389,
-    T_PAAMAYIM_NEKUDOTAYIM = 390,
-    T_NAMESPACE = 391,
-    T_NS_C = 392,
-    T_NS_SEPARATOR = 393,
-    T_ELLIPSIS = 394,
-    T_BAD_CHARACTER = 395,
-    T_ERROR = 396
+    ZENDEMPTY = -2,
+    END = 0,                       /* "end of file"  */
+    ZENDerror = 256,               /* error  */
+    ZENDUNDEF = 257,               /* "invalid token"  */
+    PREC_ARROW_FUNCTION = 258,     /* PREC_ARROW_FUNCTION  */
+    T_NOELSE = 259,                /* T_NOELSE  */
+    T_LNUMBER = 260,               /* "integer"  */
+    T_DNUMBER = 261,               /* "floating-point number"  */
+    T_STRING = 262,                /* "identifier"  */
+    T_NAME_FULLY_QUALIFIED = 263,  /* "fully qualified name"  */
+    T_NAME_RELATIVE = 264,         /* "namespace-relative name"  */
+    T_NAME_QUALIFIED = 265,        /* "namespaced name"  */
+    T_VARIABLE = 266,              /* "variable"  */
+    T_INLINE_HTML = 267,           /* T_INLINE_HTML  */
+    T_ENCAPSED_AND_WHITESPACE = 268, /* "string content"  */
+    T_CONSTANT_ENCAPSED_STRING = 269, /* "quoted string"  */
+    T_STRING_VARNAME = 270,        /* "variable name"  */
+    T_NUM_STRING = 271,            /* "number"  */
+    T_INCLUDE = 272,               /* "'include'"  */
+    T_INCLUDE_ONCE = 273,          /* "'include_once'"  */
+    T_EVAL = 274,                  /* "'eval'"  */
+    T_REQUIRE = 275,               /* "'require'"  */
+    T_REQUIRE_ONCE = 276,          /* "'require_once'"  */
+    T_LOGICAL_OR = 277,            /* "'or'"  */
+    T_LOGICAL_XOR = 278,           /* "'xor'"  */
+    T_LOGICAL_AND = 279,           /* "'and'"  */
+    T_PRINT = 280,                 /* "'print'"  */
+    T_YIELD = 281,                 /* "'yield'"  */
+    T_YIELD_FROM = 282,            /* "'yield from'"  */
+    T_INSTANCEOF = 283,            /* "'instanceof'"  */
+    T_NEW = 284,                   /* "'new'"  */
+    T_CLONE = 285,                 /* "'clone'"  */
+    T_EXIT = 286,                  /* "'exit'"  */
+    T_IF = 287,                    /* "'if'"  */
+    T_ELSEIF = 288,                /* "'elseif'"  */
+    T_ELSE = 289,                  /* "'else'"  */
+    T_ENDIF = 290,                 /* "'endif'"  */
+    T_ECHO = 291,                  /* "'echo'"  */
+    T_DO = 292,                    /* "'do'"  */
+    T_WHILE = 293,                 /* "'while'"  */
+    T_ENDWHILE = 294,              /* "'endwhile'"  */
+    T_FOR = 295,                   /* "'for'"  */
+    T_ENDFOR = 296,                /* "'endfor'"  */
+    T_FOREACH = 297,               /* "'foreach'"  */
+    T_ENDFOREACH = 298,            /* "'endforeach'"  */
+    T_DECLARE = 299,               /* "'declare'"  */
+    T_ENDDECLARE = 300,            /* "'enddeclare'"  */
+    T_AS = 301,                    /* "'as'"  */
+    T_SWITCH = 302,                /* "'switch'"  */
+    T_ENDSWITCH = 303,             /* "'endswitch'"  */
+    T_CASE = 304,                  /* "'case'"  */
+    T_DEFAULT = 305,               /* "'default'"  */
+    T_MATCH = 306,                 /* "'match'"  */
+    T_BREAK = 307,                 /* "'break'"  */
+    T_CONTINUE = 308,              /* "'continue'"  */
+    T_GOTO = 309,                  /* "'goto'"  */
+    T_FUNCTION = 310,              /* "'function'"  */
+    T_FN = 311,                    /* "'fn'"  */
+    T_CONST = 312,                 /* "'const'"  */
+    T_RETURN = 313,                /* "'return'"  */
+    T_TRY = 314,                   /* "'try'"  */
+    T_CATCH = 315,                 /* "'catch'"  */
+    T_FINALLY = 316,               /* "'finally'"  */
+    T_THROW = 317,                 /* "'throw'"  */
+    T_USE = 318,                   /* "'use'"  */
+    T_INSTEADOF = 319,             /* "'insteadof'"  */
+    T_GLOBAL = 320,                /* "'global'"  */
+    T_STATIC = 321,                /* "'static'"  */
+    T_ABSTRACT = 322,              /* "'abstract'"  */
+    T_FINAL = 323,                 /* "'final'"  */
+    T_PRIVATE = 324,               /* "'private'"  */
+    T_PROTECTED = 325,             /* "'protected'"  */
+    T_PUBLIC = 326,                /* "'public'"  */
+    T_READONLY = 327,              /* "'readonly'"  */
+    T_VAR = 328,                   /* "'var'"  */
+    T_UNSET = 329,                 /* "'unset'"  */
+    T_ISSET = 330,                 /* "'isset'"  */
+    T_EMPTY = 331,                 /* "'empty'"  */
+    T_HALT_COMPILER = 332,         /* "'__halt_compiler'"  */
+    T_CLASS = 333,                 /* "'class'"  */
+    T_TRAIT = 334,                 /* "'trait'"  */
+    T_INTERFACE = 335,             /* "'interface'"  */
+    T_ENUM = 336,                  /* "'enum'"  */
+    T_EXTENDS = 337,               /* "'extends'"  */
+    T_IMPLEMENTS = 338,            /* "'implements'"  */
+    T_NAMESPACE = 339,             /* "'namespace'"  */
+    T_LIST = 340,                  /* "'list'"  */
+    T_ARRAY = 341,                 /* "'array'"  */
+    T_CALLABLE = 342,              /* "'callable'"  */
+    T_LINE = 343,                  /* "'__LINE__'"  */
+    T_FILE = 344,                  /* "'__FILE__'"  */
+    T_DIR = 345,                   /* "'__DIR__'"  */
+    T_CLASS_C = 346,               /* "'__CLASS__'"  */
+    T_TRAIT_C = 347,               /* "'__TRAIT__'"  */
+    T_METHOD_C = 348,              /* "'__METHOD__'"  */
+    T_FUNC_C = 349,                /* "'__FUNCTION__'"  */
+    T_NS_C = 350,                  /* "'__NAMESPACE__'"  */
+    T_ATTRIBUTE = 351,             /* "'#['"  */
+    T_PLUS_EQUAL = 352,            /* "'+='"  */
+    T_MINUS_EQUAL = 353,           /* "'-='"  */
+    T_MUL_EQUAL = 354,             /* "'*='"  */
+    T_DIV_EQUAL = 355,             /* "'/='"  */
+    T_CONCAT_EQUAL = 356,          /* "'.='"  */
+    T_MOD_EQUAL = 357,             /* "'%='"  */
+    T_AND_EQUAL = 358,             /* "'&='"  */
+    T_OR_EQUAL = 359,              /* "'|='"  */
+    T_XOR_EQUAL = 360,             /* "'^='"  */
+    T_SL_EQUAL = 361,              /* "'<<='"  */
+    T_SR_EQUAL = 362,              /* "'>>='"  */
+    T_COALESCE_EQUAL = 363,        /* "'??='"  */
+    T_BOOLEAN_OR = 364,            /* "'||'"  */
+    T_BOOLEAN_AND = 365,           /* "'&&'"  */
+    T_IS_EQUAL = 366,              /* "'=='"  */
+    T_IS_NOT_EQUAL = 367,          /* "'!='"  */
+    T_IS_IDENTICAL = 368,          /* "'==='"  */
+    T_IS_NOT_IDENTICAL = 369,      /* "'!=='"  */
+    T_IS_SMALLER_OR_EQUAL = 370,   /* "'<='"  */
+    T_IS_GREATER_OR_EQUAL = 371,   /* "'>='"  */
+    T_SPACESHIP = 372,             /* "'<=>'"  */
+    T_SL = 373,                    /* "'<<'"  */
+    T_SR = 374,                    /* "'>>'"  */
+    T_INC = 375,                   /* "'++'"  */
+    T_DEC = 376,                   /* "'--'"  */
+    T_INT_CAST = 377,              /* "'(int)'"  */
+    T_DOUBLE_CAST = 378,           /* "'(double)'"  */
+    T_STRING_CAST = 379,           /* "'(string)'"  */
+    T_ARRAY_CAST = 380,            /* "'(array)'"  */
+    T_OBJECT_CAST = 381,           /* "'(object)'"  */
+    T_BOOL_CAST = 382,             /* "'(bool)'"  */
+    T_UNSET_CAST = 383,            /* "'(unset)'"  */
+    T_OBJECT_OPERATOR = 384,       /* "'->'"  */
+    T_NULLSAFE_OBJECT_OPERATOR = 385, /* "'?->'"  */
+    T_DOUBLE_ARROW = 386,          /* "'=>'"  */
+    T_COMMENT = 387,               /* "comment"  */
+    T_DOC_COMMENT = 388,           /* "doc comment"  */
+    T_OPEN_TAG = 389,              /* "open tag"  */
+    T_OPEN_TAG_WITH_ECHO = 390,    /* "'<?='"  */
+    T_CLOSE_TAG = 391,             /* "'?>'"  */
+    T_WHITESPACE = 392,            /* "whitespace"  */
+    T_START_HEREDOC = 393,         /* "heredoc start"  */
+    T_END_HEREDOC = 394,           /* "heredoc end"  */
+    T_DOLLAR_OPEN_CURLY_BRACES = 395, /* "'${'"  */
+    T_CURLY_OPEN = 396,            /* "'{$'"  */
+    T_PAAMAYIM_NEKUDOTAYIM = 397,  /* "'::'"  */
+    T_NS_SEPARATOR = 398,          /* "'\\'"  */
+    T_ELLIPSIS = 399,              /* "'...'"  */
+    T_COALESCE = 400,              /* "'??'"  */
+    T_POW = 401,                   /* "'**'"  */
+    T_POW_EQUAL = 402,             /* "'**='"  */
+    T_AMPERSAND_FOLLOWED_BY_VAR_OR_VARARG = 403, /* "'&'"  */
+    T_AMPERSAND_NOT_FOLLOWED_BY_VAR_OR_VARARG = 404, /* "amp"  */
+    T_BAD_CHARACTER = 405,         /* "invalid character"  */
+    T_ERROR = 406                  /* T_ERROR  */
   };
+  typedef enum zendtokentype zendtoken_kind_t;
 #endif
-/* Tokens.  */
-#define END 0
-#define PREC_ARROW_FUNCTION 258
-#define T_INCLUDE 259
-#define T_INCLUDE_ONCE 260
-#define T_REQUIRE 261
-#define T_REQUIRE_ONCE 262
-#define T_LOGICAL_OR 263
-#define T_LOGICAL_XOR 264
-#define T_LOGICAL_AND 265
-#define T_PRINT 266
-#define T_YIELD 267
-#define T_DOUBLE_ARROW 268
-#define T_YIELD_FROM 269
-#define T_PLUS_EQUAL 270
-#define T_MINUS_EQUAL 271
-#define T_MUL_EQUAL 272
-#define T_DIV_EQUAL 273
-#define T_CONCAT_EQUAL 274
-#define T_MOD_EQUAL 275
-#define T_AND_EQUAL 276
-#define T_OR_EQUAL 277
-#define T_XOR_EQUAL 278
-#define T_SL_EQUAL 279
-#define T_SR_EQUAL 280
-#define T_POW_EQUAL 281
-#define T_COALESCE_EQUAL 282
-#define T_COALESCE 283
-#define T_BOOLEAN_OR 284
-#define T_BOOLEAN_AND 285
-#define T_IS_EQUAL 286
-#define T_IS_NOT_EQUAL 287
-#define T_IS_IDENTICAL 288
-#define T_IS_NOT_IDENTICAL 289
-#define T_SPACESHIP 290
-#define T_IS_SMALLER_OR_EQUAL 291
-#define T_IS_GREATER_OR_EQUAL 292
-#define T_SL 293
-#define T_SR 294
-#define T_INSTANCEOF 295
-#define T_INT_CAST 296
-#define T_DOUBLE_CAST 297
-#define T_STRING_CAST 298
-#define T_ARRAY_CAST 299
-#define T_OBJECT_CAST 300
-#define T_BOOL_CAST 301
-#define T_UNSET_CAST 302
-#define T_POW 303
-#define T_NEW 304
-#define T_CLONE 305
-#define T_NOELSE 306
-#define T_ELSEIF 307
-#define T_ELSE 308
-#define T_LNUMBER 309
-#define T_DNUMBER 310
-#define T_STRING 311
-#define T_VARIABLE 312
-#define T_INLINE_HTML 313
-#define T_ENCAPSED_AND_WHITESPACE 314
-#define T_CONSTANT_ENCAPSED_STRING 315
-#define T_STRING_VARNAME 316
-#define T_NUM_STRING 317
-#define T_EVAL 318
-#define T_INC 319
-#define T_DEC 320
-#define T_EXIT 321
-#define T_IF 322
-#define T_ENDIF 323
-#define T_ECHO 324
-#define T_DO 325
-#define T_WHILE 326
-#define T_ENDWHILE 327
-#define T_FOR 328
-#define T_ENDFOR 329
-#define T_FOREACH 330
-#define T_ENDFOREACH 331
-#define T_DECLARE 332
-#define T_ENDDECLARE 333
-#define T_AS 334
-#define T_SWITCH 335
-#define T_ENDSWITCH 336
-#define T_CASE 337
-#define T_DEFAULT 338
-#define T_BREAK 339
-#define T_CONTINUE 340
-#define T_GOTO 341
-#define T_FUNCTION 342
-#define T_FN 343
-#define T_CONST 344
-#define T_RETURN 345
-#define T_TRY 346
-#define T_CATCH 347
-#define T_FINALLY 348
-#define T_THROW 349
-#define T_USE 350
-#define T_INSTEADOF 351
-#define T_GLOBAL 352
-#define T_STATIC 353
-#define T_ABSTRACT 354
-#define T_FINAL 355
-#define T_PRIVATE 356
-#define T_PROTECTED 357
-#define T_PUBLIC 358
-#define T_VAR 359
-#define T_UNSET 360
-#define T_ISSET 361
-#define T_EMPTY 362
-#define T_HALT_COMPILER 363
-#define T_CLASS 364
-#define T_TRAIT 365
-#define T_INTERFACE 366
-#define T_EXTENDS 367
-#define T_IMPLEMENTS 368
-#define T_OBJECT_OPERATOR 369
-#define T_LIST 370
-#define T_ARRAY 371
-#define T_CALLABLE 372
-#define T_LINE 373
-#define T_FILE 374
-#define T_DIR 375
-#define T_CLASS_C 376
-#define T_TRAIT_C 377
-#define T_METHOD_C 378
-#define T_FUNC_C 379
-#define T_COMMENT 380
-#define T_DOC_COMMENT 381
-#define T_OPEN_TAG 382
-#define T_OPEN_TAG_WITH_ECHO 383
-#define T_CLOSE_TAG 384
-#define T_WHITESPACE 385
-#define T_START_HEREDOC 386
-#define T_END_HEREDOC 387
-#define T_DOLLAR_OPEN_CURLY_BRACES 388
-#define T_CURLY_OPEN 389
-#define T_PAAMAYIM_NEKUDOTAYIM 390
-#define T_NAMESPACE 391
-#define T_NS_C 392
-#define T_NS_SEPARATOR 393
-#define T_ELLIPSIS 394
-#define T_BAD_CHARACTER 395
-#define T_ERROR 396
 
 /* Value type.  */
+#if ! defined ZENDSTYPE && ! defined ZENDSTYPE_IS_DECLARED
+typedef zend_parser_stack_elem ZENDSTYPE;
+# define ZENDSTYPE_IS_TRIVIAL 1
+# define ZENDSTYPE_IS_DECLARED 1
+#endif
+
 
 
 
 ZEND_API int zendparse (void);
 
-#endif /* !YY_ZEND_U_DEV_PHP_7_4_28_ZEND_ZEND_LANGUAGE_PARSER_H_INCLUDED  */
+
+#endif /* !YY_ZEND_ZEND_ZEND_LANGUAGE_PARSER_H_INCLUDED  */

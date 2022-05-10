@@ -24,7 +24,7 @@ $test->method();
 
 ?>
 --EXPECT--
-Typed property Test::$prop must be int, string used
+Cannot assign string to property Test::$prop of type int
 int(1)
-Typed property Test::$prop must be int, string used
+Cannot assign string to property Test::$prop of type int
 int(1)

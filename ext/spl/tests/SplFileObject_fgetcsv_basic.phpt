@@ -4,14 +4,16 @@ SplFileObject::fgetcsv default path
 <?php
 $fp = fopen('SplFileObject__fgetcsv1.csv', 'w+');
 fputcsv($fp, array(
-	'field1',
-	'field2',
-	'field3',
-	5
+    'field1',
+    'field2',
+    'field3',
+    5
 ));
 fclose($fp);
 
 $fo = new SplFileObject('SplFileObject__fgetcsv1.csv');
+var_dump($fo->fgetcsv());
+var_dump($fo->fgetcsv());
 var_dump($fo->fgetcsv());
 ?>
 --CLEAN--
@@ -29,3 +31,8 @@ array(4) {
   [3]=>
   string(1) "5"
 }
+array(1) {
+  [0]=>
+  NULL
+}
+bool(false)

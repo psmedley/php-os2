@@ -1,7 +1,7 @@
 --TEST--
 Bug #36802 (crashes with with mysqli_set_charset())
---SKIPIF--
-<?php require_once('skipif.inc'); ?>
+--EXTENSIONS--
+mysqli
 --FILE--
 <?php
     class really_my_mysqli extends mysqli {
@@ -15,27 +15,35 @@ Bug #36802 (crashes with with mysqli_set_charset())
 
     /* following operations should not work */
     if (method_exists($mysql, 'set_charset')) {
-        $x[0] = @$mysql->set_charset('utf8');
+        try {
+            $mysql->set_charset('utf8');
+        } catch (Error $exception) {
+            echo $exception->getMessage() . "\n";
+        }
     } else {
         $x[0] = false;
     }
-    $x[1] = @$mysql->query("SELECT 'foo' FROM DUAL");
+
+    try {
+        $mysql->query("SELECT 'foo' FROM DUAL");
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     /* following operations should work */
-    $x[2] = ($mysql->client_version > 0);
-    $x[3] = $mysql->errno;
+    $x[1] = ($mysql->error);
+    $x[2] = $mysql->errno;
+
     $mysql->close();
 
     var_dump($x);
 ?>
 --EXPECT--
-array(4) {
-  [0]=>
-  bool(false)
+mysqli object is not fully initialized
+mysqli object is not fully initialized
+array(2) {
   [1]=>
-  bool(false)
+  string(0) ""
   [2]=>
-  bool(true)
-  [3]=>
   int(0)
 }

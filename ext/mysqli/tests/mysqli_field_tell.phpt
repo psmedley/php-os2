@@ -1,23 +1,14 @@
 --TEST--
 mysqli_field_tell()
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 ?>
 --FILE--
 <?php
     require_once("connect.inc");
-
-    $tmp    = NULL;
-    $link   = NULL;
-
-    if (!is_null($tmp = @mysqli_field_tell()))
-        printf("[001] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-    if (!is_null($tmp = @mysqli_field_tell($link)))
-        printf("[002] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
 
     require('table.inc');
     if (!$res = mysqli_query($link, "SELECT id FROM test ORDER BY id LIMIT 1", MYSQLI_USE_RESULT)) {
@@ -25,20 +16,23 @@ require_once('skipifconnectfailure.inc');
     }
 
     var_dump(mysqli_field_tell($res));
-    var_dump(mysqli_field_seek(1));
     var_dump(mysqli_field_tell($res));
     var_dump(mysqli_fetch_field($res));
     var_dump(mysqli_fetch_field($res));
     var_dump(mysqli_field_tell($res));
 
-    if (!is_null($tmp = @mysqli_field_tell($res, 'too many arguments')))
-        printf("[004] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-
-    var_dump(mysqli_field_seek($res, 2));
+    try {
+        var_dump(mysqli_field_seek($res, 2));
+    } catch (\ValueError $e) {
+        echo $e->getMessage() . \PHP_EOL;
+    }
     var_dump(mysqli_field_tell($res));
 
-    var_dump(mysqli_field_seek($res, -1));
+    try {
+        var_dump(mysqli_field_seek($res, -1));
+    } catch (\ValueError $e) {
+        echo $e->getMessage() . \PHP_EOL;
+    }
     var_dump(mysqli_field_tell($res));
 
     var_dump(mysqli_field_seek($res, 0));
@@ -48,7 +42,11 @@ require_once('skipifconnectfailure.inc');
 
     mysqli_free_result($res);
 
-    var_dump(mysqli_field_tell($res));
+    try {
+        mysqli_field_tell($res);
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     mysqli_close($link);
 
@@ -60,9 +58,6 @@ require_once('skipifconnectfailure.inc');
 ?>
 --EXPECTF--
 int(0)
-
-Warning: mysqli_field_seek() expects exactly 2 parameters, 1 given in %s on line %d
-NULL
 int(0)
 object(stdClass)#%d (13) {
   ["name"]=>
@@ -94,17 +89,11 @@ object(stdClass)#%d (13) {
 }
 bool(false)
 int(1)
-
-Warning: mysqli_field_seek(): Invalid field offset in %s on line %d
-bool(false)
+mysqli_field_seek(): Argument #2 ($index) must be less than the number of fields for this result set
 int(1)
-
-Warning: mysqli_field_seek(): Invalid field offset in %s on line %d
-bool(false)
+mysqli_field_seek(): Argument #2 ($index) must be greater than or equal to 0
 int(1)
 bool(true)
 int(0)
-
-Warning: mysqli_field_tell(): Couldn't fetch mysqli_result in %s on line %d
-bool(false)
+mysqli_result object is already closed
 done!

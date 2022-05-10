@@ -62,15 +62,13 @@ rem set OPENSSL_CONF=%OPENSSLDIR%\openssl.cnf
 set OPENSSL_CONF=
 rem set SSLEAY_CONF=
 
-rem prepare for Opcache
-if "%OPCACHE%" equ "1" set OPCACHE_OPTS=-d opcache.enable=1 -d opcache.enable_cli=1 -d opcache.protect_memory=1
+rem prepare for OPcache
+if "%OPCACHE%" equ "1" set OPCACHE_OPTS=-d opcache.enable=1 -d opcache.enable_cli=1 -d opcache.protect_memory=1 -d opcache.jit_buffer_size=16M
 
 rem prepare for enchant
-mkdir c:\enchant_plugins
+mkdir C:\usr\local\lib\enchant-2
 if %errorlevel% neq 0 exit /b 3
-copy %DEPS_DIR%\bin\libenchant_ispell.dll c:\enchant_plugins
-if %errorlevel% neq 0 exit /b 3
-copy %DEPS_DIR%\bin\libenchant_myspell.dll c:\enchant_plugins
+copy %DEPS_DIR%\bin\libenchant2_hunspell.dll C:\usr\local\lib\enchant-2
 if %errorlevel% neq 0 exit /b 3
 reg add HKEY_CURRENT_USER\SOFTWARE\Enchant\Config /v Module_Dir /t REG_SZ /d c:\enchant_plugins
 if %errorlevel% neq 0 exit /b 3
@@ -88,22 +86,42 @@ if not exist "%PHP_BUILD_CACHE_ENCHANT_DICT_DIR%\en_US.aff" (
 	del /q dict.zip
 	popd
 )
-mkdir %USERPROFILE%\enchant\myspell
-copy %PHP_BUILD_CACHE_ENCHANT_DICT_DIR%\* %USERPROFILE%\enchant\myspell
+mkdir %LOCALAPPDATA%\enchant\hunspell
+copy %PHP_BUILD_CACHE_ENCHANT_DICT_DIR%\* %LOCALAPPDATA%\enchant\hunspell
 
-set TEST_PHPDBG_EXECUTABLE=%PHP_BUILD_OBJ_DIR%\Release
-if "%THREAD_SAFE%" equ "1" set TEST_PHPDBG_EXECUTABLE=%TEST_PHPDBG_EXECUTABLE%_TS
-set TEST_PHPDBG_EXECUTABLE=%TEST_PHPDBG_EXECUTABLE%\phpdbg.exe
+set PHP_BUILD_DIR=%PHP_BUILD_OBJ_DIR%\Release
+if "%THREAD_SAFE%" equ "1" set PHP_BUILD_DIR=%PHP_BUILD_DIR%_TS
+
+mkdir %PHP_BUILD_DIR%\test_file_cache
+rem generate php.ini
+echo extension_dir=%PHP_BUILD_DIR% > %PHP_BUILD_DIR%\php.ini
+echo opcache.file_cache=%PHP_BUILD_DIR%\test_file_cache >> %PHP_BUILD_DIR%\php.ini
+if "%OPCACHE%" equ "1" echo zend_extension=php_opcache.dll >> %PHP_BUILD_DIR%\php.ini
+rem work-around for some spawned PHP processes requiring OpenSSL
+echo extension=php_openssl.dll >> %PHP_BUILD_DIR%\php.ini
+
+rem remove ext dlls for which tests are not supported
+for %%i in (imap ldap oci8_12c pdo_firebird pdo_oci snmp) do (
+	del %PHP_BUILD_DIR%\php_%%i.dll
+)
+
+set TEST_PHPDBG_EXECUTABLE=%PHP_BUILD_DIR%\phpdbg.exe
 
 mkdir c:\tests_tmp
 
 set TEST_PHP_JUNIT=c:\junit.out.xml
 
 cd "%APPVEYOR_BUILD_FOLDER%"
-nmake test TESTS="%OPCACHE_OPTS% -q --offline --show-diff --show-slow 1000 --set-timeout 120 -g FAIL,XFAIL,BORK,WARN,LEAK,SKIP --temp-source c:\tests_tmp --temp-target c:\tests_tmp %PARALLEL%"
+nmake test TESTS="%OPCACHE_OPTS% -q --offline --show-diff --show-slow 1000 --set-timeout 120 --temp-source c:\tests_tmp --temp-target c:\tests_tmp --bless %PARALLEL%"
 
 set EXIT_CODE=%errorlevel%
 
 appveyor PushArtifact %TEST_PHP_JUNIT%
+
+if %EXIT_CODE% GEQ 1 (
+	git checkout ext\pgsql\tests\config.inc
+	git diff > bless_tests.patch
+	appveyor PushArtifact bless_tests.patch
+)
 
 exit /b %EXIT_CODE%

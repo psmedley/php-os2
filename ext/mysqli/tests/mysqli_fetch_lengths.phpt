@@ -1,9 +1,9 @@
 --TEST--
 mysqli_fetch_lengths()
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 ?>
 --FILE--
@@ -14,12 +14,6 @@ require_once('skipifconnectfailure.inc');
         printf("[001] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
             $host, $user, $db, $port, $socket);
     }
-
-    if (!is_null($tmp = @mysqli_fetch_lengths()))
-        printf("[001] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-    if (!is_null($tmp = @mysqli_fetch_lengths($link)))
-        printf("[002] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
 
     require('table.inc');
     if (!$res = mysqli_query($link, "SELECT id, label FROM test ORDER BY id LIMIT 1")) {
@@ -33,7 +27,11 @@ require_once('skipifconnectfailure.inc');
 
     mysqli_free_result($res);
 
-    var_dump(mysqli_fetch_lengths($res));
+    try {
+        mysqli_fetch_lengths($res);
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     mysqli_close($link);
     print "done!";
@@ -42,7 +40,7 @@ require_once('skipifconnectfailure.inc');
 <?php
     require_once("clean_table.inc");
 ?>
---EXPECTF--
+--EXPECT--
 bool(false)
 array(2) {
   [0]=>
@@ -51,7 +49,5 @@ array(2) {
   int(1)
 }
 bool(false)
-
-Warning: mysqli_fetch_lengths(): Couldn't fetch mysqli_result in %s on line %d
-bool(false)
+mysqli_result object is already closed
 done!

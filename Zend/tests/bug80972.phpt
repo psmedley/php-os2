@@ -19,7 +19,7 @@ try {
     echo 'Float casted to string compile', \PHP_EOL;
     $string[(string) 10e120] = 'E';
     var_dump($string);
-} catch (\Throwable $e) {
+} catch (\TypeError $e) {
     echo $e->getMessage(), \PHP_EOL;
 }
 
@@ -36,6 +36,6 @@ var_dump($string);
 ?>
 --EXPECT--
 Float casted to string compile
-Illegal string offset '1.0E+121'
-Illegal string offset 'wrong'
+Cannot access offset of type string on string
+Cannot access offset of type string on string
 string(34) "Here is some text for good measure"

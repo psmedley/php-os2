@@ -1,11 +1,9 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
@@ -21,14 +19,9 @@
 
 #include "php_intl.h"
 #include "collator_class.h"
-#include "collator_compare.h"
 #include "intl_convert.h"
 
-/* {{{ proto int Collator::compare( string $str1, string $str2 )
- * Compare two strings. }}} */
-/* {{{ proto int collator_compare( Collator $coll, string $str1, string $str2 )
- * Compare two strings.
- */
+/* {{{ Compare two strings. */
 PHP_FUNCTION( collator_compare )
 {
 	char*            str1      = NULL;
@@ -49,10 +42,7 @@ PHP_FUNCTION( collator_compare )
 	if( zend_parse_method_parameters( ZEND_NUM_ARGS(), getThis(), "Oss",
 		&object, Collator_ce_ptr, &str1, &str1_len, &str2, &str2_len ) == FAILURE )
 	{
-		intl_error_set( NULL, U_ILLEGAL_ARGUMENT_ERROR,
-			 "collator_compare: unable to parse input params", 0 );
-
-		RETURN_FALSE;
+		RETURN_THROWS();
 	}
 
 	/* Fetch the object. */
@@ -64,7 +54,7 @@ PHP_FUNCTION( collator_compare )
 			"Object not initialized", 0 );
 		zend_throw_error(NULL, "Object not initialized");
 
-		RETURN_FALSE;
+		RETURN_THROWS();
 	}
 
 	/*

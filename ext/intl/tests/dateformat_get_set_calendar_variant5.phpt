@@ -1,8 +1,9 @@
 --TEST--
 IntlDateFormatter: setCalendar()/getCalendar()/getCalendarObject() for ICU >= 58.1 and < 70.1
+--EXTENSIONS--
+intl
 --SKIPIF--
 <?php
-if (!extension_loaded('intl')) die('skip intl extension not enabled');
 if (version_compare(INTL_ICU_VERSION, '58.1') < 0 || version_compare(INTL_ICU_VERSION, '70.1') >= 0) die('skip for ICU >= 58.1 and < 70.1');
 ?>
 --FILE--
@@ -36,7 +37,6 @@ $df->setCalendar($cal);
 d($df);
 
 ?>
-==DONE==
 --EXPECT--
 dimanche 1 janvier 2012 ap. J.-C. à 03:00:00 heure de Kaliningrad
 int(1)
@@ -53,4 +53,3 @@ bool(false)
 string(9) "gregorian"
 string(3) "UTC"
 
-==DONE==

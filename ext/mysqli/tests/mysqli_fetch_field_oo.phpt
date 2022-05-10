@@ -1,31 +1,28 @@
 --TEST--
 mysqli_fetch_field()
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 ?>
 --FILE--
 <?php
     require_once("connect.inc");
 
-    $tmp    = NULL;
-    $link   = NULL;
-
     // Note: no SQL type tests, internally the same function gets used as for mysqli_fetch_array() which does a lot of SQL type test
     $mysqli = new mysqli();
-    $res = @new mysqli_result($mysqli);
-    if (false !== ($tmp = @$res->fetch_field()))
-        printf("[001] Expecting false, got %s/%s\n", gettype($tmp), $tmp);
+    $res = false;
+    try {
+        new mysqli_result($mysqli);
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     require('table.inc');
     if (!$mysqli = new mysqli($host, $user, $passwd, $db, $port, $socket))
         printf("[002] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
             $host, $user, $db, $port, $socket);
-
-    if (!is_null($tmp = @$res->fetch_field($link)))
-        printf("[003] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
 
     // Make sure that client, connection and result charsets are all the
     // same. Not sure whether this is strictly necessary.
@@ -46,10 +43,6 @@ require_once('skipifconnectfailure.inc');
         printf("[005] Expecting charset %s/%d got %d\n",
             $charsetInfo->charset, $charsetInfo->number, $tmp->charsetnr);
     }
-    if ($tmp->length != $charsetInfo->max_length) {
-        printf("[006] Expecting length %d got %d\n",
-            $charsetInfo->max_length, $tmp->max_length);
-    }
     if ($tmp->db != $db) {
         printf("[007] Expecting database '%s' got '%s'\n",
           $db, $tmp->db);
@@ -59,8 +52,11 @@ require_once('skipifconnectfailure.inc');
 
     $res->free_result();
 
-    if (false !== ($tmp = $res->fetch_field()))
-        printf("[007] Expecting false, got %s/%s\n", gettype($tmp), $tmp);
+    try {
+        $res->fetch_field();
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     $mysqli->close();
     print "done!";
@@ -70,6 +66,7 @@ require_once('skipifconnectfailure.inc');
     require_once("clean_table.inc");
 ?>
 --EXPECTF--
+mysqli object is not fully initialized
 object(stdClass)#%d (13) {
   ["name"]=>
   string(2) "ID"
@@ -86,7 +83,7 @@ object(stdClass)#%d (13) {
   ["catalog"]=>
   string(%d) "%s"
   ["max_length"]=>
-  int(1)
+  int(0)
   ["length"]=>
   int(11)
   ["charsetnr"]=>
@@ -127,6 +124,5 @@ object(stdClass)#%d (13) {
   int(0)
 }
 bool(false)
-
-Warning: mysqli_result::fetch_field(): Couldn't fetch mysqli_result in %s on line %d
+mysqli_result object is already closed
 done!

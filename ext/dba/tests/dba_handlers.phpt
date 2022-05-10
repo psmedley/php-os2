@@ -1,5 +1,7 @@
 --TEST--
 DBA Handler Test
+--EXTENSIONS--
+dba
 --SKIPIF--
 <?php
 $handler="flatfile";
@@ -31,17 +33,13 @@ check(dba_handlers());
 
 echo "Test 2\n";
 
-check(dba_handlers(null));
+check(dba_handlers(false));
 
 echo "Test 3\n";
 
-check(dba_handlers(1, 2));
-
-echo "Test 4\n";
-
 check(dba_handlers(0));
 
-echo "Test 5 - full info\n";
+echo "Test 4 - full info\n";
 $h = dba_handlers(1);
 foreach ($h as $key => $val) {
     if ($key === "flatfile") {
@@ -54,16 +52,13 @@ foreach ($h as $key => $val) {
 <?php
 require(__DIR__ .'/clean.inc');
 ?>
---EXPECTF--
+--EXPECT--
 database handler: flatfile
 Test 1
 Success: flatfile enabled
 Test 2
 Success: flatfile enabled
 Test 3
-
-Warning: dba_handlers() expects at most 1 parameter, 2 given in %sdba_handlers.php on line %d
-Test 4
 Success: flatfile enabled
-Test 5 - full info
+Test 4 - full info
 Success: flatfile enabled

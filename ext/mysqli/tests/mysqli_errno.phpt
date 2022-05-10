@@ -1,23 +1,14 @@
 --TEST--
 mysqli_errno()
+--EXTENSIONS--
+mysqli
 --SKIPIF--
 <?php
-require_once('skipif.inc');
-require_once('skipifemb.inc');
 require_once('skipifconnectfailure.inc');
 ?>
 --FILE--
 <?php
     require_once("connect.inc");
-
-    $tmp    = NULL;
-    $link   = NULL;
-
-    if (!is_null($tmp = @mysqli_errno()))
-        printf("[001] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
-
-    if (!is_null($tmp = @mysqli_errno($link)))
-        printf("[002] Expecting NULL, got %s/%s\n", gettype($tmp), $tmp);
 
     if (!$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)) {
         printf("[003] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
@@ -39,14 +30,16 @@ require_once('skipifconnectfailure.inc');
 
     mysqli_close($link);
 
-    var_dump(mysqli_errno($link));
+    try {
+        mysqli_errno($link);
+    } catch (Error $exception) {
+        echo $exception->getMessage() . "\n";
+    }
 
     print "done!";
 ?>
 --EXPECTF--
 int(0)
 int(%d)
-
-Warning: mysqli_errno(): Couldn't fetch mysqli in %s on line %d
-bool(false)
+mysqli object is already closed
 done!

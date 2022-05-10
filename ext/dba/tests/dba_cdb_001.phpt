@@ -1,5 +1,7 @@
 --TEST--
 DBA CDB handler test
+--EXTENSIONS--
+dba
 --SKIPIF--
 <?php
 $handler = 'cdb';
@@ -61,7 +63,6 @@ else {
 }
 
 ?>
-===DONE===
 --CLEAN--
 <?php
 require(__DIR__ .'/clean.inc');
@@ -86,4 +87,3 @@ Test 3
 
 Warning: dba_open(%stest0.dbm,w): Driver initialization failed for handler: cdb: Update operations are not supported in %sdba_cdb_001.php on line %d
 Failed to open DB
-===DONE===

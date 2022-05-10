@@ -1,5 +1,7 @@
 --TEST--
 Bug #78986: Opcache segfaults when inheriting ctor from immutable into mutable class
+--EXTENSIONS--
+opcache
 --FILE--
 <?php
 
@@ -11,7 +13,7 @@ class TestClass2 {
 
 class TestClass extends TestClass2 {
     var $test = [
-        TEST_TEST => 'test'  
+        TEST_TEST => 'test'
     ];
 }
 

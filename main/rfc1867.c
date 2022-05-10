@@ -1,13 +1,11 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
    | Copyright (c) The PHP Group                                          |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
@@ -30,13 +28,7 @@
 #include "php_globals.h"
 #include "php_variables.h"
 #include "rfc1867.h"
-#include "ext/standard/php_string.h"
 #include "zend_smart_string.h"
-
-#if defined(PHP_WIN32) && !defined(HAVE_ATOLL)
-# define atoll(s) _atoi64(s)
-# define HAVE_ATOLL 1
-#endif
 
 #ifndef DEBUG_FILE_UPLOAD
 # define DEBUG_FILE_UPLOAD 0
@@ -59,10 +51,10 @@ static php_rfc1867_basename_t php_rfc1867_basename = NULL;
 
 PHPAPI int (*php_rfc1867_callback)(unsigned int event, void *event_data, void **extra) = NULL;
 
-static void safe_php_register_variable(char *var, char *strval, size_t val_len, zval *track_vars_array, zend_bool override_protection);
+static void safe_php_register_variable(char *var, char *strval, size_t val_len, zval *track_vars_array, bool override_protection);
 
 /* The longest property name we use in an uploaded file array */
-#define MAX_SIZE_OF_INDEX sizeof("[tmp_name]")
+#define MAX_SIZE_OF_INDEX sizeof("[full_path]")
 
 /* The longest anonymous name */
 #define MAX_SIZE_ANONNAME 33
@@ -94,7 +86,7 @@ static void normalize_protected_variable(char *varname) /* {{{ */
 {
 	char *s = varname, *index = NULL, *indexend = NULL, *p;
 
-	/* overjump leading space */
+	/* skip leading space */
 	while (*s == ' ') {
 		s++;
 	}
@@ -155,14 +147,14 @@ static void add_protected_variable(char *varname) /* {{{ */
 }
 /* }}} */
 
-static zend_bool is_protected_variable(char *varname) /* {{{ */
+static bool is_protected_variable(char *varname) /* {{{ */
 {
 	normalize_protected_variable(varname);
 	return zend_hash_str_exists(&PG(rfc1867_protected_variables), varname, strlen(varname));
 }
 /* }}} */
 
-static void safe_php_register_variable(char *var, char *strval, size_t val_len, zval *track_vars_array, zend_bool override_protection) /* {{{ */
+static void safe_php_register_variable(char *var, char *strval, size_t val_len, zval *track_vars_array, bool override_protection) /* {{{ */
 {
 	if (override_protection || !is_protected_variable(var)) {
 		php_register_variable_safe(var, strval, val_len, track_vars_array);
@@ -170,7 +162,7 @@ static void safe_php_register_variable(char *var, char *strval, size_t val_len, 
 }
 /* }}} */
 
-static void safe_php_register_variable_ex(char *var, zval *val, zval *track_vars_array, zend_bool override_protection) /* {{{ */
+static void safe_php_register_variable_ex(char *var, zval *val, zval *track_vars_array, bool override_protection) /* {{{ */
 {
 	if (override_protection || !is_protected_variable(var)) {
 		php_register_variable_ex(var, val, track_vars_array);
@@ -178,13 +170,13 @@ static void safe_php_register_variable_ex(char *var, zval *val, zval *track_vars
 }
 /* }}} */
 
-static void register_http_post_files_variable(char *strvar, char *val, zval *http_post_files, zend_bool override_protection) /* {{{ */
+static void register_http_post_files_variable(char *strvar, char *val, zval *http_post_files, bool override_protection) /* {{{ */
 {
 	safe_php_register_variable(strvar, val, strlen(val), http_post_files, override_protection);
 }
 /* }}} */
 
-static void register_http_post_files_variable_ex(char *var, zval *val, zval *http_post_files, zend_bool override_protection) /* {{{ */
+static void register_http_post_files_variable_ex(char *var, zval *val, zval *http_post_files, bool override_protection) /* {{{ */
 {
 	safe_php_register_variable_ex(var, val, http_post_files, override_protection);
 }
@@ -685,7 +677,7 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler) /* {{{ */
 	int boundary_len = 0, cancel_upload = 0, is_arr_upload = 0;
 	size_t array_len = 0;
 	int64_t total_bytes = 0, max_file_size = 0;
-	int skip_upload = 0, anonindex = 0, is_anonymous;
+	int skip_upload = 0, anonymous_index = 0;
 	HashTable *uploaded_files = NULL;
 	multipart_buffer *mbuff;
 	zval *array_ptr = (zval *) arg;
@@ -721,7 +713,7 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler) /* {{{ */
 		int content_type_len = (int)strlen(content_type_dup);
 		char *content_type_lcase = estrndup(content_type_dup, content_type_len);
 
-		php_strtolower(content_type_lcase, content_type_len);
+		zend_str_tolower(content_type_lcase, content_type_len);
 		boundary = strstr(content_type_lcase, "boundary");
 		if (boundary) {
 			boundary = content_type_dup + (boundary - content_type_lcase);
@@ -905,11 +897,7 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler) /* {{{ */
 				}
 
 				if (!strcasecmp(param, "MAX_FILE_SIZE")) {
-#ifdef HAVE_ATOLL
-					max_file_size = atoll(value);
-#else
 					max_file_size = strtoll(value, NULL, 10);
-#endif
 				}
 
 				efree(param);
@@ -932,11 +920,8 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler) /* {{{ */
 			}
 
 			if (!param) {
-				is_anonymous = 1;
 				param = emalloc(MAX_SIZE_ANONNAME);
-				snprintf(param, MAX_SIZE_ANONNAME, "%u", anonindex++);
-			} else {
-				is_anonymous = 0;
+				snprintf(param, MAX_SIZE_ANONNAME, "%u", anonymous_index++);
 			}
 
 			/* New Rule: never repair potential malicious user input */
@@ -1139,18 +1124,14 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler) /* {{{ */
 				snprintf(lbuf, llen, "%s_name", param);
 			}
 
-			/* The \ check should technically be needed for win32 systems only where
-			 * it is a valid path separator. However, IE in all it's wisdom always sends
-			 * the full path of the file on the user's filesystem, which means that unless
-			 * the user does basename() they get a bogus file name. Until IE's user base drops
-			 * to nill or problem is fixed this code must remain enabled for all systems. */
+			/* Pursuant to RFC 7578, strip any path components in the
+			 * user-supplied file name:
+			 *  > If a "filename" parameter is supplied ... do not use
+			 *  > directory path information that may be present."
+			 */
 			s = _basename(internal_encoding, filename);
 			if (!s) {
 				s = filename;
-			}
-
-			if (!is_anonymous) {
-				safe_php_register_variable(lbuf, s, strlen(s), NULL, 0);
 			}
 
 			/* Add $foo[name] */
@@ -1160,8 +1141,19 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler) /* {{{ */
 				snprintf(lbuf, llen, "%s[name]", param);
 			}
 			register_http_post_files_variable(lbuf, s, &PG(http_globals)[TRACK_VARS_FILES], 0);
-			efree(filename);
 			s = NULL;
+
+			/* Add full path of supplied file for folder uploads via 
+			 * <input type="file" name="files" multiple webkitdirectory>
+			 */
+			/* Add $foo[full_path] */
+			if (is_arr_upload) {
+				snprintf(lbuf, llen, "%s[full_path][%s]", abuf, array_index);
+			} else {
+				snprintf(lbuf, llen, "%s[full_path]", param);
+			}
+			register_http_post_files_variable(lbuf, filename, &PG(http_globals)[TRACK_VARS_FILES], 0);
+			efree(filename);
 
 			/* Possible Content-Type: */
 			if (cancel_upload || !(cd = php_mime_get_hdr_value(header, "Content-Type"))) {
@@ -1172,16 +1164,6 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler) /* {{{ */
 				if (s != NULL) {
 					*s = '\0';
 				}
-			}
-
-			/* Add $foo_type */
-			if (is_arr_upload) {
-				snprintf(lbuf, llen, "%s_type[%s]", abuf, array_index);
-			} else {
-				snprintf(lbuf, llen, "%s_type", param);
-			}
-			if (!is_anonymous) {
-				safe_php_register_variable(lbuf, cd, strlen(cd), NULL, 0);
 			}
 
 			/* Add $foo[type] */
@@ -1200,21 +1182,11 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler) /* {{{ */
 
 			{
 				/* store temp_filename as-is (in case upload_tmp_dir
-				 * contains escapeable characters. escape only the variable name.) */
+				 * contains escapable characters. escape only the variable name.) */
 				zval zfilename;
 
 				/* Initialize variables */
 				add_protected_variable(param);
-
-				/* if param is of form xxx[.*] this will cut it to xxx */
-				if (!is_anonymous) {
-					if (temp_filename) {
-						ZVAL_STR_COPY(&zfilename, temp_filename);
-					} else {
-						ZVAL_EMPTY_STRING(&zfilename);
-					}
-					safe_php_register_variable_ex(param, &zfilename, NULL, 1);
-				}
 
 				/* Add $foo[tmp_name] */
 				if (is_arr_upload) {
@@ -1267,19 +1239,6 @@ SAPI_API SAPI_POST_HANDLER_FUNC(rfc1867_post_handler) /* {{{ */
 					snprintf(lbuf, llen, "%s[error]", param);
 				}
 				register_http_post_files_variable_ex(lbuf, &error_type, &PG(http_globals)[TRACK_VARS_FILES], 0);
-
-				/* Add $foo_size */
-				if (is_arr_upload) {
-					snprintf(lbuf, llen, "%s_size[%s]", abuf, array_index);
-				} else {
-					snprintf(lbuf, llen, "%s_size", param);
-				}
-				if (!is_anonymous) {
-					if (size_overflow) {
-						ZVAL_STRING(&file_size, file_size_buf);
-					}
-					safe_php_register_variable_ex(lbuf, &file_size, NULL, size_overflow);
-				}
 
 				/* Add $foo[size] */
 				if (is_arr_upload) {

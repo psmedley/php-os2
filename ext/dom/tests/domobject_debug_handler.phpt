@@ -1,21 +1,23 @@
 --TEST--
 Objects of DOM extension: debug info object handler.
---SKIPIF--
-<?php require_once('skipif.inc'); ?>
+--EXTENSIONS--
+dom
 --FILE--
 <?php
 $xml = <<<XML
 <foo>
-	<bar>foobar</bar>
+    <bar>foobar</bar>
 </foo>
 XML;
 $d = new domdocument;
 $d->dynamicProperty = new stdclass;
 $d->loadXML($xml);
 print_r($d);
+?>
 --EXPECTF--
 DOMDocument Object
 (
+    [config] => 
     [dynamicProperty] => stdClass Object
         (
         )
@@ -32,13 +34,15 @@ DOMDocument Object
     [xmlVersion] => 1.0
     [strictErrorChecking] => 1
     [documentURI] => %s
-    [config] => 
     [formatOutput] => 
     [validateOnParse] => 
     [resolveExternals] => 
     [preserveWhiteSpace] => 1
     [recover] => 
     [substituteEntities] => 
+    [firstElementChild] => (object value omitted)
+    [lastElementChild] => (object value omitted)
+    [childElementCount] => 1
     [nodeName] => #document
     [nodeValue] => 
     [nodeType] => 9
@@ -55,6 +59,6 @@ DOMDocument Object
     [localName] => 
     [baseURI] => %s
     [textContent] => 
-	foobar
+    foobar
 
 )

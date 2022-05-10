@@ -36,9 +36,9 @@ Content-Length: {$post_len}
 {$post_data}
 HEADER
 )) {
-	while (!feof($fp)) {
-		echo fgets($fp);
-	}
+    while (!feof($fp)) {
+        echo fgets($fp);
+    }
 }
 
 ?>
@@ -52,8 +52,10 @@ Content-type: text/html; charset=UTF-8
 
 array(1) {
   ["userfile"]=>
-  array(5) {
+  array(6) {
     ["name"]=>
+    string(12) "laruence.txt"
+    ["full_path"]=>
     string(12) "laruence.txt"
     ["type"]=>
     string(10) "text/plain"
