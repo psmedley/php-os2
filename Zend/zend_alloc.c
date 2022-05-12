@@ -1843,22 +1843,6 @@ static void zend_mm_free_huge(zend_mm_heap *heap, void *ptr ZEND_FILE_LINE_DC ZE
 
 static zend_mm_heap *zend_mm_init(void)
 {
-#if defined(__OS2__) && defined(ZEND_MM_ERROR)
-	unsigned int retries;
-	zend_mm_chunk *chunk;
-	zend_mm_heap *heap;
-	for (retries = 1; retries <= 10; retries++) {
-		chunk = (zend_mm_chunk*)zend_mm_chunk_alloc_int(ZEND_MM_CHUNK_SIZE, ZEND_MM_CHUNK_SIZE);
-		if (UNEXPECTED(chunk == NULL)) {
-			fprintf(stderr, "\nCan't initialize heap: [%d] %s - retry %u %s(%u)\n", errno, strerror(errno), retries, __FILE__, __LINE__);
-			sleep(2);
-		}
-		else
-			break;
-	}
-	if (retries >= 10)
-		return NULL;
-#else /* not OS2 */
 	zend_mm_chunk *chunk = (zend_mm_chunk*)zend_mm_chunk_alloc_int(ZEND_MM_CHUNK_SIZE, ZEND_MM_CHUNK_SIZE);
 	zend_mm_heap *heap;
 
@@ -1867,12 +1851,15 @@ static zend_mm_heap *zend_mm_init(void)
 #ifdef _WIN32
 		stderr_last_error("Can't initialize heap");
 #else
+#ifdef __OS2__				// 2022-05-11 SHL
+		fprintf(stderr, "\nzend_mm_heap can't initialize heap: [%d] %s\n", errno, strerror(errno));
+#else
 		fprintf(stderr, "\nCan't initialize heap: [%d] %s\n", errno, strerror(errno));
+#endif
 #endif
 #endif
 		return NULL;
 	}
-#endif /* not OS2 */
 	heap = &chunk->heap_slot;
 	chunk->heap = heap;
 	chunk->next = chunk;

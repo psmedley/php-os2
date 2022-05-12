@@ -18,6 +18,11 @@
    +----------------------------------------------------------------------+
 */
 
+#ifdef __OS2__				// 2022-05-10 SHL extended LIBPATH support
+#define INCL_DOSMISC			// DosQueryExtLIBPATH DosSetExtLIBPATH
+#include <os2.h>
+#endif
+
 #include "php.h"
 #include "dl.h"
 #include "php_globals.h"
@@ -75,7 +80,7 @@ PHPAPI PHP_FUNCTION(dl)
 PHPAPI void *php_load_shlib(char *path, char **errp)
 {
 	void *handle;
-	char *err;
+	const char *err;		// 2022-05-10 SHL suppress warning
 
 	handle = DL_LOAD(path);
 	if (!handle) {
@@ -97,6 +102,58 @@ PHPAPI void *php_load_shlib(char *path, char **errp)
 	return handle;
 }
 /* }}} */
+
+#ifdef __OS2__			  // 2022-05-09 SHL
+/**
+ * Add extension directory to BEGINLIBPATH
+ * @returns nothing because caller does not care
+ */
+static void update_beginlibpath(const char *extension_dir)
+{
+	char beginlibpath[1024];	    /* kernel limit */
+	char dir[CCHMAXPATH];
+	char *p;
+	APIRET apiret;
+	char *suffix = ";%BEGINLIBPATH%";
+
+	strcpy(dir, extension_dir);
+	/* Map to DOS slashes to match kernel */
+	for (p = strchr(dir, '/'); p; p = strchr(p, '/'))
+		*p = '\\';
+
+	apiret = DosQueryExtLIBPATH((PCSZ)beginlibpath, BEGIN_LIBPATH);
+	if (apiret != 0) {
+		php_error_docref(NULL, E_ERROR,
+				"update_beginlibpath DosQueryExtLIBPATH failed with error %lu", apiret);
+		return;
+	}
+
+	p = strcasestr(beginlibpath, dir);
+	if (p && (p == beginlibpath || *(p - 1) == ';')) {
+	char* pend = p + strlen(dir);
+	if (*pend == 0 || *pend == ';')
+		return;		/* Already in BEGINLIBPATH */
+	}
+
+	if (strlen(dir) + strlen(suffix) + 1 >= sizeof(beginlibpath))
+	return;		       		/* Give up if too long */
+
+	strcpy(beginlibpath, dir);
+	strcat(beginlibpath, suffix);
+	apiret = DosSetExtLIBPATH((PCSZ)beginlibpath, BEGIN_LIBPATH);
+
+	if (apiret != 0) {
+		php_error_docref(NULL, E_ERROR,
+				"update_beginlibpath DosSetExtLIBPATH failed with error %lu", apiret);
+		return;
+	}
+
+	php_error_docref(NULL, E_NOTICE,
+			 "update_beginlibpath set BEGINLIBPATH to %s", beginlibpath);
+	return;
+}
+#endif // __OS2__
+
 
 /* {{{ php_load_extension
  */
@@ -131,6 +188,13 @@ PHPAPI int php_load_extension(char *filename, int type, int start_now)
 		}
 		libpath = estrdup(filename);
 	} else if (extension_dir && extension_dir[0]) {
+#ifdef __OS2__				// 2022-05-10 SHL support extended LIBPATH
+		static int first = 1;
+		if (first) {
+			first = 0;
+			update_beginlibpath(extension_dir);
+		}
+#endif
 		slash_suffix = IS_SLASH(extension_dir[strlen(extension_dir)-1]);
 		/* Try as filename first */
 		if (slash_suffix) {
