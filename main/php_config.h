@@ -655,7 +655,7 @@
 /* #undef HAVE_FUNC_ATTRIBUTE_IFUNC */
 
 /* Define to 1 if the system has the `target' function attribute */
-/* #undef HAVE_FUNC_ATTRIBUTE_TARGET */
+#define HAVE_FUNC_ATTRIBUTE_TARGET 1
 
 /* Define to 1 if you have the three-argument form of gethostbyname_r(). */
 /* #undef HAVE_FUNC_GETHOSTBYNAME_R_3 */
@@ -1117,7 +1117,7 @@
 /* #undef HAVE_MYSQL */
 
 /* */
-/* #undef HAVE_MYSQLILIB */
+#define HAVE_MYSQLILIB 1
 
 /* */
 #define HAVE_NANOSLEEP 1
@@ -1352,7 +1352,7 @@
 /* #undef HAVE_SHMOP */
 
 /* Define if you have SysV IPC SHM support */
-/* #undef HAVE_SHM_IPC */
+#define HAVE_SHM_IPC 1
 
 /* Define if you have mmap(MAP_ANON) SHM support */
 #define HAVE_SHM_MMAP_ANON 1
@@ -1826,7 +1826,7 @@
 /* #undef MISSING_STRTOK_R_DECL */
 
 /* Whether mysqlnd is enabled */
-#define MYSQLI_USE_MYSQLND 1
+/* #undef MYSQLI_USE_MYSQLND */
 
 /* Enable compressed protocol support */
 #define MYSQLND_COMPRESSION_ENABLED 1

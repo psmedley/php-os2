@@ -27,7 +27,7 @@ if test "$PHP_CLI" != "no"; then
   dnl Set filename.
     case $host_alias in
       *cygwin* | *os2* )
-        SAPI_CLI_PATH=sapi/cgi/php-cgi.exe
+        SAPI_CLI_PATH=sapi/cli/php.exe
         ;;
       * )
         SAPI_CLI_PATH=sapi/cli/php
