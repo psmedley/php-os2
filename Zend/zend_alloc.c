@@ -218,7 +218,7 @@ int zend_mm_use_huge_pages = 0;
  *              page).
  *    usage:
  *				(2 bits)
- * 				FRUN - free page,
+ *				FRUN - free page,
  *              LRUN - first page of "large" allocation
  *              SRUN - first page of a bin used for "small" allocation
  *
@@ -679,6 +679,68 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 		size_t offset;
 
 		/* chunk has to be aligned */
+#ifdef __OS2__				/* 2022-05-12 SHL #747 don't waste address space */
+		/*========================================================================
+		Free unaligned chunk
+		Allocate offset sized filler chunk
+		Allocate new size sized chunk
+		New chunk will be unaligned if mmap chooses unaligned chunk
+		If new chunk unaligned, rinse and repeat
+		Retain filler chunks to prevent reuse during aligned chunk search
+		Free retained filler chunks before exiting
+		If retry limit exceeded, we fall through and waste 2MB
+		Testcase testing says this is unlikely to occur
+		*/
+#		define MAX_FILL_CNT 10
+		struct {
+			void *ptr;
+			size_t size;
+		} fillchunks[MAX_FILL_CNT];
+		unsigned int fillcnt = 0;
+		unsigned int fillnum;
+		for (fillcnt = 0; fillcnt < MAX_FILL_CNT;) {
+			zend_mm_munmap(ptr, size);
+			offset = ZEND_MM_ALIGNED_OFFSET(ptr, alignment);
+			/* Allocate offset sized filler chunk */
+			fillchunks[fillcnt].ptr = zend_mm_mmap(offset);
+			fillchunks[fillcnt].size = offset;
+			if (fillchunks[fillcnt].ptr == NULL)
+				break;		/* Ran out of memory allocating filler chunks */
+			fillcnt++;
+
+			/* Try to allocate aligned chunk */
+			ptr = zend_mm_mmap(size);
+			if (ptr == NULL)
+				break;	/* Ran out of trying find aligned chunk */
+
+			if (ZEND_MM_ALIGNED_OFFSET(ptr, alignment) == 0)
+				break;	/* We have an aligned chunk */
+		} /* for */
+
+		/* Free filler chunks */
+		for (fillnum = 0; fillnum < fillcnt; fillnum++) {
+			zend_mm_munmap(fillchunks[fillnum].ptr, fillchunks[fillnum].size);
+		}
+
+#		if 1	/* Disable for standalone testcase with uses printf logging */
+		zend_error(E_NOTICE,"zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u", ptr, fillcnt);
+#		else
+		printf("zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u\n", ptr, fillcnt);
+#		endif
+
+		if (fillcnt < MAX_FILL_CNT && ptr != NULL)
+			return ptr;		/* Return pointer to aligned chunk */
+
+		/* If we get here, we failed to allocate aligned chunk */
+		if (ptr == NULL) {
+			/* Ran out of memory allocating fill chunks - prepare to fall through */
+			ptr = zend_mm_mmap(size);
+			if (ptr == NULL)
+				return NULL;	/* Really out of memory now */
+		}
+		/* Fall through and waste 2MB to get aligned chunk - should occur rarely if at all */
+		/*=================================================================================*/
+#endif /* __OS2__ */
 		zend_mm_munmap(ptr, size);
 		ptr = zend_mm_mmap(size + alignment - REAL_PAGE_SIZE);
 #ifdef _WIN32
