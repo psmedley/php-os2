@@ -17,7 +17,7 @@ dnl Basic autoconf initialization, generation of config.nice.
 dnl ----------------------------------------------------------------------------
 
 AC_PREREQ([2.68])
-AC_INIT([PHP],[8.1.5],[https://bugs.php.net],[php],[https://www.php.net])
+AC_INIT([PHP],[8.1.6],[https://bugs.php.net],[php],[https://www.php.net])
 AC_CONFIG_SRCDIR([main/php_version.h])
 AC_CONFIG_AUX_DIR([build])
 AC_PRESERVE_HELP_ORDER
@@ -216,10 +216,10 @@ case $host_cpu in
     ;;
 esac
 
-dnl Mark symbols hidden by default if the compiler (for example, gcc >= 4)
-dnl supports it. This can help reduce the binary size and startup time.
-AX_CHECK_COMPILE_FLAG([-fvisibility=hidden],
-                       [CFLAGS="$CFLAGS -fvisibility=hidden"])
+#dnl Mark symbols hidden by default if the compiler (for example, gcc >= 4)
+#dnl supports it. This can help reduce the binary size and startup time.
+#AX_CHECK_COMPILE_FLAG([-fvisibility=hidden],
+#                       [CFLAGS="$CFLAGS -fvisibility=hidden"])
 
 case $host_alias in
   *solaris*)
