@@ -1,13 +1,11 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
    | Copyright (c) The PHP Group                                          |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
@@ -71,6 +69,7 @@ static zend_module_entry * const php_builtin_extensions[] = {
 	phpext_ftp_ptr,
 	phpext_hash_ptr,
 	phpext_json_ptr,
+	phpext_standard_ptr,
 	phpext_spl_ptr,
 	phpext_pdo_ptr,
 	phpext_phar_ptr,
@@ -80,7 +79,6 @@ static zend_module_entry * const php_builtin_extensions[] = {
 	phpext_simplexml_ptr,
 	phpext_soap_ptr,
 	phpext_sockets_ptr,
-	phpext_standard_ptr,
 	phpext_tokenizer_ptr,
 	phpext_xml_ptr,
 	phpext_xmlreader_ptr,

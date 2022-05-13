@@ -1,15 +1,16 @@
 #!/bin/sh
 
 # Variable declaration
-prefix='/php7'
-datarootdir='/php7/php'
+prefix='/php8'
+datarootdir='/php8/php'
 exec_prefix="`eval echo ${prefix}`"
 phpdir="`eval echo ${exec_prefix}/lib/php`/build"
 includedir="`eval echo u:/extras/include/apr-1`/php"
 builddir="`pwd`"
 SED="u:/extras/bin/sed.exe"
 
-FILES_BUILD="php.m4 shtool libtool.m4 ax_check_compile_flag.m4 ax_gcc_func_attribute.m4 php_cxx_compile_stdcxx.m4 pkg.m4 config.guess config.sub ltmain.sh Makefile.global"
+FILES_BUILD="php.m4 shtool libtool.m4 ax_check_compile_flag.m4 ax_gcc_func_attribute.m4 php_cxx_compile_stdcxx.m4 pkg.m4 \
+    config.guess config.sub ltmain.sh Makefile.global gen_stub.php"
 FILES="run-tests*.php"
 CLEAN_FILES="$FILES *.o *.lo *.la .libs/ build/ modules/ \
 	config.nice configure configure.ac \
@@ -151,7 +152,7 @@ phpize_copy_files()
 phpize_replace_prefix()
 {
   $SED \
-  -e "s#/php7#$prefix#" \
+  -e "s#/php8#$prefix#" \
   < "$phpdir/phpize.m4" > configure.ac
 }
 

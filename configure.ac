@@ -1211,6 +1211,7 @@ AS_CASE([$host_cpu],
 AS_CASE([$host_os],
   [darwin*], [fiber_os="mac"],
   [aix*|os400*], [fiber_os="aix"],
+  [os2*],[fiber_os="os2"],
   [fiber_os="other"]
 )
 
@@ -1230,6 +1231,8 @@ AS_CASE([$fiber_cpu],
 
 if test "$fiber_os" = 'mac'; then
   fiber_asm_file="combined_sysv_macho_gas"
+elif test "$fiber_os" = 'os2'; then
+  fiber_asm_file="i386_sysv_macho_gas"
 elif test "$fiber_os" = 'aix'; then
   # AIX uses a different calling convention (shared with non-_CALL_ELF Linux).
   # The AIX assembler isn't GNU, but the file is compatible.

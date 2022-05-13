@@ -257,7 +257,7 @@ static const char* zend_jit_disasm_resolver(
                                             uint64_t   addr,
                                             int64_t   *offset)
 {
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__OS2__)
 # ifndef HAVE_CAPSTONE
 	((void)ud);
 # endif
