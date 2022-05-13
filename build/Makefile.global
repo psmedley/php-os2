@@ -115,9 +115,10 @@ test: all
 
 clean:
 	find . -name \*.gcno -o -name \*.gcda | xargs rm -f
-	find . -name \*.lo -o -name \*.o -o -name \*.dep | xargs rm -f
-	find . -name \*.la -o -name \*.a | xargs rm -f
-	find . -name \*.so | xargs rm -f
+	find . -name \*.lo -o -name \*.obj -o -name \*.dep | xargs rm -f
+	find . -name \*.la -o -name \*.lib | xargs rm -f
+	find . -name \*.dll | xargs rm -f
+	find . -name \*.exe | xargs rm -f
 	find . -name .libs -a -type d|xargs rm -rf
 	rm -f libphp.la $(SAPI_CLI_PATH) $(SAPI_CGI_PATH) $(SAPI_LITESPEED_PATH) $(SAPI_FPM_PATH) $(OVERALL_TARGET) modules/* libs/*
 	rm -f ext/opcache/jit/zend_jit_x86.c
