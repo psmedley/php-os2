@@ -1,0 +1,6 @@
+./configure --prefix=/php7 --includedir=/extras/include  --with-xml=shared --disable-rpath --enable-ftp --enable-exif=shared --with-zlib=u:/extras --enable-gd=shared   --with-gettext=shared --enable-mbstring=shared,all --disable-mbregex --with-curl=shared,u:/extras  --with-mysql-sock='\\\\socket\\\\MySQL' --with-mysqli=shared,/mysql56/bin/mysql_config --with-bz2=shared,u:/extras --with-pdo-mysql=shared,mysqlnd --includedir=u:/extras/include/apr-1 --with-apxs2=/apache24/bin/apxs  --with-unixODBC=shared,/unixodbc --enable-sockets  --with-xsl=shared,/extras --with-zip=shared --with-iconv=shared --enable-soap  --with-xmlrpc=shared,/extras --enable-bcmath --enable-calendar --enable-maintainer-zts  --with-sqlite3 --with-pdo-sqlite=shared --with-openssl=shared,u:/extras  --with-tidy=shared,/extras --disable-phpdbg --disable-phpdbg-webhelper --disable-ipv6 --with-pgsql=shared,u:/pgsql --with-pdo-pgsql=shared,u:/pgsql --with-readline=shared,/extras --with-jpeg=/extras --with-webp=/extras --with-freetype=/extras --enable-intl=shared  2>&1| tee configure.log
+# --with-imap=shared,/extras/c-client --with-snmp=shared,/extras --disable-opcache
+
+
+#configure: WARNING: unrecognized options: --with-libxml-dir, --enable-libxml, --
+#with-jpeg-dir, --with-png-dir, --with-gd, --with-freetype-dir, --enable-zip
