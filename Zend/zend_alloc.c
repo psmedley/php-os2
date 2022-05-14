@@ -721,11 +721,14 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 			zend_mm_munmap(fillchunks[fillnum].ptr, fillchunks[fillnum].size);
 		}
 
-#		if 1	/* Disable for standalone testcase with uses printf logging */
-		zend_error(E_NOTICE,"zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u", ptr, fillcnt);
-#		else
-		printf("zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u\n", ptr, fillcnt);
-#		endif
+		/* We need to check zend_error_cb initialized because we can be call
+		   early in startup, before it has been initialized.
+		   We can disable this notice eventually or make it a conditional compile item
+		*/
+		if (zend_error_cb != NULL)
+			zend_error(E_NOTICE,"zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u", ptr, fillcnt);
+		else
+			fprintf(stderr, "zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u\n", ptr, fillcnt);
 
 		if (fillcnt < MAX_FILL_CNT && ptr != NULL)
 			return ptr;		/* Return pointer to aligned chunk */
