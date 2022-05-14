@@ -721,13 +721,12 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 			zend_mm_munmap(fillchunks[fillnum].ptr, fillchunks[fillnum].size);
 		}
 
-		/* We need to check zend_error_cb initialized because we can be call
+		/* We need to check zend_error_cb initialized because we can be called
 		   early in startup, before it has been initialized.
-		   We can disable this notice eventually or make it a conditional compile item
 		*/
 		if (zend_error_cb != NULL)
 			zend_error(E_NOTICE,"zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u", ptr, fillcnt);
-		else
+		else if (EG(error_reporting) & E_NOTICE)
 			fprintf(stderr, "zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u\n", ptr, fillcnt);
 
 		if (fillcnt < MAX_FILL_CNT && ptr != NULL)
