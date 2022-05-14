@@ -32,7 +32,7 @@ AH_TOP([
 #ifndef PHP_CONFIG_H
 #define PHP_CONFIG_H
 
-#if defined(__GNUC__) && __GNUC__ >= 4
+#if defined(__GNUC__) && __GNUC__ >= 4 && !defined(__OS2__)
 # define ZEND_API __attribute__ ((visibility("default")))
 # define ZEND_DLEXPORT __attribute__ ((visibility("default")))
 #else
@@ -256,10 +256,11 @@ case $host_cpu in
     ;;
 esac
 
-dnl Mark symbols hidden by default if the compiler (for example, gcc >= 4)
-dnl supports it. This can help reduce the binary size and startup time.
-AX_CHECK_COMPILE_FLAG([-fvisibility=hidden],
-                       [CFLAGS="$CFLAGS -fvisibility=hidden"])
+#Don't want this on OS/2
+#dnl Mark symbols hidden by default if the compiler (for example, gcc >= 4)
+#dnl supports it. This can help reduce the binary size and startup time.
+#AX_CHECK_COMPILE_FLAG([-fvisibility=hidden],
+#                       [CFLAGS="$CFLAGS -fvisibility=hidden"])
 
 case $host_alias in
   *solaris*)

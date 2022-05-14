@@ -38,7 +38,7 @@
 #	else
 #		define MBSTRING_API /* nothing special */
 #	endif
-#elif defined(__GNUC__) && __GNUC__ >= 4
+#elif defined(__GNUC__) && __GNUC__ >= 4 && !defined(__OS2__)
 #	undef MBSTRING_API
 #	define MBSTRING_API __attribute__ ((visibility("default")))
 #else

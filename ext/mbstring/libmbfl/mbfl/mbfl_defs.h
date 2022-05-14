@@ -50,7 +50,7 @@
 #define MBFLAPI __declspec(dllimport)
 #endif /* MBFL_DLL_EXPORT */
 #else
-#if defined(__GNUC__) && __GNUC__ >= 4
+#if defined(__GNUC__) && __GNUC__ >= 4 && !defined(__OS2__)
 #define MBFLAPI __attribute__((visibility("default")))
 #else
 #define MBFLAPI
