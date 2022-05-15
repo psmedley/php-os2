@@ -723,11 +723,20 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 
 		/* We need to check zend_error_cb initialized because we can be called
 		   early in startup, before it has been initialized.
+		   When this occurs, we also cannot use EG(error_reporting)
+		   because it too has not yet initiialized so we use an environment
+		   variable - ZEND_MM_LOG_OS2.
 		*/
 		if (zend_error_cb != NULL)
 			zend_error(E_NOTICE,"zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u", ptr, fillcnt);
-		else if (EG(error_reporting) & E_NOTICE)
-			fprintf(stderr, "zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u\n", ptr, fillcnt);
+		else {
+			static char *envp = (char *)-1;
+			/* If first time */
+			if (envp == (char *)-1)
+				envp = getenv("ZEND_MM_LOG_OS2");
+			if (envp != NULL) 
+				fprintf(stderr, "zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u\n", ptr, fillcnt);
+		}
 
 		if (fillcnt < MAX_FILL_CNT && ptr != NULL)
 			return ptr;		/* Return pointer to aligned chunk */
