@@ -695,9 +695,9 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 		offset = ZEND_MM_ALIGNED_OFFSET(ptr, alignment);
 		if (offset != 0) {
 			offset = alignment - offset;
-//#ifndef __OS2__ /* workaround libcx bug */
+#ifndef __OS2__ /* workaround libcx bug */
 			zend_mm_munmap(ptr, offset);
-//#endif
+#endif
 			ptr = (char*)ptr + offset;
 			alignment -= offset;
 		}
