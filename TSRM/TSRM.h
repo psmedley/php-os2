@@ -32,7 +32,10 @@
 # endif
 #ifdef __cplusplus
  extern "C" void* os2_get_tsrm_ls_cache();
+#else
+ extern void* os2_get_tsrm_ls_cache();
 #endif
+
 #endif
 
 #ifdef TSRM_WIN32
