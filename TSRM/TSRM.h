@@ -195,13 +195,6 @@ TSRM_API const char *tsrm_api_name(void);
 #define TSRMLS_CACHE_UPDATE() TSRMLS_CACHE = tsrm_get_ls_cache()
 #define TSRMLS_CACHE _tsrm_ls_cache
 
-/* BC only */
-#define TSRMLS_D void
-#define TSRMLS_DC
-#define TSRMLS_C
-#define TSRMLS_CC
-#define TSRMLS_FETCH()
-
 #ifdef __cplusplus
 }
 #endif
