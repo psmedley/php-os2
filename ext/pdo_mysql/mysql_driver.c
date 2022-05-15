@@ -907,7 +907,7 @@ static int pdo_mysql_handle_factory(pdo_dbh_t *dbh, zval *driver_options)
 		port = atoi(vars[3].optval);
 	}
 
-#ifdef PHP_WIN32
+#if defined(PHP_WIN32) || defined(__OS2__)
 	if (vars[2].optval && !strcmp(".", vars[2].optval)) {
 #else
 	if (vars[2].optval && !strcmp("localhost", vars[2].optval)) {
