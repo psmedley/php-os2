@@ -722,15 +722,14 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 			zend_mm_munmap(fillchunks[fillnum].ptr, fillchunks[fillnum].size);
 		}
 
-		/* We need to check zend_error_cb initialized because we can be called
+		/* We used to check zend_error_cb initialized because we can be called
 		   early in startup, before it has been initialized.
-		   When this occurs, we also cannot use EG(error_reporting)
-		   because it too has not yet initiialized so we use an environment
-		   variable - ZEND_MM_LOG_OS2.
+		   However, 8.1.6 changed the code paths so that zend_error_cb is
+		   initialize, but not everything needed by zend_error is ready to
+		   use so we can only use use to ZEND_MM_LOG_OS2 environment
+		   variable to request debug output
 		*/
-		if (zend_error_cb != NULL)
-			zend_error(E_NOTICE,"zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u", ptr, fillcnt);
-		else {
+		{
 			static char *envp = (char *)-1;
 			/* If first time */
 			if (envp == (char *)-1)
