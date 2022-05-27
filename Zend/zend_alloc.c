@@ -430,7 +430,12 @@ static void *zend_mm_mmap_fixed(void *addr, size_t size)
 
 	if (ptr == MAP_FAILED) {
 #if ZEND_MM_ERROR && !defined(MAP_EXCL)
+#ifdef __OS2__	/* 2022-05-25 SHL */
+		fprintf(stderr, "\nmmap()failed pid:%u tib:%u: [%d] %s (%u)\n",
+			getpid(), _gettid() ,errno, strerror(errno), __LINE__);
+#else
 		fprintf(stderr, "\nmmap() failed: [%d] %s\n", errno, strerror(errno));
+#endif
 #endif
 		return NULL;
 	} else if (ptr != addr) {
@@ -474,7 +479,12 @@ static void *zend_mm_mmap(size_t size)
 
 	if (ptr == MAP_FAILED) {
 #if ZEND_MM_ERROR
+#ifdef __OS2__	/* 2022-05-25 SHL */
+		fprintf(stderr, "\nmmap()failed pid:%u tib:%u: [%d] %s (%u)\n",
+			getpid(), _gettid() ,errno, strerror(errno), __LINE__);
+#else
 		fprintf(stderr, "\nmmap() failed: [%d] %s\n", errno, strerror(errno));
+#endif
 #endif
 		return NULL;
 	}
