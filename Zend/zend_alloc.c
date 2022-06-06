@@ -1449,7 +1449,30 @@ static zend_always_inline void zend_mm_free_heap(zend_mm_heap *heap, void *ptr Z
 		int page_num = (int)(page_offset / ZEND_MM_PAGE_SIZE);
 		zend_mm_page_info info = chunk->map[page_num];
 
-		ZEND_MM_CHECK(chunk->heap == heap, "zend_mm_free_heap heap corrupted (1)");
+#ifdef __OS2__
+		if (UNEXPECTED(chunk->heap != heap)) {
+			/* Timestamp formatting adapted from php_message_handler_for_zend */
+			char msg_buf[512];
+			struct tm *ta, tmbuf;
+			time_t curtime;
+			char *datetime_str, asctimebuf[52];
+
+			time(&curtime);
+			ta = localtime_r(&curtime, &tmbuf);
+			datetime_str = asctime_r(ta, asctimebuf);
+			if (datetime_str)
+				datetime_str[strlen(datetime_str)-1]=0;	/* get rid of the trailing newline */
+			else
+				datetime_str = "null";
+			snprintf(msg_buf, sizeof(msg_buf),
+				 "[%s] zend_mm_free_heap heap corrupted (%u) pid %u tid %u chunk->heap %p heap %p",
+				 datetime_str, __LINE__, getpid(), _gettid(), chunk->heap, heap);
+			zend_mm_panic(msg_buf);
+		}
+#else
+		ZEND_MM_CHECK(chunk->heap == heap, "heap corrupted");
+#endif
+
 		if (EXPECTED(info & ZEND_MM_IS_SRUN)) {
 			zend_mm_free_small(heap, ptr, ZEND_MM_SRUN_BIN_NUM(info));
 		} else /* if (info & ZEND_MM_IS_LRUN) */ {
