@@ -1117,7 +1117,7 @@
 /* #undef HAVE_MYSQL */
 
 /* */
-#define HAVE_MYSQLILIB 1
+/* #undef HAVE_MYSQLILIB */
 
 /* */
 #define HAVE_NANOSLEEP 1
@@ -1352,7 +1352,7 @@
 /* #undef HAVE_SHMOP */
 
 /* Define if you have SysV IPC SHM support */
-#define HAVE_SHM_IPC 1
+/* #undef HAVE_SHM_IPC */
 
 /* Define if you have mmap(MAP_ANON) SHM support */
 #define HAVE_SHM_MMAP_ANON 1
@@ -1826,7 +1826,7 @@
 /* #undef MISSING_STRTOK_R_DECL */
 
 /* Whether mysqlnd is enabled */
-/* #undef MYSQLI_USE_MYSQLND */
+#define MYSQLI_USE_MYSQLND 1
 
 /* Enable compressed protocol support */
 #define MYSQLND_COMPRESSION_ENABLED 1
