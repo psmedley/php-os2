@@ -415,6 +415,23 @@ stderr_last_error(char *msg)
 /* OS Allocation */
 /*****************/
 
+
+#ifdef __OS2__
+/**
+ * Format httpd log style timestamp
+ * @param pszTimestamp28 points to 28 byte or larger timestamp buffer
+ */
+
+static void formatTimestamp(char *pszTimestamp28) {
+	time_t timeLclSec = time(0);
+	// Sat Mar 21 15:58:27 1987\n\0
+	// [Tue Jun 21 12:07:31.699000 2022]
+	ctime_r(&timeLclSec, pszTimestamp28 + 1);
+	pszTimestamp28[0] = '[';
+	pszTimestamp28[25] = ']';	/* Replace NL */
+}
+#endif // __OS2__
+
 #ifndef HAVE_MREMAP
 static void *zend_mm_mmap_fixed(void *addr, size_t size)
 {
@@ -431,8 +448,11 @@ static void *zend_mm_mmap_fixed(void *addr, size_t size)
 	if (ptr == MAP_FAILED) {
 #if ZEND_MM_ERROR && !defined(MAP_EXCL)
 #ifdef __OS2__	/* 2022-05-25 SHL */
-		fprintf(stderr, "\nmmap()failed pid:%u tib:%u: [%d] %s (%u)\n",
-			getpid(), _gettid() ,errno, strerror(errno), __LINE__);
+		pid_t pid = _getpid();
+		char szTimestamp[28];
+		formatTimestamp(szTimestamp);
+		fprintf(stderr, "\n%s zend_mm_mmap_fixed mmap(0x%p, 0x%x) failed pid:%u (%x) tid:%u [%d] %s\n",
+			szTimestamp, addr, size, pid, pid, _gettid() ,errno, strerror(errno));
 #else
 		fprintf(stderr, "\nmmap() failed: [%d] %s\n", errno, strerror(errno));
 #endif
@@ -480,8 +500,11 @@ static void *zend_mm_mmap(size_t size)
 	if (ptr == MAP_FAILED) {
 #if ZEND_MM_ERROR
 #ifdef __OS2__	/* 2022-05-25 SHL */
-		fprintf(stderr, "\nmmap()failed pid:%u tib:%u: [%d] %s (%u)\n",
-			getpid(), _gettid() ,errno, strerror(errno), __LINE__);
+		pid_t pid = _getpid();
+		char szTimestamp[28];
+		formatTimestamp(szTimestamp);
+		fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) failed pid:%u (%x) tid:%u [%d] %s\n",
+			szTimestamp, size, pid, pid, _gettid() ,errno, strerror(errno));
 #else
 		fprintf(stderr, "\nmmap() failed: [%d] %s\n", errno, strerror(errno));
 #endif
@@ -1451,22 +1474,13 @@ static zend_always_inline void zend_mm_free_heap(zend_mm_heap *heap, void *ptr Z
 
 #ifdef __OS2__
 		if (UNEXPECTED(chunk->heap != heap)) {
-			/* Timestamp formatting adapted from php_message_handler_for_zend */
+			pid_t pid = _getpid();
+			char szTimestamp[28];
 			char msg_buf[512];
-			struct tm *ta, tmbuf;
-			time_t curtime;
-			char *datetime_str, asctimebuf[52];
-
-			time(&curtime);
-			ta = localtime_r(&curtime, &tmbuf);
-			datetime_str = asctime_r(ta, asctimebuf);
-			if (datetime_str)
-				datetime_str[strlen(datetime_str)-1]=0;	/* get rid of the trailing newline */
-			else
-				datetime_str = "null";
+			formatTimestamp(szTimestamp);
 			snprintf(msg_buf, sizeof(msg_buf),
-				 "[%s] zend_mm_free_heap heap corrupted (%u) pid %u tid %u chunk->heap %p heap %p",
-				 datetime_str, __LINE__, getpid(), _gettid(), chunk->heap, heap);
+				 "%s zend_mm_free_heap detected heap corrupted for pid:%u (%x) tid:%u chunk->heap %p heap %p",
+				 szTimestamp, pid, pid, _gettid(), chunk->heap, heap);
 			zend_mm_panic(msg_buf);
 		}
 #else
@@ -1894,7 +1908,17 @@ static void *zend_mm_alloc_huge(zend_mm_heap *heap, size_t size ZEND_FILE_LINE_D
 			/* pass */
 		} else {
 #if !ZEND_MM_LIMIT
+#ifdef __OS2__ /* 2022-06-22 SHL */
+			pid_t pid = _getpid();
+			char szTimestamp[28];
+			char szBuf[128];
+			formatTimestamp(szTimestamp);
+			snprintf(szBuf, sizeof(szBuf), "%s zend_mm_alloc_huge out of memory for pid:%u (%x) tid:%u",
+				szTimestamp, pid, pid, _gettid());
+			zend_mm_safe_error(heap, szBuf);
+#else
 			zend_mm_safe_error(heap, "Out of memory");
+#endif
 #elif ZEND_DEBUG
 			zend_mm_safe_error(heap, "Out of memory (allocated %zu) at %s:%d (tried to allocate %zu bytes)", heap->real_size, __zend_filename, __zend_lineno, size);
 #else
@@ -1957,7 +1981,11 @@ static zend_mm_heap *zend_mm_init(void)
 		stderr_last_error("Can't initialize heap");
 #else
 #ifdef __OS2__				// 2022-05-11 SHL
-		fprintf(stderr, "\nzend_mm_heap can't initialize heap: [%d] %s\n", errno, strerror(errno));
+		pid_t pid = _getpid();
+		char szTimestamp[28];
+		formatTimestamp(szTimestamp);
+		fprintf(stderr, "\n%s zend_mm_heap can't initialize heap pid:%u (%x) tid:%u [%d] %s\n",
+		        szTimestamp, pid, pid, _gettid(), errno, strerror(errno));
 #else
 		fprintf(stderr, "\nCan't initialize heap: [%d] %s\n", errno, strerror(errno));
 #endif
@@ -3098,7 +3126,15 @@ ZEND_API zend_mm_heap *zend_mm_startup_ex(const zend_mm_handlers *handlers, void
 
 static ZEND_COLD ZEND_NORETURN void zend_out_of_memory(void)
 {
+#ifdef __OS2__ /* 2022-06-22 SHL */
+			pid_t pid = _getpid();
+			char szTimestamp[28];
+			formatTimestamp(szTimestamp);
+			fprintf(stderr, "%s zend_out_of_memory reporting out of memory for pid:%u (%x) tid:%u",
+				szTimestamp, pid, pid, _gettid());
+#else
 	fprintf(stderr, "Out of memory\n");
+#endif
 	exit(1);
 }
 
