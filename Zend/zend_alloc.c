@@ -457,6 +457,7 @@ static void *zend_mm_mmap_fixed(void *addr, size_t size)
 #else
 		fprintf(stderr, "\nmmap() failed: [%d] %s\n", errno, strerror(errno));
 #endif
+#endif
 		return NULL;
 	} else if (ptr != addr) {
 		if (munmap(ptr, size) != 0) {
@@ -507,6 +508,7 @@ static void *zend_mm_mmap(size_t size)
 			szTimestamp, size, pid, pid, _gettid() ,errno, strerror(errno));
 #else
 		fprintf(stderr, "\nmmap() failed: [%d] %s\n", errno, strerror(errno));
+#endif
 #endif
 		return NULL;
 	}
