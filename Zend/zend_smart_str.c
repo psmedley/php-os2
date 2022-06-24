@@ -18,6 +18,12 @@
 #include "zend_smart_str.h"
 #include "zend_smart_string.h"
 
+#ifdef __OS2__
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+#endif
+
 #define SMART_STR_OVERHEAD   (ZEND_MM_OVERHEAD + _ZSTR_HEADER_SIZE + 1)
 #define SMART_STR_START_SIZE 256
 #define SMART_STR_START_LEN  (SMART_STR_START_SIZE - SMART_STR_OVERHEAD)
@@ -179,6 +185,19 @@ ZEND_API void ZEND_FASTCALL _smart_string_alloc(smart_string *str, size_t len)
 		str->a = ZEND_MM_ALIGNED_SIZE_EX(len + SMART_STRING_OVERHEAD, SMART_STRING_PAGE) - SMART_STRING_OVERHEAD;
 		str->c = erealloc2(str->c, str->a + 1, str->len);
 	}
+#ifdef __OS2__	/* 2022-06-23 SHL */
+	/* If php runs out of heap here, the caller will attempt to to report the
+	   error via zend_error_noreturn, which will attempt to use _smart_string_alloc
+	   which fail again and php will recurse until it overflows the stack or
+	   some bad pointer causes a trap.
+	*/
+	if (!str->c) {
+		pid_t pid = _getpid();
+		fprintf(stderr, "\n_smart_string_alloc() failed to alloc %u pid:%u (%x) tid:%u (%u) - exiting.\n",
+			len, pid, pid, _gettid(), __LINE__);
+		exit(1);
+	}
+#endif
 }
 
 ZEND_API void ZEND_FASTCALL smart_str_append_escaped_truncated(smart_str *str, zend_string *value, size_t length)
