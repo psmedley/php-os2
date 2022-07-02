@@ -473,6 +473,9 @@ static void *zend_mm_mmap_fixed(void *addr, size_t size)
 
 static void *zend_mm_mmap(size_t size)
 {
+#ifdef __OS2__	/* 2022-07-01 SHL */
+	static int failcnt;
+#endif
 #ifdef _WIN32
 	void *ptr = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
@@ -499,18 +502,31 @@ static void *zend_mm_mmap(size_t size)
 
 	if (ptr == MAP_FAILED) {
 #if ZEND_MM_ERROR
-#ifdef __OS2__	/* 2022-05-25 SHL */
+#ifdef __OS2__	/* 2022-07-01 SHL */
 		pid_t pid = _getpid();
 		char szTimestamp[28];
 		formatTimestamp(szTimestamp);
-		fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) failed pid:%u (%x) tid:%u [%d] %s\n",
-			szTimestamp, size, pid, pid, _gettid() ,errno, strerror(errno));
+		failcnt++;
+		fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) failed pid:%u (%x) tid:%u%s [%d] %s\n",
+			 szTimestamp, size, pid, pid, _gettid(),
+			 failcnt >= 3 ? " - exiting" : "", errno, strerror(errno));
+		/* Once we get here we need to die if we are recursing */
+		if (failcnt >= 3)
+			exit(1);
+		return NULL;
 #else
 		fprintf(stderr, "\nmmap() failed: [%d] %s\n", errno, strerror(errno));
-#endif
-#endif
 		return NULL;
+#endif
+#endif
 	}
+#if ZEND_MM_ERROR
+#ifdef __OS2__	/* 2022-07-01 SHL */
+	else {
+		failcnt = 0;		/* Recovered */
+	 }
+#endif
+#endif
 	return ptr;
 #endif
 }
