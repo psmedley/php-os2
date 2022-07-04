@@ -507,9 +507,11 @@ static void *zend_mm_mmap(size_t size)
 		char szTimestamp[28];
 		formatTimestamp(szTimestamp);
 		failcnt++;
-		fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) failed pid:%u (%x) tid:%u%s [%d] %s\n",
-			 szTimestamp, size, pid, pid, _gettid(),
-			 failcnt >= 3 ? " - exiting" : "", errno, strerror(errno));
+		fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) failed pid:%u (%x) tid:%u cnt:%d%s [%d] %s\n",
+			szTimestamp, size, pid, pid, _gettid(),
+			failcnt,
+			failcnt >= 3 ? " - exiting" : "",
+			errno, strerror(errno));
 		/* Once we get here we need to die if we are recursing */
 		if (failcnt >= 3)
 			exit(1);
