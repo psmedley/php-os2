@@ -1048,7 +1048,18 @@ static void php_xml_parser_create_impl(INTERNAL_FUNCTION_PARAMETERS, int ns_supp
 	parser->case_folding = 1;
 	parser->isparsing = 0;
 
+#ifdef __OS2__ /* 2022-07-05 SHL */
+	/* XML_ParserCreate_MM can fail to create parser */
+	if (!parser->parser) {
+		php_error_docref(NULL, E_WARNING, "XML_ParserCreate_MM failed to create parser");
+		RETURN_FALSE;
+	}
+	else {
+		XML_SetUserData(parser->parser, parser);
+	}
+#else
 	XML_SetUserData(parser->parser, parser);
+#endif
 	ZVAL_COPY_VALUE(&parser->index, return_value);
 }
 /* }}} */
