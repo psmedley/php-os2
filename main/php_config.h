@@ -46,6 +46,9 @@
 /* Whether to build dba as dynamic module */
 /* #undef COMPILE_DL_DBA */
 
+/* Whether to build dl_test as dynamic module */
+/* #undef COMPILE_DL_DL_TEST */
+
 /* Whether to build dom as dynamic module */
 /* #undef COMPILE_DL_DOM */
 
@@ -633,7 +636,7 @@
 /* Define to 1 if you have the `fork' function. */
 #define HAVE_FORK 1
 
-/* POSIX Access Control List */
+/* do we have acl support? */
 /* #undef HAVE_FPM_ACL */
 
 /* whether fpsetprec is present and usable */
@@ -1352,7 +1355,7 @@
 /* #undef HAVE_SHMOP */
 
 /* Define if you have SysV IPC SHM support */
-/* #undef HAVE_SHM_IPC */
+#define HAVE_SHM_IPC 1
 
 /* Define if you have mmap(MAP_ANON) SHM support */
 #define HAVE_SHM_MMAP_ANON 1
