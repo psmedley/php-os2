@@ -473,9 +473,11 @@ static void *zend_mm_mmap_fixed(void *addr, size_t size)
 
 static void *zend_mm_mmap(size_t size)
 {
-#ifdef __OS2__	/* 2022-07-01 SHL */
-	static int failcnt;
-	static int failtid;
+#ifdef __OS2__	/* 2022-07-11 SHL */
+	static volatile int failcnt;
+	static volatile int failtid;
+	pid_t pid;
+	char szTimestamp[28];
 #endif
 #ifdef _WIN32
 	void *ptr = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -504,8 +506,6 @@ static void *zend_mm_mmap(size_t size)
 	if (ptr == MAP_FAILED) {
 #if ZEND_MM_ERROR
 #ifdef __OS2__	/* 2022-07-01 SHL */
-		pid_t pid;
-		char szTimestamp[28];
 		failtid = _gettid();
 		failcnt++;
 		pid = _getpid();
@@ -526,10 +526,14 @@ static void *zend_mm_mmap(size_t size)
 #endif
 	}
 #if ZEND_MM_ERROR
-#ifdef __OS2__	/* 2022-07-01 SHL */
+#ifdef __OS2__	/* 2022-07-11 SHL */
 	else if (failcnt > 0 && failtid == _gettid()) {
+		pid = _getpid();
+		formatTimestamp(szTimestamp);
+		fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) recovered pid:%u (%x) tid:%u cnt:%d\n",
+			szTimestamp, size, pid, pid, failtid, failcnt);
 		failcnt = 0;		/* Recovered */
-	 }
+	}
 #endif
 #endif
 	return ptr;
