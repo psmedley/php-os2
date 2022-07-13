@@ -1233,10 +1233,32 @@ MYSQLND_METHOD(mysqlnd_conn_data, send_close)(MYSQLND_CONN_DATA * const conn)
 	DBG_INF_FMT("state=%u", state);
 
 	if (state >= CONN_READY) {
+#ifndef __OS2__
 		MYSQLND_DEC_GLOBAL_STATISTIC(STAT_OPENED_CONNECTIONS);
 		if (conn->persistent) {
 			MYSQLND_DEC_GLOBAL_STATISTIC(STAT_OPENED_PERSISTENT_CONNECTIONS);
 		}
+#else
+			/* We can get here via a destructor callback if php terminates
+			   before the runtime environment is fully initialized.
+			   When this occurs, we may not have a valid pointer to mysqlnd_globals_id
+			   and we need to bypass the statistics update to avoid trapping.
+			   If this code path is possible on other platforms, this is an upstream defect.
+			   Warn if ZEND_ENABLE_STATIC_TSRMLS_CACHE not defined because
+			   ZEND_MODULE_GLOBALS_POINTER depends on this.
+			   2022-07-12 SHL hack cough
+			*/
+#ifndef ZEND_ENABLE_STATIC_TSRMLS_CACHE
+#warning Expected ZEND_ENABLE_STATIC_TSRMLS_CACHE to be defined
+#endif
+			#define ZEND_MODULE_GLOBALS_POINTER(module_name) TSRMG_BULK_STATIC(module_name##_globals_id, zend_##module_name##_globals *)
+			if (ZEND_MODULE_GLOBALS_POINTER(mysqlnd) != NULL) {
+				MYSQLND_DEC_GLOBAL_STATISTIC(STAT_OPENED_CONNECTIONS);
+				if (conn->persistent) {
+					MYSQLND_DEC_GLOBAL_STATISTIC(STAT_OPENED_PERSISTENT_CONNECTIONS);
+				}
+			}
+#endif
 	}
 	switch (state) {
 		case CONN_READY:
