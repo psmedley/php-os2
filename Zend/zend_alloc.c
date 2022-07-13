@@ -474,8 +474,17 @@ static void *zend_mm_mmap_fixed(void *addr, size_t size)
 static void *zend_mm_mmap(size_t size)
 {
 #ifdef __OS2__	/* 2022-07-11 SHL */
-	static volatile int failcnt;
-	static volatile int failtid;
+	typedef struct {
+		int failCnt;
+		int failTid;
+	} tFailInfo;
+	#define FAILINFOCNT 16
+	/* allocation failure info array indexed by TID */
+	static tFailInfo failInfo[FAILINFOCNT];
+	unsigned int freeInfoNum;
+	unsigned int failInfoNum;
+	int failCnt_;
+	int failTid_;
 	pid_t pid;
 	char szTimestamp[28];
 #endif
@@ -505,18 +514,54 @@ static void *zend_mm_mmap(size_t size)
 
 	if (ptr == MAP_FAILED) {
 #if ZEND_MM_ERROR
-#ifdef __OS2__	/* 2022-07-01 SHL */
-		failtid = _gettid();
-		failcnt++;
-		pid = _getpid();
+#ifdef __OS2__	/* 2022-07-12 SHL */
+		/* Allocation failed
+		   Find existing failInfo entry for TID or available free entry
+		*/
+		failTid_ = _gettid();
+		freeInfoNum = FAILINFOCNT;
+		for (failInfoNum = 0; failInfoNum < FAILINFOCNT; failInfoNum++) {
+			if (failInfo[failInfoNum].failTid == failTid_)
+				break;	/* Found entry */
+			else if (failInfo[failInfoNum].failTid == 0)
+				freeInfoNum = failInfoNum;	/* Remember free entry */
+		} /* for */
+
+		/* If found existing failInfo entry, use it
+		   If found free failInfo entry, initialize and use it
+		   Otherwise we have too many concurrent failures and it's time to die
+		 */
+		if (failInfoNum >= FAILINFOCNT) {
+			if (freeInfoNum < FAILINFOCNT)
+				failInfoNum = freeInfoNum;	/* Use free */
+			else {
+				/* All slots in use - time to die */
+				formatTimestamp(szTimestamp);
+				pid = _getpid();
+				failCnt_ = failInfo[failInfoNum].failCnt;
+				fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) %u concurrent failures - exiting pid:%u (%x)\n",
+					szTimestamp, size,
+					FAILINFOCNT, pid, pid);
+				exit(1);
+				return NULL;
+			}
+
+		}
+
+		/* Count failure and report */
+		failInfo[failInfoNum].failTid = failTid_;	/* Assign if first failure */
+		failCnt_ = failInfo[failInfoNum].failCnt;
+		failCnt_++;
+		failInfo[failInfoNum].failCnt = failCnt_;
 		formatTimestamp(szTimestamp);
+		pid = _getpid();
 		fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) failed pid:%u (%x) tid:%u cnt:%d%s [%d] %s\n",
-			szTimestamp, size, pid, pid, failtid,
-			failcnt,
-			failcnt >= 3 ? " - exiting" : "",
+			szTimestamp, size, pid, pid, failTid_,
+			failCnt_,
+			failCnt_ >= 3 ? " - exiting" : "",
 			errno, strerror(errno));
-		/* Once we get here we need to die if we are recursing */
-		if (failcnt >= 3)
+		/* If we get here, the allocation failure is persistent and it's time to die */
+		if (failCnt_ >= 3)
 			exit(1);
 		return NULL;
 #else
@@ -527,13 +572,29 @@ static void *zend_mm_mmap(size_t size)
 	}
 #if ZEND_MM_ERROR
 #ifdef __OS2__	/* 2022-07-11 SHL */
-	else if (failcnt > 0 && failtid == _gettid()) {
-		pid = _getpid();
-		formatTimestamp(szTimestamp);
-		fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) recovered pid:%u (%x) tid:%u cnt:%d\n",
-			szTimestamp, size, pid, pid, failtid, failcnt);
-		failcnt = 0;		/* Recovered */
-	}
+	else {
+		/* Alloc succeeded
+		   Check if have recovered from prior allocation failure
+		   If so, report recovery and free failInfo
+		   If no failInfo entry there is not prior allocation failure and
+		   there is nothing to report or free
+		 */
+		failTid_ = _gettid();
+		for (failInfoNum = 0; failInfoNum < FAILINFOCNT; failInfoNum++) {
+			if (failInfo[failInfoNum].failTid == failTid_)
+				break;
+		}
+		if (failInfoNum < FAILINFOCNT) {
+			/* Have failInfo entry - report recovery and free entry */
+			formatTimestamp(szTimestamp);
+			pid = _getpid();
+			failCnt_ = failInfo[failInfoNum].failCnt;
+			fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) recovered pid:%u (%x) tid:%u cnt:%d\n",
+				szTimestamp, size, pid, pid, failTid_, failCnt_);
+			failInfo[failInfoNum].failTid = 0;
+			failInfo[failInfoNum].failCnt = 0;
+		} /* if recovered */
+	} /* if alloc OK */
 #endif
 #endif
 	return ptr;
@@ -2010,7 +2071,7 @@ static zend_mm_heap *zend_mm_init(void)
 		char szTimestamp[28];
 		formatTimestamp(szTimestamp);
 		fprintf(stderr, "\n%s zend_mm_heap can't initialize heap pid:%u (%x) tid:%u [%d] %s\n",
-		        szTimestamp, pid, pid, _gettid(), errno, strerror(errno));
+			szTimestamp, pid, pid, _gettid(), errno, strerror(errno));
 #else
 		fprintf(stderr, "\nCan't initialize heap: [%d] %s\n", errno, strerror(errno));
 #endif
