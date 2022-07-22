@@ -477,6 +477,8 @@ static void *zend_mm_mmap(size_t size)
 	typedef struct {
 		int failCnt;
 		int failTid;
+		time_t failTime0;
+		int failCntPerSec;
 	} tFailInfo;
 	#define FAILINFOCNT 16
 	/* allocation failure info array indexed by TID */
@@ -485,7 +487,10 @@ static void *zend_mm_mmap(size_t size)
 	unsigned int failInfoNum;
 	int failCnt_;
 	int failTid_;
+	int failCntPerSec_;
+	time_t failTime0_;
 	pid_t pid;
+	int timeToDie;
 	char szTimestamp[28];
 #endif
 #ifdef _WIN32
@@ -548,20 +553,30 @@ static void *zend_mm_mmap(size_t size)
 
 		}
 
-		/* Count failure and report */
+		/* Count failure and calculate failure rate and report */
 		failInfo[failInfoNum].failTid = failTid_;	/* Assign if first failure */
-		failCnt_ = failInfo[failInfoNum].failCnt;
-		failCnt_++;
-		failInfo[failInfoNum].failCnt = failCnt_;
+		failCnt_ = ++failInfo[failInfoNum].failCnt;
+		/* We can get in a fast fail/recover loop
+		   We watch failures per second to catch this and terminate the process
+		   2022-07-22 SHL
+		*/
+		failTime0_ = time(NULL);
+		if (failTime0_ != failInfo[failInfoNum].failTime0) {
+			/* Reset failures per second counter */
+			failInfo[failInfoNum].failTime0 = failTime0_;
+			failInfo[failInfoNum].failCntPerSec = 0;
+		}
+		failCntPerSec_ = ++failInfo[failInfoNum].failCntPerSec;
 		formatTimestamp(szTimestamp);
 		pid = _getpid();
-		fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) failed pid:%u (%x) tid:%u cnt:%d%s [%d] %s\n",
+		timeToDie = failCnt_ >= 3 || failCntPerSec_ >= 10;
+		fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) failed pid:%u (%x) tid:%u failcnt:%d failcnt/sec %d%s [%d] %s\n",
 			szTimestamp, size, pid, pid, failTid_,
-			failCnt_,
-			failCnt_ >= 3 ? " - exiting" : "",
+			failCnt_, failCntPerSec_,
+			timeToDie ? " - exiting" : "",
 			errno, strerror(errno));
-		/* If we get here, the allocation failure is persistent and it's time to die */
-		if (failCnt_ >= 3)
+		/* If allocation failure is persistent or looping, it's time to die */
+		if (timeToDie)
 			exit(1);
 		return NULL;
 #else
@@ -589,7 +604,7 @@ static void *zend_mm_mmap(size_t size)
 			formatTimestamp(szTimestamp);
 			pid = _getpid();
 			failCnt_ = failInfo[failInfoNum].failCnt;
-			fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) recovered pid:%u (%x) tid:%u cnt:%d\n",
+			fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) recovered pid:%u (%x) tid:%u failcnt:%d\n",
 				szTimestamp, size, pid, pid, failTid_, failCnt_);
 			failInfo[failInfoNum].failTid = 0;
 			failInfo[failInfoNum].failCnt = 0;
