@@ -37,6 +37,10 @@
 #  include <sys/random.h>
 # endif
 #endif
+#if HAVE_COMMONCRYPTO_COMMONRANDOM_H
+# include <CommonCrypto/CommonCryptoError.h>
+# include <CommonCrypto/CommonRandom.h>
+#endif
 
 #if __has_feature(memory_sanitizer)
 # include <sanitizer/msan_interface.h>
