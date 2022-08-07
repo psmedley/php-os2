@@ -2572,7 +2572,26 @@ MYSQLND_METHOD(mysqlnd_protocol, send_command)(
 		cmd_packet.argument.l = arg_len;
 	}
 
+#ifndef __OS2__
 	MYSQLND_INC_CONN_STATISTIC(stats, STAT_COM_QUIT + command - 1 /* because of COM_SLEEP */ );
+#else
+	/* We can get here via a destructor callback if php terminates
+	   before the runtime environment is fully initialized.
+	   When this occurs, we may not have a valid pointer to mysqlnd_globals_id
+	   and we need to bypass the statistics update to avoid trapping.
+	   If this code path is possible on other platforms, this is an upstream defect.
+	   Warn if ZEND_ENABLE_STATIC_TSRMLS_CACHE not defined because
+	   ZEND_MODULE_GLOBALS_POINTER depends on this.
+	   2022-08-07 SHL hack cough
+	*/
+#ifndef ZEND_ENABLE_STATIC_TSRMLS_CACHE
+#warning Expected ZEND_ENABLE_STATIC_TSRMLS_CACHE to be defined
+#endif
+	#define ZEND_MODULE_GLOBALS_POINTER(module_name) TSRMG_BULK_STATIC(module_name##_globals_id, zend_##module_name##_globals *)
+	if (ZEND_MODULE_GLOBALS_POINTER(mysqlnd) != NULL) {
+		MYSQLND_INC_CONN_STATISTIC(stats, STAT_COM_QUIT + command - 1 /* because of COM_SLEEP */ );
+	}
+#endif
 
 	if (! PACKET_WRITE(payload_decoder_factory->conn, &cmd_packet)) {
 		if (!silent && error_info->error_no != CR_SERVER_GONE_ERROR) {
