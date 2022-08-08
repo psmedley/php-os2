@@ -39,6 +39,11 @@
 # include "winver.h"
 #endif
 
+#ifdef __OS2__				/* 2022-08-07 SHL for BEGINLIBPATH reporting */
+#define INCL_DOSMISC			/* DosQueryExtLIBPATH */
+#include <os2.h>
+#endif
+
 #define SECTION(name)	if (!sapi_module.phpinfo_as_text) { \
 							php_info_print("<h2>" name "</h2>\n"); \
 						} else { \
@@ -774,6 +779,11 @@ PHPAPI ZEND_COLD void php_print_info(int flag)
 {
 	char **env, *tmp1, *tmp2;
 	zend_string *php_uname;
+#ifdef __OS2__	/* 2022-08-07 SHL For BEGINLIBPATH reporting */
+	#define BLP_BUF_BYTES	((unsigned int)1024)		/* Kernel limit */
+	char beginlibpath[BLP_BUF_BYTES];
+	APIRET apiret;
+#endif
 
 	if (!sapi_module.phpinfo_as_text) {
 		php_print_info_htmlhead();
@@ -984,6 +994,16 @@ PHPAPI ZEND_COLD void php_print_info(int flag)
 			php_info_print_table_row(2, tmp1, tmp2);
 			efree(tmp1);
 		}
+#ifdef __OS2__	/* 2022-08-07 SHL Show BEGINLIBPATH if defined */
+		apiret = DosQueryExtLIBPATH((PCSZ)beginlibpath, BEGIN_LIBPATH);
+		if (apiret != 0) {
+			php_error_docref(NULL, E_ERROR,
+					"php_print_info DosQueryExtLIBPATH failed with error %lu", apiret);
+		}
+		else if (*beginlibpath) {
+			php_info_print_table_row(2, "BEGINLIBPATH", beginlibpath);
+		}
+#endif
 		tsrm_env_unlock();
 		php_info_print_table_end();
 	}
