@@ -1,0 +1,34 @@
+This is a port of PHP v8.1.9 to OS/2.  
+
+New in this build is:
+- Updated to latest source
+- Built with GCC 12.1.0
+
+To load the Apache2 module, copy Apache2/modphp.dll to the Apache2 module directory, and add:
+LoadModule php_module modules/modphp.dll to httpd.conf. Some users have reported that modphp needs to be the LAST module loaded.
+
+Requires a copy of libc066.dll which can currently be downloaded from ftp://ftp.netlabs.org/pub/gcc/libc-0.6.6-csd6.zip
+
+Patches for thread support and detection of php.ini in c:\mptn\etc have been included in the executable largely based on Brian Havard's patches for PHP 4.3.1
+
+I have included support for some external modules - bz2, curl, dbase, gd, exif, filepro,, gd, gettext, mbstring, mysql, mysqli, openssl, pdo_mysql, pdo_sqlite, pgsql (postgresql) & sqlite are loadable as shared modules.  Other modules including those from pecl, can most likely be built pretty easily - if there is something you need, please contact me.
+
+PHP has problems detecting the timezone in OS/2 - to workaround this, and set the default in your php.ini you need to add date.timezone simular to what is shown below in context.  You can get the timezones supported in the php.ini from : http://us2.php.net/manual/en/timezones.php
+
+;;;;;;;;;;;;;;;;;;;
+; Module Settings ;
+;;;;;;;;;;;;;;;;;;;
+
+[Date]
+; Defines the default timezone used by the date functions
+date.timezone = Australia/Adelaide
+
+As always, any feedback to paul@smedley.id.au is appreciated - bug reports should be submitted via the bugtracker at http://mantis.smedley.id.au.  It's really nice to hear of people using my ports!
+
+If you like this software and want to support continued ports, please consider donating via PayPal via the link in the footer at http://os2ports.smedley.id.au, or via the Arca Noae webstore at http://www.arcanoae.com/shop/os2-ports-paul-smedley
+
+Cheers,
+
+Paul Smedley
+Adelaide, Australia
+8th August, 2022

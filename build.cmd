@@ -32,5 +32,8 @@ buildstart=time()
 'u:\dev\exceptq71-dev\bin\mapxqs.exe  sapi\cgi\php-cgi.map -o php8\cgi\php-cgi.xqs'
 'u:\dev\exceptq71-dev\bin\mapxqs.exe .libs\modphp.map -o php8\apache24\modphp.xqs'
 'copy readme.os2 php8'
+'copy php.ini-development php8'
+'copy php.ini-production php8'
+
 buildend=time()
 say "Compile started at "buildstart" and ended at "buildend

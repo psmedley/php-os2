@@ -1688,6 +1688,10 @@ AC_DEFUN([PHP_SHLIB_SUFFIX_NAMES],[
    SHLIB_SUFFIX_NAME=dylib
    SHLIB_DL_SUFFIX_NAME=so
    ;;
+ *os2*[)]
+   SHLIB_SUFFIX_NAME=dll
+   SHLIB_DL_SUFFIX_NAME=dll
+   ;;
  esac
 ])
 

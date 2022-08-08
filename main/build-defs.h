@@ -35,5 +35,5 @@
 #define PHP_LOCALSTATEDIR       "/php8/var"
 #define PHP_CONFIG_FILE_PATH    "/php8/lib"
 #define PHP_CONFIG_FILE_SCAN_DIR    ""
-#define PHP_SHLIB_SUFFIX        "so"
+#define PHP_SHLIB_SUFFIX        "dll"
 #define PHP_SHLIB_EXT_PREFIX    ""

@@ -463,6 +463,9 @@
 /* */
 /* #undef HAVE_CODBC */
 
+/* Define to 1 if you have the <CommonCrypto/CommonRandom.h> header file. */
+/* #undef HAVE_COMMONCRYPTO_COMMONRANDOM_H */
+
 /* whether __cpuid_count is available */
 #define HAVE_CPUID_COUNT 1
 
