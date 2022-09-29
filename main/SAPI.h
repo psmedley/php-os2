@@ -147,6 +147,8 @@ SAPI_API void sapi_startup(sapi_module_struct *sf);
 #endif
 SAPI_API void sapi_shutdown(void);
 SAPI_API void sapi_activate(void);
+SAPI_API void sapi_deactivate_module(void);
+SAPI_API void sapi_deactivate_destroy(void);
 SAPI_API void sapi_deactivate(void);
 SAPI_API void sapi_initialize_empty_request(void);
 SAPI_API void sapi_add_request_header(const char *var, unsigned int var_len, char *val, unsigned int val_len, void *arg);

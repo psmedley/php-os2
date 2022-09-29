@@ -2098,9 +2098,6 @@
 /* */
 #define ZEND_DEBUG 0
 
-/* Define if double cast to long preserves least significant bits */
-/* #undef ZEND_DVAL_TO_LVAL_CAST_OK */
-
 /* */
 #define ZEND_FIBER_ASM 1
 
