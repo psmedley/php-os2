@@ -1118,6 +1118,19 @@ PHPAPI zend_string *php_stream_get_record(php_stream *stream, size_t maxlen, con
 	return ret_buf;
 }
 
+#ifdef __OS2__
+static inline void __attribute__((optimize("O0"))) access_pages(char* buf, int bufbytes) {
+	char ch;
+	char *p = buf;
+	int cnt = 0;
+	int touched;
+	for (; cnt < bufbytes; p += touched, cnt += touched) {
+		ch = *p;
+		touched = 4096  - ((unsigned int)p & 0xfff);
+	}
+}
+#endif
+
 /* Writes a buffer directly to a stream, using multiple of the chunk size */
 static ssize_t _php_stream_write_buffer(php_stream *stream, const char *buf, size_t count)
 {
@@ -1132,7 +1145,9 @@ static ssize_t _php_stream_write_buffer(php_stream *stream, const char *buf, siz
 		stream->ops->seek(stream, stream->position, SEEK_SET, &stream->position);
 	}
 
-
+#ifdef __OS2__
+	access_pages((char*) buf, count); 	// Fix issues with write failing
+#endif
 	while (count > 0) {
 		size_t towrite = count;
 		if (towrite > stream->chunk_size)
