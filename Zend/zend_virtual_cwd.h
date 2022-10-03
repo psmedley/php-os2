@@ -96,7 +96,7 @@ char *realpath(const char *path, char resolved_path[]);
 #define HAVE_REALPATH 1
 #endif
 
-#define DEFAULT_SLASH '\\'
+#define DEFAULT_SLASH '/'
 #define DEFAULT_DIR_SEPARATOR	';'
 #define IS_SLASH(c)	((c) == '/' || (c) == '\\')
 #define IS_SLASH_P(c)	(*(c) == '/' || *(c) == '\\')
