@@ -302,6 +302,9 @@ void zend_shared_alloc_shutdown(void)
 	g_shared_alloc_handler = NULL;
 #ifndef ZEND_WIN32
 	close(lock_file);
+#ifdef __OS2__
+	unlink(lockfile_name);
+#endif
 
 # ifdef ZTS
 	tsrm_mutex_free(zts_lock);
