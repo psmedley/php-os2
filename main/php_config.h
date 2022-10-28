@@ -59,16 +59,16 @@
 #define COMPILE_DL_EXIF 1
 
 /* Whether to build ffi as dynamic module */
-/* #undef COMPILE_DL_FFI */
+#define COMPILE_DL_FFI 1
 
 /* Whether to build fileinfo as dynamic module */
-/* #undef COMPILE_DL_FILEINFO */
+#define COMPILE_DL_FILEINFO 1
 
 /* Whether to build filter as dynamic module */
 /* #undef COMPILE_DL_FILTER */
 
 /* Whether to build ftp as dynamic module */
-/* #undef COMPILE_DL_FTP */
+#define COMPILE_DL_FTP 1
 
 /* Whether to build gd as dynamic module */
 #define COMPILE_DL_GD 1
@@ -77,7 +77,7 @@
 #define COMPILE_DL_GETTEXT 1
 
 /* Whether to build gmp as dynamic module */
-/* #undef COMPILE_DL_GMP */
+#define COMPILE_DL_GMP 1
 
 /* Whether to build hash as dynamic module */
 /* #undef COMPILE_DL_HASH */
@@ -182,19 +182,19 @@
 /* #undef COMPILE_DL_SNMP */
 
 /* Whether to build soap as dynamic module */
-/* #undef COMPILE_DL_SOAP */
+#define COMPILE_DL_SOAP 1
 
 /* Whether to build sockets as dynamic module */
-/* #undef COMPILE_DL_SOCKETS */
+#define COMPILE_DL_SOCKETS 1
 
 /* Whether to build sodium as dynamic module */
-/* #undef COMPILE_DL_SODIUM */
+#define COMPILE_DL_SODIUM 1
 
 /* Whether to build spl as dynamic module */
 /* #undef COMPILE_DL_SPL */
 
 /* Whether to build sqlite3 as dynamic module */
-/* #undef COMPILE_DL_SQLITE3 */
+#define COMPILE_DL_SQLITE3 1
 
 /* Whether to build standard as dynamic module */
 /* #undef COMPILE_DL_STANDARD */
@@ -598,28 +598,28 @@
 /* #undef HAVE_FDATASYNC */
 
 /* Have ffi support */
-/* #undef HAVE_FFI */
+#define HAVE_FFI 1
 
 /* Whether libffi supports fastcall calling convention */
-/* #undef HAVE_FFI_FASTCALL */
+#define HAVE_FFI_FASTCALL 1
 
 /* Whether libffi supports ms_cdecl calling convention */
-/* #undef HAVE_FFI_MS_CDECL */
+#define HAVE_FFI_MS_CDECL 1
 
 /* Whether libffi supports pascal calling convention */
-/* #undef HAVE_FFI_PASCAL */
+#define HAVE_FFI_PASCAL 1
 
 /* Whether libffi supports register calling convention */
-/* #undef HAVE_FFI_REGISTER */
+#define HAVE_FFI_REGISTER 1
 
 /* Whether libffi supports stdcall calling convention */
-/* #undef HAVE_FFI_STDCALL */
+#define HAVE_FFI_STDCALL 1
 
 /* Whether libffi supports sysv calling convention */
-/* #undef HAVE_FFI_SYSV */
+#define HAVE_FFI_SYSV 1
 
 /* Whether libffi supports thiscall calling convention */
-/* #undef HAVE_FFI_THISCALL */
+#define HAVE_FFI_THISCALL 1
 
 /* Define to 1 if you have the `flock' function. */
 #define HAVE_FLOCK 1
@@ -802,7 +802,7 @@
 #define HAVE_GLOB 1
 
 /* */
-/* #undef HAVE_GMP */
+#define HAVE_GMP 1
 
 /* Define to 1 if you have the `gmtime_r' function. */
 #define HAVE_GMTIME_R 1
@@ -1048,7 +1048,7 @@
 /* #undef HAVE_LIBSOCKET */
 
 /* */
-/* #undef HAVE_LIBSODIUMLIB */
+#define HAVE_LIBSODIUMLIB 1
 
 /* */
 /* #undef HAVE_LIBUTIL */
@@ -1066,7 +1066,7 @@
 #define HAVE_LOCALTIME_R 1
 
 /* Define to 1 if the system has the type `long double'. */
-/* #undef HAVE_LONG_DOUBLE */
+#define HAVE_LONG_DOUBLE 1
 
 /* do we have SO_LISTENQxxx? */
 /* #undef HAVE_LQ_SO_LISTENQ */

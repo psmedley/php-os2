@@ -26,15 +26,12 @@
 #include "ext/date/php_date.h"
 #include "ext/libxml/php_libxml.h"
 #include "ext/pcre/php_pcre.h"
-#include "ext/sqlite3/php_sqlite3.h"
 #include "ext/zlib/php_zlib.h"
 #include "ext/bcmath/php_bcmath.h"
 #include "ext/calendar/php_calendar.h"
 #include "ext/ctype/php_ctype.h"
 #include "ext/dom/php_dom.h"
-#include "ext/fileinfo/php_fileinfo.h"
 #include "ext/filter/php_filter.h"
-#include "ext/ftp/php_ftp.h"
 #include "ext/hash/php_hash.h"
 #include "ext/json/php_json.h"
 #include "ext/pdo/php_pdo.h"
@@ -43,8 +40,6 @@
 #include "ext/reflection/php_reflection.h"
 #include "ext/session/php_session.h"
 #include "ext/simplexml/php_simplexml.h"
-#include "ext/soap/php_soap.h"
-#include "ext/sockets/php_sockets.h"
 #include "ext/spl/php_spl.h"
 #include "ext/standard/php_standard.h"
 #include "ext/tokenizer/php_tokenizer.h"
@@ -58,15 +53,12 @@ static zend_module_entry * const php_builtin_extensions[] = {
 	phpext_date_ptr,
 	phpext_libxml_ptr,
 	phpext_pcre_ptr,
-	phpext_sqlite3_ptr,
 	phpext_zlib_ptr,
 	phpext_bcmath_ptr,
 	phpext_calendar_ptr,
 	phpext_ctype_ptr,
 	phpext_dom_ptr,
-	phpext_fileinfo_ptr,
 	phpext_filter_ptr,
-	phpext_ftp_ptr,
 	phpext_hash_ptr,
 	phpext_json_ptr,
 	phpext_standard_ptr,
@@ -77,8 +69,6 @@ static zend_module_entry * const php_builtin_extensions[] = {
 	phpext_reflection_ptr,
 	phpext_session_ptr,
 	phpext_simplexml_ptr,
-	phpext_soap_ptr,
-	phpext_sockets_ptr,
 	phpext_tokenizer_ptr,
 	phpext_xml_ptr,
 	phpext_xmlreader_ptr,
