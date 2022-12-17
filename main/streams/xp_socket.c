@@ -360,7 +360,8 @@ static int php_sockop_set_option(php_stream *stream, int option, int value, void
 
 				if (sock->socket == -1) {
 					alive = 0;
-				} else if (php_pollfd_for(sock->socket, PHP_POLLREADABLE|POLLPRI, &tv) > 0) {
+				} else if ((value == 0 && ((MSG_DONTWAIT != 0) || !sock->is_blocked)) || php_pollfd_for(sock->socket, PHP_POLLREADABLE|POLLPRI, &tv) > 0) {
+					/* the poll() call was skipped if the socket is non-blocking (or MSG_DONTWAIT is available) and if the timeout is zero */
 #ifdef PHP_WIN32
 					int ret;
 #else
@@ -371,7 +372,7 @@ static int php_sockop_set_option(php_stream *stream, int option, int value, void
 #ifdef __OS2__				// 2022-05-04 SHL switch to touch_pages for speed
 					touch_pages(&buf,  sizeof(buf));	// Fix issues with recv failing
 #endif
-					ret = recv(sock->socket, &buf, sizeof(buf), MSG_PEEK);
+					ret = recv(sock->socket, &buf, sizeof(buf), MSG_PEEK|MSG_DONTWAIT);
 					err = php_socket_errno();
 					if (0 == ret || /* the counterpart did properly shutdown*/
 						(0 > ret && err != EWOULDBLOCK && err != EAGAIN && err != EMSGSIZE)) { /* there was an unrecoverable error */

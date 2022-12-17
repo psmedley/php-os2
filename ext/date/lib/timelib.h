@@ -30,9 +30,9 @@
 # include "timelib_config.h"
 #endif
 
-#define TIMELIB_VERSION 202117
-#define TIMELIB_EXTENDED_VERSION 20211701
-#define TIMELIB_ASCII_VERSION "2021.17"
+#define TIMELIB_VERSION 202202
+#define TIMELIB_EXTENDED_VERSION 20220102
+#define TIMELIB_ASCII_VERSION "2022.02"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -438,6 +438,7 @@ typedef enum _timelib_format_specifier_code {
 	TIMELIB_FORMAT_WHITESPACE,
 	TIMELIB_FORMAT_YEAR_TWO_DIGIT,
 	TIMELIB_FORMAT_YEAR_FOUR_DIGIT,
+	TIMELIB_FORMAT_YEAR_EXPANDED,
 	TIMELIB_FORMAT_YEAR_ISO
 } timelib_format_specifier_code;
 
@@ -791,6 +792,19 @@ int timelib_timestamp_is_in_dst(timelib_sll ts, timelib_tzinfo *tz);
  * 'transition_time');
  */
 timelib_time_offset *timelib_get_time_zone_info(timelib_sll ts, timelib_tzinfo *tz);
+
+/**
+ * Returns offset information with time zone 'tz' for the time stamp 'ts'.
+ *
+ * The returned information contains: the offset in seconds East of UTC (in
+ * the output parameter 'offset'), whether DST is active (in the output
+ * parameter 'is_dst'), and the transition time that got to this state (in
+ * the output parameter 'transition_time'); if NULL is passed, the value is
+ * not retrieved
+ *
+ * Returns 1 if successful, 0 for failure.
+ */
+int timelib_get_time_zone_offset_info(timelib_sll ts, timelib_tzinfo *tz, int32_t* offset, timelib_sll* transition_time, unsigned int* is_dst);
 
 /**
  * Returns the UTC offset currently applicable for the information stored in 't'.

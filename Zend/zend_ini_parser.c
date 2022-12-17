@@ -1813,6 +1813,10 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
+  case 3: /* statement_list: %empty  */
+                       { (void) ini_nerrs; }
+    break;
+
   case 4: /* statement: TC_SECTION section_string_or_value ']'  */
                                                        {
 #if DEBUG_CFG_PARSER

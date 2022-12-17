@@ -25,15 +25,15 @@
 #include <ctype.h>
 #include <time.h>
 
-#if HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
 
-#if HAVE_SYS_PARAM_H
+#ifdef HAVE_SYS_PARAM_H
 # include <sys/param.h>
 #endif
 
-#if HAVE_SYS_VFS_H
+#ifdef HAVE_SYS_VFS_H
 # include <sys/vfs.h>
 #endif
 
@@ -61,7 +61,7 @@
 # include <sys/mount.h>
 #endif
 
-#if HAVE_PWD_H
+#ifdef HAVE_PWD_H
 # ifdef PHP_WIN32
 #  include "win32/pwd.h"
 # else
@@ -73,7 +73,7 @@
 # include <grp.h>
 #endif
 
-#if HAVE_UTIME
+#ifdef HAVE_UTIME
 # ifdef PHP_WIN32
 #  include <sys/utime.h>
 # else
@@ -374,15 +374,15 @@ static void php_do_chgrp(INTERNAL_FUNCTION_PARAMETERS, int do_lchgrp) /* {{{ */
 				RETURN_FALSE;
 			}
 		} else {
-#if !defined(WINDOWS)
+#ifndef WINDOWS
 /* On Windows, we expect regular chgrp to fail silently by default */
-			php_error_docref(NULL, E_WARNING, "Can not call chgrp() for a non-standard stream");
+			php_error_docref(NULL, E_WARNING, "Cannot call chgrp() for a non-standard stream");
 #endif
 			RETURN_FALSE;
 		}
 	}
 
-#if defined(WINDOWS)
+#ifdef WINDOWS
 	/* We have no native chgrp on Windows, nothing left to do if stream doesn't have own implementation */
 	RETURN_FALSE;
 #else
@@ -401,7 +401,7 @@ static void php_do_chgrp(INTERNAL_FUNCTION_PARAMETERS, int do_lchgrp) /* {{{ */
 	}
 
 	if (do_lchgrp) {
-#if HAVE_LCHOWN
+#ifdef HAVE_LCHOWN
 		ret = VCWD_LCHOWN(filename, -1, gid);
 #endif
 	} else {
@@ -424,7 +424,7 @@ PHP_FUNCTION(chgrp)
 /* }}} */
 
 /* {{{ Change symlink group */
-#if HAVE_LCHOWN
+#ifdef HAVE_LCHOWN
 PHP_FUNCTION(lchgrp)
 {
 	php_do_chgrp(INTERNAL_FUNCTION_PARAM_PASSTHRU, 1);
@@ -500,15 +500,15 @@ static void php_do_chown(INTERNAL_FUNCTION_PARAMETERS, int do_lchown) /* {{{ */
 				RETURN_FALSE;
 			}
 		} else {
-#if !defined(WINDOWS)
+#ifndef WINDOWS
 /* On Windows, we expect regular chown to fail silently by default */
-			php_error_docref(NULL, E_WARNING, "Can not call chown() for a non-standard stream");
+			php_error_docref(NULL, E_WARNING, "Cannot call chown() for a non-standard stream");
 #endif
 			RETURN_FALSE;
 		}
 	}
 
-#if defined(WINDOWS)
+#ifdef WINDOWS
 	/* We have no native chown on Windows, nothing left to do if stream doesn't have own implementation */
 	RETURN_FALSE;
 #else
@@ -528,7 +528,7 @@ static void php_do_chown(INTERNAL_FUNCTION_PARAMETERS, int do_lchown) /* {{{ */
 	}
 
 	if (do_lchown) {
-#if HAVE_LCHOWN
+#ifdef HAVE_LCHOWN
 		ret = VCWD_LCHOWN(filename, uid, -1);
 #endif
 	} else {
@@ -552,7 +552,7 @@ PHP_FUNCTION(chown)
 /* }}} */
 
 /* {{{ Change file owner */
-#if HAVE_LCHOWN
+#ifdef HAVE_LCHOWN
 PHP_FUNCTION(lchown)
 {
 	RETVAL_TRUE;
@@ -585,7 +585,7 @@ PHP_FUNCTION(chmod)
 				RETURN_FALSE;
 			}
 		} else {
-			php_error_docref(NULL, E_WARNING, "Can not call chmod() for a non-standard stream");
+			php_error_docref(NULL, E_WARNING, "Cannot call chmod() for a non-standard stream");
 			RETURN_FALSE;
 		}
 	}
@@ -606,7 +606,7 @@ PHP_FUNCTION(chmod)
 }
 /* }}} */
 
-#if HAVE_UTIME
+#ifdef HAVE_UTIME
 /* {{{ Set modification time of file */
 PHP_FUNCTION(touch)
 {
@@ -654,7 +654,7 @@ PHP_FUNCTION(touch)
 		} else {
 			php_stream *stream;
 			if(!filetime_is_null || !fileatime_is_null) {
-				php_error_docref(NULL, E_WARNING, "Can not call touch() for a non-standard stream");
+				php_error_docref(NULL, E_WARNING, "Cannot call touch() for a non-standard stream");
 				RETURN_FALSE;
 			}
 			stream = php_stream_open_wrapper_ex(filename, "c", REPORT_ERRORS, NULL, NULL);
@@ -741,8 +741,8 @@ PHP_FUNCTION(clearstatcache)
 /* {{{ php_stat */
 PHPAPI void php_stat(zend_string *filename, int type, zval *return_value)
 {
-	zend_stat_t *stat_sb;
-	php_stream_statbuf ssb;
+	zend_stat_t *stat_sb = {0};
+	php_stream_statbuf ssb = {0};
 	int flags = 0, rmask=S_IROTH, wmask=S_IWOTH, xmask=S_IXOTH; /* access rights defaults to other */
 	const char *local = NULL;
 	php_stream_wrapper *wrapper = NULL;

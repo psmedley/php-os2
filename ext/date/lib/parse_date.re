@@ -484,6 +484,7 @@ static timelib_sll timelib_get_nr_ex(const char **ptr, int max_length, int *scan
 		}
 		++*ptr;
 	}
+
 	begin = *ptr;
 	while ((**ptr >= '0') && (**ptr <= '9') && len < max_length) {
 		++*ptr;
@@ -541,24 +542,49 @@ static timelib_sll timelib_get_frac_nr(const char **ptr)
 
 static timelib_ull timelib_get_signed_nr(Scanner *s, const char **ptr, int max_length)
 {
-	timelib_ull dir = 1;
+	char *str, *str_ptr;
+	timelib_sll tmp_nr = 0;
+	int len = 0;
+
+	str = timelib_calloc(1, max_length + 2); // for sign and \0
+	str_ptr = str;
 
 	while (((**ptr < '0') || (**ptr > '9')) && (**ptr != '+') && (**ptr != '-')) {
 		if (**ptr == '\0') {
+			add_error(s, TIMELIB_ERR_UNEXPECTED_DATA, "Found unexpected data");
+			timelib_free(str);
+			return 0;
+		}
+		++*ptr;
+	}
+
+	if ((**ptr == '+') || (**ptr == '-')) {
+		*str_ptr = **ptr;
+		++*ptr;
+		++str_ptr;
+	}
+
+	while (((**ptr < '0') || (**ptr > '9'))) {
+		if (**ptr == '\0') {
+			timelib_free(str);
 			add_error(s, TIMELIB_ERR_UNEXPECTED_DATA, "Found unexpected data");
 			return 0;
 		}
 		++*ptr;
 	}
 
-	while (**ptr == '+' || **ptr == '-')
-	{
-		if (**ptr == '-') {
-			dir *= -1;
-		}
+	while ((**ptr >= '0') && (**ptr <= '9') && len < max_length) {
+		*str_ptr = **ptr;
 		++*ptr;
+		++str_ptr;
+		++len;
 	}
-	return dir * timelib_get_nr(ptr, max_length);
+
+	tmp_nr = strtoll(str, NULL, 10);
+
+	timelib_free(str);
+
+	return tmp_nr;
 }
 
 static timelib_sll timelib_lookup_relative_text(const char **ptr, int *behavior)
@@ -2004,7 +2030,7 @@ timelib_time *timelib_strtotime(const char *s, size_t len, timelib_error_contain
 			add_pbf_error(s, TIMELIB_ERR_UNEXPECTED_DATA, "Unexpected data found.", string, begin); \
 		}
 #define TIMELIB_CHECK_SIGNED_NUMBER                                    \
-		if (strchr("-0123456789", *ptr) == NULL)                       \
+		if (strchr("+-0123456789", *ptr) == NULL)                      \
 		{                                                              \
 			add_pbf_error(s, TIMELIB_ERR_UNEXPECTED_DATA, "Unexpected data found.", string, begin); \
 		}
@@ -2079,6 +2105,8 @@ static const timelib_format_specifier default_format_map[] = {
 	{' ', TIMELIB_FORMAT_WHITESPACE},
 	{'y', TIMELIB_FORMAT_YEAR_TWO_DIGIT},
 	{'Y', TIMELIB_FORMAT_YEAR_FOUR_DIGIT},
+	{'x', TIMELIB_FORMAT_YEAR_EXPANDED},
+	{'X', TIMELIB_FORMAT_YEAR_EXPANDED},
 	{'\0', TIMELIB_FORMAT_END}
 };
 
@@ -2262,6 +2290,15 @@ timelib_time *timelib_parse_from_format_with_map(const char *format, const char 
 				TIMELIB_CHECK_NUMBER;
 				if ((s->time->y = timelib_get_nr(&ptr, 4)) == TIMELIB_UNSET) {
 					add_pbf_error(s, TIMELIB_ERR_NO_FOUR_DIGIT_YEAR, "A four digit year could not be found", string, begin);
+					break;
+				}
+
+				s->time->have_date = 1;
+				break;
+			case TIMELIB_FORMAT_YEAR_EXPANDED: /* optional symbol, followed by up to 19 digits */
+				TIMELIB_CHECK_SIGNED_NUMBER;
+				if ((s->time->y = timelib_get_signed_nr(s, &ptr, 19)) == TIMELIB_UNSET) {
+					add_pbf_error(s, TIMELIB_ERR_NO_FOUR_DIGIT_YEAR, "An expanded digit year could not be found", string, begin);
 					break;
 				}
 

@@ -132,6 +132,16 @@ class Tester
     private ?Response $response;
 
     /**
+     * @var string[]
+     */
+    private $expectedAccessLogs;
+
+    /**
+     * @var bool
+     */
+    private $expectSuppressableAccessLogEntries;
+
+    /**
      * Clean all the created files up
      *
      * @param int $backTraceIndex
@@ -363,7 +373,7 @@ class Tester
     public function testConfig()
     {
         $configFile = $this->createConfig();
-        $cmd        = self::findExecutable() . ' -t -y ' . $configFile . ' 2>&1';
+        $cmd        = self::findExecutable() . ' -tt -y ' . $configFile . ' 2>&1';
         $this->trace('Testing config using command', $cmd, true);
         exec($cmd, $output, $code);
         if ($code) {
@@ -555,6 +565,7 @@ class Tester
      * @param array       $headers
      * @param string|null $uri
      * @param string|null $scriptFilename
+     * @param string|null $stdin
      *
      * @return array
      */
@@ -562,16 +573,20 @@ class Tester
         string $query = '',
         array $headers = [],
         string $uri = null,
-        string $scriptFilename = null
+        string $scriptFilename = null,
+        ?string $stdin = null
     ): array {
+        if (is_null($scriptFilename)) {
+            $scriptFilename = $this->makeSourceFile();
+        }
         if (is_null($uri)) {
-            $uri = $this->makeSourceFile();
+            $uri = "/" . basename($scriptFilename);
         }
 
         $params = array_merge(
             [
                 'GATEWAY_INTERFACE' => 'FastCGI/1.0',
-                'REQUEST_METHOD'    => 'GET',
+                'REQUEST_METHOD'    => is_null($stdin) ? 'GET' : 'POST',
                 'SCRIPT_FILENAME'   => $scriptFilename ?: $uri,
                 'SCRIPT_NAME'       => $uri,
                 'QUERY_STRING'      => $query,
@@ -586,7 +601,7 @@ class Tester
                 'SERVER_PROTOCOL'   => 'HTTP/1.1',
                 'DOCUMENT_ROOT'     => __DIR__,
                 'CONTENT_TYPE'      => '',
-                'CONTENT_LENGTH'    => 0
+                'CONTENT_LENGTH'    => strlen($stdin ?? "") // Default to 0
             ],
             $headers
         );
@@ -621,6 +636,7 @@ class Tester
         string $errorMessage = null,
         bool $connKeepAlive = false,
         string $scriptFilename = null,
+        string $stdin = null,
         bool $expectError = false,
         int $readLimit = -1,
     ): Response {
@@ -628,12 +644,12 @@ class Tester
             return new Response(null, true);
         }
 
-        $params = $this->getRequestParams($query, $headers, $uri, $scriptFilename);
+        $params = $this->getRequestParams($query, $headers, $uri, $scriptFilename, $stdin);
         $this->trace('Request params', $params);
 
         try {
             $this->response = new Response(
-                $this->getClient($address, $connKeepAlive)->request_data($params, false, $readLimit)
+                $this->getClient($address, $connKeepAlive)->request_data($params, $stdin, $readLimit)
             );
             if ($expectError) {
                 $this->error('Expected request error but the request was successful');
@@ -1184,6 +1200,7 @@ class Tester
             return $filePath;
         }
         file_put_contents($filePath, $content);
+
         $this->trace('Created file: ' . $filePath, $content, isFile: true);
 
         return $filePath;
@@ -1443,7 +1460,7 @@ class Tester
         bool $checkAllLogs = false
     ): bool {
         for ($i = 0; $i < $count; $i++) {
-            if ( ! $this->logTool->expectEntry($type, $message, $pool, $checkAllLogs)) {
+            if ( ! $this->logTool->expectEntry($type, $message, $pool, checkAllLogs: $checkAllLogs)) {
                 return false;
             }
         }
@@ -1583,12 +1600,22 @@ class Tester
      */
     public function expectLogConfigOptions(array $options)
     {
-        foreach ($options as $name => $value) {
-            $this->expectLogNotice("\s+$name\s=\s$value", checkAllLogs: true);
+        foreach ($options as $value) {
+            $confValue = str_replace(
+                ']',
+                '\]',
+                str_replace(
+                    '[',
+                    '\[',
+                    str_replace('/', '\/', $value)
+                )
+            );
+            $this->expectLogNotice("\s+$confValue", checkAllLogs: true);
         }
 
         return true;
     }
+
 
     /**
      * Print content of access log.
@@ -1602,6 +1629,70 @@ class Tester
     }
 
     /**
+     * Return content of access log.
+     *
+     * @return string|false
+     */
+    public function getAccessLog()
+    {
+        $accessLog = $this->getFile('acc.log');
+        if (is_file($accessLog)) {
+            return file_get_contents($accessLog);
+        }
+        return false;
+    }
+
+    /**
+     * Expect a single access log line.
+     *
+     * @param string $LogLine
+     * @param bool $suppressable see expectSuppressableAccessLogEntries
+     */
+    public function expectAccessLog(
+        string $logLine,
+        bool $suppressable = false
+    ) {
+        if (!$suppressable || $this->expectSuppressableAccessLogEntries) {
+            $this->expectedAccessLogs[] = $logLine;
+        }
+    }
+
+    /**
+     * Checks that all access log entries previously listed as expected by
+     * calling "expectAccessLog" are in the access log.
+     */
+    public function checkAccessLog()
+    {
+        if (isset($this->expectedAccessLogs)) {
+            $expectedAccessLog = implode("\n", $this->expectedAccessLogs) . "\n";
+        } else {
+            $this->error("Called checkAccessLog but did not previous call expectAccessLog");
+        }
+        if ($accessLog = $this->getAccessLog()) {
+            if ($expectedAccessLog !== $accessLog) {
+                $this->error(sprintf(
+                    "Access log was not as expected.\nEXPECTED:\n%s\n\nACTUAL:\n%s",
+                    $expectedAccessLog,
+                    $accessLog
+                ));
+            }
+        } else {
+            $this->error("Called checkAccessLog but access log does not exist");
+        }
+    }
+
+    /**
+     * Flags whether the access log check should expect to see suppressable
+     * log entries, i.e. the URL is not in access.suppress_path[] config
+     *
+     * @param bool
+     */
+    public function expectSuppressableAccessLogEntries(bool $expectSuppressableAccessLogEntries)
+    {
+        $this->expectSuppressableAccessLogEntries = $expectSuppressableAccessLogEntries;
+    }
+
+    /*
      * Read all log entries.
      *
      * @param string      $type    The log type
