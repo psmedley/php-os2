@@ -45,9 +45,6 @@
 /* Whether to build dba as dynamic module */
 #undef COMPILE_DL_DBA
 
-/* Whether to build dl_test as dynamic module */
-#undef COMPILE_DL_DL_TEST
-
 /* Whether to build dom as dynamic module */
 #undef COMPILE_DL_DOM
 
@@ -1115,11 +1112,11 @@
 /* Define to 1 if you have the `memmove' function. */
 #undef HAVE_MEMMOVE
 
-/* Define to 1 if you have the `memrchr' function. */
-#undef HAVE_MEMRCHR
-
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the `memrchr' function. */
+#undef HAVE_MEMRCHR
 
 /* Libzip >= 1.7.0 with zip_*_method_supported functions */
 #undef HAVE_METHOD_SUPPORTED
