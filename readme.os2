@@ -13,6 +13,8 @@ Patches for thread support and detection of php.ini in c:\mptn\etc have been inc
 
 I have included support for some external modules - bz2, curl, dbase, gd, exif, filepro,, gd, gettext, mbstring, mysql, mysqli, openssl, pdo_mysql, pdo_sqlite, pgsql (postgresql) & sqlite are loadable as shared modules.  Other modules including those from pecl, can most likely be built pretty easily - if there is something you need, please contact me.
 
+Steven Levine has added built-in Extended LIBPATH support.  The php.ini extension_dir setting is automatically added to the beginning of the Extended LIBPATH.  This eliminates the need to specify then extension in the CONFIG.SYS LIBPATH statement or with a SET BEGINLIBPATH statement in a wrapper wrapper script.
+
 PHP has problems detecting the timezone in OS/2 - to workaround this, and set the default in your php.ini you need to add date.timezone simular to what is shown below in context.  You can get the timezones supported in the php.ini from : http://us2.php.net/manual/en/timezones.php
 
 ;;;;;;;;;;;;;;;;;;;

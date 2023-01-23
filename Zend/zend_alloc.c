@@ -51,12 +51,25 @@
  * with more specialized routines when the requested size is known.
  */
 
+#ifdef __OS2__
+// 2023-01-22 SHL Dump current process if process dumps enabled
+// IBM Toolkit requires INCL_DOSMISC bww toolkit requires INCL_DOSRAS
+#define INCL_DOSRAS
+#endif
+
 #include "zend.h"
 #include "zend_alloc.h"
 #include "zend_globals.h"
 #include "zend_operators.h"
 #include "zend_multiply.h"
 #include "zend_bitset.h"
+
+#ifndef _OS2_H
+// 2023-01-22 SHL Dump current process if process dumps enabled
+// In case zend_portability does not #include os2.h
+#include <os2.h>
+#endif
+
 #include <signal.h>
 
 #ifdef HAVE_UNISTD_H
@@ -362,6 +375,15 @@ static ZEND_COLD ZEND_NORETURN void zend_mm_panic(const char *message)
 #endif
 #if ZEND_DEBUG && defined(HAVE_KILL) && defined(HAVE_GETPID)
 	kill(getpid(), SIGSEGV);
+#endif
+#ifdef __OS2__
+	// 2023-01-22 SHL Dump current process if process dumps enabled
+	// #define INCL_DOSMISC
+	// #include "zend_portability.h"
+	// 
+	// #include <os2.h>
+	fputs("Attempting process dump\n", stderr);
+	DosDumpProcess(DDP_PERFORMPROCDUMP, 0, 0);
 #endif
 	exit(1);
 }
@@ -1579,9 +1601,10 @@ static zend_always_inline void zend_mm_free_heap(zend_mm_heap *heap, void *ptr Z
 			char szTimestamp[28];
 			char msg_buf[512];
 			formatTimestamp(szTimestamp);
+			// 2023-01-22 SHL Show ptr too
 			snprintf(msg_buf, sizeof(msg_buf),
-				 "%s zend_mm_free_heap detected heap corrupted for pid:%u (%x) tid:%u chunk->heap %p heap %p",
-				 szTimestamp, pid, pid, _gettid(), chunk->heap, heap);
+				 "%s zend_mm_free_heap detected heap corrupted for pid:%u (%x) tid:%u chunk->heap %p heap %p ptr %p",
+				 szTimestamp, pid, pid, _gettid(), chunk->heap, heap, ptr);
 			zend_mm_panic(msg_buf);
 		}
 #else

@@ -1127,7 +1127,26 @@ MYSQLND_METHOD(mysqlnd_result_buffered_zval, fetch_row)(MYSQLND_RES * result, vo
 			}
 		}
 		set->data_cursor += field_count;
+#ifndef __OS2__
 		MYSQLND_INC_GLOBAL_STATISTIC(STAT_ROWS_FETCHED_FROM_CLIENT_NORMAL_BUF);
+#else
+		/* We can get here via a destructor callback if php terminates
+		   before the runtime environment is fully initialized.
+		   When this occurs, we may not have a valid pointer to mysqlnd_globals_id
+		   and we need to bypass the statistics update to avoid trapping.
+		   If this code path is possible on other platforms, this is an upstream defect.
+		   Warn if ZEND_ENABLE_STATIC_TSRMLS_CACHE not defined because
+		   ZEND_MODULE_GLOBALS_POINTER depends on this.
+		   2023-01-22 SHL hack cough
+		*/
+#ifndef ZEND_ENABLE_STATIC_TSRMLS_CACHE
+#warning Expected ZEND_ENABLE_STATIC_TSRMLS_CACHE to be defined
+#endif
+		#define ZEND_MODULE_GLOBALS_POINTER(module_name) TSRMG_BULK_STATIC(module_name##_globals_id, zend_##module_name##_globals *)
+		if (ZEND_MODULE_GLOBALS_POINTER(mysqlnd) != NULL) {
+			MYSQLND_INC_GLOBAL_STATISTIC(STAT_ROWS_FETCHED_FROM_CLIENT_NORMAL_BUF);
+		}
+#endif
 		*fetched_anything = TRUE;
 		ret = PASS;
 	} else {
