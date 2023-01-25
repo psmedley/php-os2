@@ -173,11 +173,8 @@ static void update_beginlibpath(const char *extension_dir)
 	if (apiret != 0) {
 		php_error_docref(NULL, E_ERROR,
 				"update_beginlibpath DosSetExtLIBPATH failed with error %lu", apiret);
-		return;
 	}
 
-	php_error_docref(NULL, E_NOTICE,
-			 "update_beginlibpath set BEGINLIBPATH to %s", beginlibpath);
 	return;
 }
 #endif // __OS2__
