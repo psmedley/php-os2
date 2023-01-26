@@ -434,11 +434,61 @@ static void formatTimestamp(char *pszTimestamp28) {
 }
 #endif // __OS2__
 
+static void zend_mm_munmap(void *addr, size_t size)
+{
+#ifdef _WIN32
+	if (VirtualFree(addr, 0, MEM_RELEASE) == 0) {
+		/** ERROR_INVALID_ADDRESS is expected when addr is not range start address */
+		if (GetLastError() != ERROR_INVALID_ADDRESS) {
+#if ZEND_MM_ERROR
+			stderr_last_error("VirtualFree() failed");
+#endif
+			return;
+		}
+		SetLastError(0);
+
+		MEMORY_BASIC_INFORMATION mbi;
+		if (VirtualQuery(addr, &mbi, sizeof(mbi)) == 0) {
+#if ZEND_MM_ERROR
+			stderr_last_error("VirtualQuery() failed");
+#endif
+			return;
+		}
+		addr = mbi.AllocationBase;
+
+		if (VirtualFree(addr, 0, MEM_RELEASE) == 0) {
+#if ZEND_MM_ERROR
+			stderr_last_error("VirtualFree() failed");
+#endif
+		}
+	}
+#else
+	if (munmap(addr, size) != 0) {
+#if ZEND_MM_ERROR
+		fprintf(stderr, "\nmunmap() failed: [%d] %s\n", errno, strerror(errno));
+#endif
+	}
+#endif
+}
+
 #ifndef HAVE_MREMAP
 static void *zend_mm_mmap_fixed(void *addr, size_t size)
 {
 #ifdef _WIN32
-	return VirtualAlloc(addr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	void *ptr = VirtualAlloc(addr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+	if (ptr == NULL) {
+		/** ERROR_INVALID_ADDRESS is expected when fixed addr range is not free */
+		if (GetLastError() != ERROR_INVALID_ADDRESS) {
+#if ZEND_MM_ERROR
+			stderr_last_error("VirtualAlloc() fixed failed");
+#endif
+		}
+		SetLastError(0);
+		return NULL;
+	}
+	ZEND_ASSERT(ptr == addr);
+	return ptr;
 #else
 	int flags = MAP_PRIVATE | MAP_ANON;
 #if defined(MAP_EXCL)
@@ -458,18 +508,12 @@ static void *zend_mm_mmap_fixed(void *addr, size_t size)
 		fprintf(stderr, "\n%s zend_mm_mmap_fixed mmap(0x%p, 0x%x) failed pid:%u (%x) tid:%u [%d] %s\n",
 			szTimestamp, addr, size, pid, pid, _gettid() ,errno, strerror(errno));
 #else
-		fprintf(stderr, "\nmmap() failed: [%d] %s\n", errno, strerror(errno));
+		fprintf(stderr, "\nmmap() fixed failed: [%d] %s\n", errno, strerror(errno));
 #endif
 #endif
 		return NULL;
 	} else if (ptr != addr) {
-		if (munmap(ptr, size) != 0) {
-#if ZEND_MM_ERROR
-			fprintf(stderr, "\nmunmap() failed: [%d] %s\n", errno, strerror(errno));
-#endif
-		}
-		return NULL;
-	}
+		zend_mm_munmap(ptr, size);
 	zend_mmap_set_name(ptr, size, "zend_alloc");
 	return ptr;
 #endif
@@ -546,23 +590,6 @@ static void *zend_mm_mmap(size_t size)
 #endif
 #endif
 	return ptr;
-#endif
-}
-
-static void zend_mm_munmap(void *addr, size_t size)
-{
-#ifdef _WIN32
-	if (VirtualFree(addr, 0, MEM_RELEASE) == 0) {
-#if ZEND_MM_ERROR
-		stderr_last_error("VirtualFree() failed");
-#endif
-	}
-#else
-	if (munmap(addr, size) != 0) {
-#if ZEND_MM_ERROR
-		fprintf(stderr, "\nmunmap() failed: [%d] %s\n", errno, strerror(errno));
-#endif
-	}
 #endif
 }
 
@@ -831,12 +858,20 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 		ptr = zend_mm_mmap(size + alignment - REAL_PAGE_SIZE);
 #ifdef _WIN32
 		offset = ZEND_MM_ALIGNED_OFFSET(ptr, alignment);
-		zend_mm_munmap(ptr, size + alignment - REAL_PAGE_SIZE);
-		ptr = zend_mm_mmap_fixed((void*)((char*)ptr + (alignment - offset)), size);
-		offset = ZEND_MM_ALIGNED_OFFSET(ptr, alignment);
 		if (offset != 0) {
-			zend_mm_munmap(ptr, size);
-			return NULL;
+			offset = alignment - offset;
+		}
+		zend_mm_munmap(ptr, size + alignment - REAL_PAGE_SIZE);
+		ptr = zend_mm_mmap_fixed((void*)((char*)ptr + offset), size);
+		if (ptr == NULL) { // fix GH-9650, fixed addr range is not free
+			ptr = zend_mm_mmap(size + alignment - REAL_PAGE_SIZE);
+			if (ptr == NULL) {
+				return NULL;
+			}
+			offset = ZEND_MM_ALIGNED_OFFSET(ptr, alignment);
+			if (offset != 0) {
+				ptr = (void*)((char*)ptr + alignment - offset);
+			}
 		}
 		return ptr;
 #else
@@ -2019,9 +2054,6 @@ static zend_mm_heap *zend_mm_init(void)
 
 	if (UNEXPECTED(chunk == NULL)) {
 #if ZEND_MM_ERROR
-#ifdef _WIN32
-		stderr_last_error("Can't initialize heap");
-#else
 #ifdef __OS2__				// 2022-05-11 SHL
 		pid_t pid = _getpid();
 		char szTimestamp[28];
@@ -2029,8 +2061,7 @@ static zend_mm_heap *zend_mm_init(void)
 		fprintf(stderr, "\n%s zend_mm_heap can't initialize heap pid:%u (%x) tid:%u [%d] %s\n",
 		        szTimestamp, pid, pid, _gettid(), errno, strerror(errno));
 #else
-		fprintf(stderr, "\nCan't initialize heap: [%d] %s\n", errno, strerror(errno));
-#endif
+		fprintf(stderr, "Can't initialize heap\n");
 #endif
 #endif
 		return NULL;
@@ -3199,11 +3230,7 @@ ZEND_API zend_mm_heap *zend_mm_startup_ex(const zend_mm_handlers *handlers, void
 	chunk = (zend_mm_chunk*)handlers->chunk_alloc(&tmp_storage, ZEND_MM_CHUNK_SIZE, ZEND_MM_CHUNK_SIZE);
 	if (UNEXPECTED(chunk == NULL)) {
 #if ZEND_MM_ERROR
-#ifdef _WIN32
-		stderr_last_error("Can't initialize heap");
-#else
-		fprintf(stderr, "\nCan't initialize heap: [%d] %s\n", errno, strerror(errno));
-#endif
+		fprintf(stderr, "Can't initialize heap\n");
 #endif
 		return NULL;
 	}
@@ -3246,11 +3273,7 @@ ZEND_API zend_mm_heap *zend_mm_startup_ex(const zend_mm_handlers *handlers, void
 	if (!storage) {
 		handlers->chunk_free(&tmp_storage, chunk, ZEND_MM_CHUNK_SIZE);
 #if ZEND_MM_ERROR
-#ifdef _WIN32
-		stderr_last_error("Can't initialize heap");
-#else
-		fprintf(stderr, "\nCan't initialize heap: [%d] %s\n", errno, strerror(errno));
-#endif
+		fprintf(stderr, "Can't initialize heap\n");
 #endif
 		return NULL;
 	}

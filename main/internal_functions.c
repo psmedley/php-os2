@@ -37,6 +37,7 @@
 #include "ext/pdo/php_pdo.h"
 #include "ext/phar/php_phar.h"
 #include "ext/posix/php_posix.h"
+#include "ext/random/php_random.h"
 #include "ext/reflection/php_reflection.h"
 #include "ext/session/php_session.h"
 #include "ext/simplexml/php_simplexml.h"
@@ -66,6 +67,7 @@ static zend_module_entry * const php_builtin_extensions[] = {
 	phpext_pdo_ptr,
 	phpext_phar_ptr,
 	phpext_posix_ptr,
+	phpext_random_ptr,
 	phpext_reflection_ptr,
 	phpext_session_ptr,
 	phpext_simplexml_ptr,

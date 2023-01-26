@@ -46,9 +46,6 @@
 /* Whether to build dba as dynamic module */
 /* #undef COMPILE_DL_DBA */
 
-/* Whether to build dl_test as dynamic module */
-/* #undef COMPILE_DL_DL_TEST */
-
 /* Whether to build dom as dynamic module */
 /* #undef COMPILE_DL_DOM */
 
@@ -163,6 +160,9 @@
 /* Whether to build pspell as dynamic module */
 /* #undef COMPILE_DL_PSPELL */
 
+/* Whether to build random as dynamic module */
+/* #undef COMPILE_DL_RANDOM */
+
 /* Whether to build readline as dynamic module */
 #define COMPILE_DL_READLINE 1
 
@@ -253,7 +253,7 @@
 /* #undef CRYPT_R_GNU_SOURCE */
 
 /* Define if crypt_r uses struct crypt_data */
-#define CRYPT_R_STRUCT_CRYPT_DATA 1
+/* #undef CRYPT_R_STRUCT_CRYPT_DATA */
 
 /* Define to 1 if using `alloca.c'. */
 /* #undef C_ALLOCA */
@@ -466,6 +466,9 @@
 /* Define to 1 if you have the <CommonCrypto/CommonRandom.h> header file. */
 /* #undef HAVE_COMMONCRYPTO_COMMONRANDOM_H */
 
+/* Define if copy_file_range support */
+/* #undef HAVE_COPY_FILE_RANGE */
+
 /* whether __cpuid_count is available */
 #define HAVE_CPUID_COUNT 1
 
@@ -476,13 +479,13 @@
 /* #undef HAVE_CREATEPROCESS */
 
 /* */
-#define HAVE_CRYPT 1
+/* #undef HAVE_CRYPT */
 
 /* Define to 1 if you have the <crypt.h> header file. */
 #define HAVE_CRYPT_H 1
 
 /* */
-#define HAVE_CRYPT_R 1
+/* #undef HAVE_CRYPT_R */
 
 /* Define to 1 if you have the `ctermid' function. */
 /* #undef HAVE_CTERMID */
@@ -638,6 +641,9 @@
 
 /* Define to 1 if you have the `fork' function. */
 #define HAVE_FORK 1
+
+/* Define to 1 if you have the `forkx' function. */
+/* #undef HAVE_FORKX */
 
 /* do we have acl support? */
 /* #undef HAVE_FPM_ACL */
@@ -1042,7 +1048,7 @@
 /* #undef HAVE_LIBROOT */
 
 /* */
-/* #undef HAVE_LIBRT */
+#define HAVE_LIBRT 1
 
 /* */
 /* #undef HAVE_LIBSOCKET */
@@ -1062,6 +1068,12 @@
 /* Libzip >= 1.3.1 with zip_libzip_version function */
 #define HAVE_LIBZIP_VERSION 1
 
+/* Define to 1 if you have the <linux/filter.h> header file. */
+/* #undef HAVE_LINUX_FILTER_H */
+
+/* Define to 1 if you have the <linux/sock_diag.h> header file. */
+/* #undef HAVE_LINUX_SOCK_DIAG_H */
+
 /* Define to 1 if you have the `localtime_r' function. */
 #define HAVE_LOCALTIME_R 1
 
@@ -1070,6 +1082,9 @@
 
 /* do we have SO_LISTENQxxx? */
 /* #undef HAVE_LQ_SO_LISTENQ */
+
+/* do we have TCP_CONNECTION_INFO? */
+/* #undef HAVE_LQ_TCP_CONNECTION_INFO */
 
 /* do we have TCP_INFO? */
 /* #undef HAVE_LQ_TCP_INFO */
@@ -1089,6 +1104,9 @@
 /* whether to have multibyte string support */
 #define HAVE_MBSTRING 1
 
+/* Define to 1 if you have the `memcntl' function. */
+/* #undef HAVE_MEMCNTL */
+
 /* Define to 1 if you have the `memmem' function. */
 /* #undef HAVE_MEMMEM */
 
@@ -1097,6 +1115,9 @@
 
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
+
+/* Define to 1 if you have the `memrchr' function. */
+#define HAVE_MEMRCHR 1
 
 /* Libzip >= 1.7.0 with zip_*_method_supported functions */
 #define HAVE_METHOD_SUPPORTED 1
@@ -1121,9 +1142,6 @@
 
 /* Whether you have MySQL */
 /* #undef HAVE_MYSQL */
-
-/* */
-/* #undef HAVE_MYSQLILIB */
 
 /* */
 #define HAVE_NANOSLEEP 1
@@ -1195,6 +1213,9 @@
 /* */
 /* #undef HAVE_ORALDAP */
 
+/* Define to 1 if you have the <os/signpost.h> header file. */
+/* #undef HAVE_OS_SIGNPOST_H */
+
 /* */
 #define HAVE_PCRE_JIT_SUPPORT 1
 
@@ -1249,6 +1270,9 @@
 /* */
 #define HAVE_PREAD 1
 
+/* do we have procctl? */
+/* #undef HAVE_PROCCTL */
+
 /* Libzip >= 1.3.0 with zip_register_progress_callback_with_state function */
 #define HAVE_PROGRESS_CALLBACK 1
 
@@ -1257,6 +1281,9 @@
 
 /* Define to 1 if the PS_STRINGS thing exists. */
 /* #undef HAVE_PS_STRINGS */
+
+/* Define to 1 if you have the `pthread_jit_write_protect_np' function. */
+/* #undef HAVE_PTHREAD_JIT_WRITE_PROTECT_NP */
 
 /* do we have ptrace? */
 /* #undef HAVE_PTRACE */
@@ -1318,6 +1345,12 @@
 /* do we have select? */
 /* #undef HAVE_SELECT */
 
+/* SElinux available */
+/* #undef HAVE_SELINUX */
+
+/* Define to 1 if you have the <selinux/selinux.h> header file. */
+/* #undef HAVE_SELINUX_SELINUX_H */
+
 /* */
 /* #undef HAVE_SEMUN */
 
@@ -1332,6 +1365,9 @@
 
 /* Define to 1 if you have the `setitimer' function. */
 #define HAVE_SETITIMER 1
+
+/* do we have setpflags? */
+/* #undef HAVE_SETPFLAGS */
 
 /* Define to 1 if you have the `setpriority' function. */
 /* #undef HAVE_SETPRIORITY */
@@ -1358,7 +1394,7 @@
 /* #undef HAVE_SHMOP */
 
 /* Define if you have SysV IPC SHM support */
-#define HAVE_SHM_IPC 1
+/* #undef HAVE_SHM_IPC */
 
 /* Define if you have mmap(MAP_ANON) SHM support */
 #define HAVE_SHM_MMAP_ANON 1
@@ -1393,7 +1429,7 @@
 /* */
 #define HAVE_SIMPLEXML 1
 
-/* Define is hash3 algo is available */
+/* Define if hash3 algo is available */
 /* #undef HAVE_SLOW_HASH3 */
 
 /* */
@@ -1454,7 +1490,7 @@
 #define HAVE_SQLITE3_CLOSE_V2 1
 
 /* have sqlite3_column_table_name */
-/* #undef HAVE_SQLITE3_COLUMN_TABLE_NAME */
+#define HAVE_SQLITE3_COLUMN_TABLE_NAME 1
 
 /* have sqlite3_errstr function */
 #define HAVE_SQLITE3_ERRSTR 1
@@ -1735,6 +1771,10 @@
 /* */
 #define HAVE_UODBC 1
 
+/* Whether faulting on write-protected memory support can be compiled for
+   userfaultfd */
+/* #undef HAVE_USERFAULTFD_WRITEFAULT */
+
 /* Define to 1 if you have the `usleep' function. */
 #define HAVE_USLEEP 1
 
@@ -1830,9 +1870,6 @@
 
 /* Whether strtok_r is declared */
 /* #undef MISSING_STRTOK_R_DECL */
-
-/* Whether mysqlnd is enabled */
-#define MYSQLI_USE_MYSQLND 1
 
 /* Enable compressed protocol support */
 #define MYSQLND_COMPRESSION_ENABLED 1
@@ -2105,10 +2142,13 @@
 /* #undef ZEND_FIBER_UCONTEXT */
 
 /* */
-#define ZEND_MM_ALIGNMENT 4
+#define ZEND_MM_ALIGNMENT (size_t)4
 
 /* */
-#define ZEND_MM_ALIGNMENT_LOG2 2
+#define ZEND_MM_ALIGNMENT_LOG2 (size_t)2
+
+/* */
+#define ZEND_MM_NEED_EIGHT_BYTE_REALIGNMENT 0
 
 /* Use zend signal handling */
 #define ZEND_SIGNALS 1
