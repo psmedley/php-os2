@@ -250,7 +250,7 @@
 /* #undef CRYPT_R_CRYPTD */
 
 /* Define if struct crypt_data requires _GNU_SOURCE */
-/* #undef CRYPT_R_GNU_SOURCE */
+#define CRYPT_R_GNU_SOURCE 1
 
 /* Define if crypt_r uses struct crypt_data */
 #define CRYPT_R_STRUCT_CRYPT_DATA 1
@@ -898,7 +898,7 @@
 #define HAVE_INTMAX_T 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
-#define HAVE_INTTYPES_H 1
+/* #undef HAVE_INTTYPES_H */
 
 /* */
 /* #undef HAVE_IODBC */
@@ -1042,7 +1042,7 @@
 /* #undef HAVE_LIBROOT */
 
 /* */
-/* #undef HAVE_LIBRT */
+#define HAVE_LIBRT 1
 
 /* */
 /* #undef HAVE_LIBSOCKET */
@@ -1096,7 +1096,7 @@
 #define HAVE_MEMMOVE 1
 
 /* Define to 1 if you have the <memory.h> header file. */
-#define HAVE_MEMORY_H 1
+/* #undef HAVE_MEMORY_H */
 
 /* Libzip >= 1.7.0 with zip_*_method_supported functions */
 #define HAVE_METHOD_SUPPORTED 1
@@ -1454,7 +1454,7 @@
 #define HAVE_SQLITE3_CLOSE_V2 1
 
 /* have sqlite3_column_table_name */
-/* #undef HAVE_SQLITE3_COLUMN_TABLE_NAME */
+#define HAVE_SQLITE3_COLUMN_TABLE_NAME 1
 
 /* have sqlite3_errstr function */
 #define HAVE_SQLITE3_ERRSTR 1
@@ -1487,7 +1487,7 @@
 #define HAVE_STDINT_H 1
 
 /* Define to 1 if you have the <stdlib.h> header file. */
-#define HAVE_STDLIB_H 1
+/* #undef HAVE_STDLIB_H */
 
 /* Define to 1 if you have the `std_syslog' function. */
 /* #undef HAVE_STD_SYSLOG */
@@ -1499,7 +1499,7 @@
 #define HAVE_STRINGS_H 1
 
 /* Define to 1 if you have the <string.h> header file. */
-#define HAVE_STRING_H 1
+/* #undef HAVE_STRING_H */
 
 /* Define to 1 if you have the `strlcat' function. */
 #define HAVE_STRLCAT 1
@@ -2053,7 +2053,7 @@
 /* #undef STACK_DIRECTION */
 
 /* Define to 1 if you have the ANSI C header files. */
-#define STDC_HEADERS 1
+/* #undef STDC_HEADERS */
 
 /* */
 /* #undef TCADB_INCLUDE_FILE */
@@ -2072,23 +2072,23 @@
 
 /* Enable extensions on AIX 3, Interix.  */
 #ifndef _ALL_SOURCE
-# define _ALL_SOURCE 1
+/* # undef _ALL_SOURCE */
 #endif
 /* Enable GNU extensions on systems that have them.  */
 #ifndef _GNU_SOURCE
-# define _GNU_SOURCE 1
+/* # undef _GNU_SOURCE */
 #endif
 /* Enable threading extensions on Solaris.  */
 #ifndef _POSIX_PTHREAD_SEMANTICS
-# define _POSIX_PTHREAD_SEMANTICS 1
+/* # undef _POSIX_PTHREAD_SEMANTICS */
 #endif
 /* Enable extensions on HP NonStop.  */
 #ifndef _TANDEM_SOURCE
-# define _TANDEM_SOURCE 1
+/* # undef _TANDEM_SOURCE */
 #endif
 /* Enable general extensions on Solaris.  */
 #ifndef __EXTENSIONS__
-# define __EXTENSIONS__ 1
+/* # undef __EXTENSIONS__ */
 #endif
 
 
