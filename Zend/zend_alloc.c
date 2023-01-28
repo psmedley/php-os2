@@ -55,6 +55,7 @@
 // 2023-01-22 SHL Dump current process if process dumps enabled
 // IBM Toolkit requires INCL_DOSMISC bww toolkit requires INCL_DOSRAS
 #define INCL_DOSRAS
+#define INCL_DOSEXCEPTIONS
 #endif
 
 #include "zend.h"
@@ -378,10 +379,6 @@ static ZEND_COLD ZEND_NORETURN void zend_mm_panic(const char *message)
 #endif
 #ifdef __OS2__
 	// 2023-01-22 SHL Dump current process if process dumps enabled
-	// #define INCL_DOSMISC
-	// #include "zend_portability.h"
-	// 
-	// #include <os2.h>
 	fputs("Attempting process dump\n", stderr);
 	DosDumpProcess(DDP_PERFORMPROCDUMP, 0, 0);
 #endif
@@ -1597,14 +1594,44 @@ static zend_always_inline void zend_mm_free_heap(zend_mm_heap *heap, void *ptr Z
 
 #ifdef __OS2__
 		if (UNEXPECTED(chunk->heap != heap)) {
-			pid_t pid = _getpid();
+			EXCEPTIONREPORTRECORD err = {0};
+			pid_t pid;
+			int tid;
 			char szTimestamp[28];
 			char msg_buf[512];
+
+			// 2023-01-27 SHL Try for exceptq report
+#			ifndef EXCEPTQ_DEBUG_EXCEPTION
+#			define EXCEPTQ_DEBUG_EXCEPTION   0x71785158
+#			endif
+			fputs("Attempting exceptq report\n", stderr);
+			err.ExceptionNum = EXCEPTQ_DEBUG_EXCEPTION;
+			err.cParameters = 3;
+			err.ExceptionInfo[0] = (ULONG)chunk->heap;
+			err.ExceptionInfo[1] = (ULONG)heap;
+			err.ExceptionInfo[2] = (ULONG)ptr;
+			DosRaiseException(&err);
+
+			pid = _getpid();
+			tid = _gettid();
 			formatTimestamp(szTimestamp);
 			// 2023-01-22 SHL Show ptr too
 			snprintf(msg_buf, sizeof(msg_buf),
 				 "%s zend_mm_free_heap detected heap corrupted for pid:%u (%x) tid:%u chunk->heap %p heap %p ptr %p",
-				 szTimestamp, pid, pid, _gettid(), chunk->heap, heap, ptr);
+				 szTimestamp, pid, pid, tid, chunk->heap, heap, ptr);
+			/* 2023-01-27 SHL we should not get here running on tid 1 because tid 1
+			   runs ap_mpm_child_main which never calls modphp.  However, for as yet TBD reasons 
+			   zend_mm_free_heap can get called on tid1 when ap_mpm_child_main 
+			   calls apr_pool_destroy.
+			   When zend_mm_free_heap is called from tid 1 the result is spurious,
+			   cascading errors.  To avoid this, we return rather than 
+			   panicking. This allows apr_pool_destroy to finish eventually and ap_mpm_child_main
+			   will terminate along with the process that is running it.
+			*/
+			if (tid == 1) {
+			    fprintf(stderr, "%s\n", msg_buf);
+			    return;
+			}
 			zend_mm_panic(msg_buf);
 		}
 #else
@@ -2416,7 +2443,7 @@ static void zend_mm_check_leaks(zend_mm_heap *heap)
 							dbg->lineno = 0;
 
 							repeated = zend_mm_find_leaks_small(p, i, j + 1, &leak) +
-							           zend_mm_find_leaks(heap, p, i + bin_pages[bin_num], &leak);
+								   zend_mm_find_leaks(heap, p, i + bin_pages[bin_num], &leak);
 							total += 1 + repeated;
 							if (repeated) {
 								zend_message_dispatcher(ZMSG_MEMORY_LEAK_REPEATED, (void *)(zend_uintptr_t)repeated);
@@ -3096,9 +3123,9 @@ ZEND_API int zend_mm_is_custom_heap(zend_mm_heap *new_heap)
 }
 
 ZEND_API void zend_mm_set_custom_handlers(zend_mm_heap *heap,
-                                          void* (*_malloc)(size_t),
-                                          void  (*_free)(void*),
-                                          void* (*_realloc)(void*, size_t))
+					  void* (*_malloc)(size_t),
+					  void  (*_free)(void*),
+					  void* (*_realloc)(void*, size_t))
 {
 #if ZEND_MM_CUSTOM
 	zend_mm_heap *_heap = (zend_mm_heap*)heap;
@@ -3115,9 +3142,9 @@ ZEND_API void zend_mm_set_custom_handlers(zend_mm_heap *heap,
 }
 
 ZEND_API void zend_mm_get_custom_handlers(zend_mm_heap *heap,
-                                          void* (**_malloc)(size_t),
-                                          void  (**_free)(void*),
-                                          void* (**_realloc)(void*, size_t))
+					  void* (**_malloc)(size_t),
+					  void  (**_free)(void*),
+					  void* (**_realloc)(void*, size_t))
 {
 #if ZEND_MM_CUSTOM
 	zend_mm_heap *_heap = (zend_mm_heap*)heap;
@@ -3140,9 +3167,9 @@ ZEND_API void zend_mm_get_custom_handlers(zend_mm_heap *heap,
 
 #if ZEND_DEBUG
 ZEND_API void zend_mm_set_custom_debug_handlers(zend_mm_heap *heap,
-                                          void* (*_malloc)(size_t ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC),
-                                          void  (*_free)(void* ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC),
-                                          void* (*_realloc)(void*, size_t ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC))
+					  void* (*_malloc)(size_t ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC),
+					  void  (*_free)(void* ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC),
+					  void* (*_realloc)(void*, size_t ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC))
 {
 #if ZEND_MM_CUSTOM
 	zend_mm_heap *_heap = (zend_mm_heap*)heap;
