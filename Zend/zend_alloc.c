@@ -1600,20 +1600,25 @@ static zend_always_inline void zend_mm_free_heap(zend_mm_heap *heap, void *ptr Z
 			char szTimestamp[28];
 			char msg_buf[512];
 
-			// 2023-01-27 SHL Try for exceptq report
+			pid = _getpid();
+			tid = _gettid();
+
+			/* 2023-01-30 SHL Try for exceptq report
+			   Requires SET EXCEPTQ=D in environment and
+			   if running under httpd PassEnv EXCEPTQ in httpd.conf
+			*/
 #			ifndef EXCEPTQ_DEBUG_EXCEPTION
 #			define EXCEPTQ_DEBUG_EXCEPTION   0x71785158
 #			endif
-			fputs("Attempting exceptq report\n", stderr);
+			fprintf(stderr, "Attempting exceptq report for pid %u(%x) tid %d\n", pid, pid, tid);
 			err.ExceptionNum = EXCEPTQ_DEBUG_EXCEPTION;
-			err.cParameters = 3;
-			err.ExceptionInfo[0] = (ULONG)chunk->heap;
-			err.ExceptionInfo[1] = (ULONG)heap;
-			err.ExceptionInfo[2] = (ULONG)ptr;
+			err.cParameters = 4;
+			err.ExceptionInfo[0] = 0;
+			err.ExceptionInfo[1] = (ULONG)chunk->heap;
+			err.ExceptionInfo[2] = (ULONG)heap;
+			err.ExceptionInfo[3] = (ULONG)ptr;
 			DosRaiseException(&err);
 
-			pid = _getpid();
-			tid = _gettid();
 			formatTimestamp(szTimestamp);
 			// 2023-01-22 SHL Show ptr too
 			snprintf(msg_buf, sizeof(msg_buf),
