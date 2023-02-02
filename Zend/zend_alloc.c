@@ -65,10 +65,21 @@
 #include "zend_multiply.h"
 #include "zend_bitset.h"
 
-#ifndef _OS2_H
-// 2023-01-22 SHL Dump current process if process dumps enabled
-// In case zend_portability does not #include os2.h
+// 2023-01-22 SHL For exceptq and DosDumpProcess and DosRaiseException
+#ifdef _OS2_H
+#error os2.h already loaded
+#else
+#define INCL_DOSPROCESS			// For exceptq
+#define INCL_DOSMODULEMGR		// For exceptq
 #include <os2.h>
+#endif
+
+// 2023-02-02 SHL Enable exceptq support
+#ifdef EXCEPTQ_H_INCLUDED
+#error Exceptq already loaded
+#else
+#define INCL_LOADEXCEPTQ
+#include "exceptq.h"
 #endif
 
 #include <signal.h>
@@ -378,9 +389,15 @@ static ZEND_COLD ZEND_NORETURN void zend_mm_panic(const char *message)
 	kill(getpid(), SIGSEGV);
 #endif
 #ifdef __OS2__
-	// 2023-01-22 SHL Dump current process if process dumps enabled
-	fputs("Attempting process dump\n", stderr);
-	DosDumpProcess(DDP_PERFORMPROCDUMP, 0, 0);
+	// 2023-01-22 SHL Dump current process if process dumps enabled and requested by PHP_OS2_DEBUG
+	{
+		char* psz;
+		(psz = getenv("PHP_OS2_DEBUG")) && (psz = strstr(psz, "mm_dump"));
+		if (psz) {
+			fputs("Attempting process dump\n", stderr);
+			DosDumpProcess(DDP_PERFORMPROCDUMP, 0, 0);
+		}
+	}
 #endif
 	exit(1);
 }
@@ -877,9 +894,9 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 		/* We used to check zend_error_cb initialized because we can be called
 		   early in startup, before it has been initialized.
 		   However, 8.1.6 changed the code paths so that zend_error_cb is
-		   initialize, but not everything needed by zend_error is ready to
-		   use so we can only use use to ZEND_MM_LOG_OS2 environment
-		   variable to request debug output
+		   initialized, but not everything needed by zend_error is ready to
+		   use so we can only use the ZEND_MM_LOG_OS2 environment
+		   variable to request debug output and we must write to stderr
 		*/
 		{
 			static char *envp = (char *)-1;
@@ -1384,7 +1401,7 @@ static zend_always_inline int zend_mm_small_size_to_bin(size_t size)
 {
 #if 0
 	int n;
-                            /*0,  1,  2,  3,  4,  5,  6,  7,  8,  9  10, 11, 12*/
+			    /*0,  1,  2,  3,  4,  5,  6,  7,  8,  9  10, 11, 12*/
 	static const int f1[] = { 3,  3,  3,  3,  3,  3,  3,  4,  5,  6,  7,  8,  9};
 	static const int f2[] = { 0,  0,  0,  0,  0,  0,  0,  4,  8, 12, 16, 20, 24};
 
@@ -1594,30 +1611,38 @@ static zend_always_inline void zend_mm_free_heap(zend_mm_heap *heap, void *ptr Z
 
 #ifdef __OS2__
 		if (UNEXPECTED(chunk->heap != heap)) {
+			// Report heap corruption and panic
+			// Suppress panic if running on tid 1
+			EXCEPTIONREGISTRATIONRECORD reg = {0};
 			EXCEPTIONREPORTRECORD err = {0};
-			pid_t pid;
-			int tid;
+			pid_t pid = _getpid();
+			int tid = _gettid();
+			char* psz;
 			char szTimestamp[28];
 			char msg_buf[512];
 
-			pid = _getpid();
-			tid = _gettid();
-
-			/* 2023-01-30 SHL Try for exceptq report
-			   Requires SET EXCEPTQ=D in environment and
-			   if running under httpd PassEnv EXCEPTQ in httpd.conf
+			/* 2023-01-30 SHL Try for exceptq report if requested by PHP_OS2_DEBUG
+			   Requires SET EXCEPTQ=D in environment
+			   Requires PassEnv EXCEPTQ in httpd.conf if running under httpd
+			   Requires PassEnv PHP_OS2_DEBUG in httpd.conf if running under httpd
 			*/
-#			ifndef EXCEPTQ_DEBUG_EXCEPTION
-#			define EXCEPTQ_DEBUG_EXCEPTION   0x71785158
-#			endif
-			fprintf(stderr, "Attempting exceptq report for pid %u(%x) tid %d\n", pid, pid, tid);
-			err.ExceptionNum = EXCEPTQ_DEBUG_EXCEPTION;
-			err.cParameters = 4;
-			err.ExceptionInfo[0] = 0;
-			err.ExceptionInfo[1] = (ULONG)chunk->heap;
-			err.ExceptionInfo[2] = (ULONG)heap;
-			err.ExceptionInfo[3] = (ULONG)ptr;
-			DosRaiseException(&err);
+			(psz = getenv("PHP_OS2_DEBUG")) && (psz = strstr(psz, "mm_exceptq"));
+			if (psz) {
+				// 2023-02-02 SHL FIXME for install/uninstall to be gone when libc supports EXCEPTQ_DEBUG_EXCEPTION
+				// Assume exceptq.dll already loaded by libc
+				InstallExceptq(&reg, "DI", "exceptq loaded by zend_mm_free_heap");
+
+				fprintf(stderr, "Attempting exceptq report for pid %u(%x) tid %d\n", pid, pid, tid);
+				err.ExceptionNum = EXCEPTQ_DEBUG_EXCEPTION;
+				err.cParameters = 4;
+				err.ExceptionInfo[0] = 0;
+				err.ExceptionInfo[1] = (ULONG)chunk->heap;
+				err.ExceptionInfo[2] = (ULONG)heap;
+				err.ExceptionInfo[3] = (ULONG)ptr;
+				DosRaiseException(&err);
+
+				UninstallExceptq(&reg);
+			}
 
 			formatTimestamp(szTimestamp);
 			// 2023-01-22 SHL Show ptr too
@@ -1625,11 +1650,11 @@ static zend_always_inline void zend_mm_free_heap(zend_mm_heap *heap, void *ptr Z
 				 "%s zend_mm_free_heap detected heap corrupted for pid:%u (%x) tid:%u chunk->heap %p heap %p ptr %p",
 				 szTimestamp, pid, pid, tid, chunk->heap, heap, ptr);
 			/* 2023-01-27 SHL we should not get here running on tid 1 because tid 1
-			   runs ap_mpm_child_main which never calls modphp.  However, for as yet TBD reasons 
-			   zend_mm_free_heap can get called on tid1 when ap_mpm_child_main 
+			   runs ap_mpm_child_main which never calls modphp.  However, for as yet TBD reasons
+			   zend_mm_free_heap can get called on tid1 when ap_mpm_child_main
 			   calls apr_pool_destroy.
 			   When zend_mm_free_heap is called from tid 1 the result is spurious,
-			   cascading errors.  To avoid this, we return rather than 
+			   cascading errors.  To avoid this, we return rather than
 			   panicking. This allows apr_pool_destroy to finish eventually and ap_mpm_child_main
 			   will terminate along with the process that is running it.
 			*/
