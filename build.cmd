@@ -1,7 +1,7 @@
 /* */
 buildstart=time()
 'set LDFLAGS=-Zmap -Zhigh-mem -static-libgcc'
-'rem make clean'
+'make clean'
 'gcc -DUSE_OMF -Zomf -Zhigh-mem -Zmap -o build/aplibtool.exe build\aplibtool.c'
 'deltree php8 /y'
 'copy u:\extras\bin\aplibtool.exe.php.high build\aplibtool.exe'

@@ -514,7 +514,8 @@ static void *zend_mm_mmap_fixed(void *addr, size_t size)
 		return NULL;
 	} else if (ptr != addr) {
 		zend_mm_munmap(ptr, size);
-	zend_mmap_set_name(ptr, size, "zend_alloc");
+		return NULL;
+	}
 	return ptr;
 #endif
 }
