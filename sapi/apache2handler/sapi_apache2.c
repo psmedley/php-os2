@@ -673,29 +673,7 @@ normal:
 		r->subprocess_env != r->main->subprocess_env
 	) {
 		/* setup standard CGI variables */
-#ifdef		__OS2__
-		/* 2023-02-04 SHL Fail nicely if we trap in ap_add_common_vars
-		   The actual trap is in add_unless_null and occurs for as
-		   yet unknown reasons.
-		   add_unless_null logs the exception and then reflects
-		   it here so that the request can be failed upstream.
-		   If we ever figure out why, this code can go away.
-		*/
-		zend_try {
-#endif
 		ap_add_common_vars(r);
-#ifdef		__OS2__
-                }
-		zend_catch {
-			zend_try {
-				zend_error(E_ERROR, "ap_add_common_vars trapped (%u)\n",  __LINE__);
-			} zend_catch {
-				fprintf(stderr, "ap_add_common_vars trapped (%u)\n", __LINE__);
-			} zend_end_try();
-			return FAILURE;
-                }
-		zend_end_try();
-#endif
 		ap_add_cgi_vars(r);
 	}
 zend_first_try {
