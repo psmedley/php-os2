@@ -94,6 +94,14 @@ typedef struct yy_buffer_state *YY_BUFFER_STATE;
 #define INADDR_NONE ((zend_ulong) -1)
 #endif
 
+#ifdef __OS2__
+#ifdef OS_H
+#error os2.h already #included
+#endif
+#define INCL_DOSMEMMGR
+#include <os2.h>
+#endif
+
 #include "zend_globals.h"
 #include "php_globals.h"
 #include "SAPI.h"
@@ -3464,9 +3472,29 @@ zend_module_entry basic_functions_module = { /* {{{ */
 };
 /* }}} */
 
+#ifdef __OS2__
+/* Check if OS/2 memory accessible
+   It appears that during shutdown process memory can be uncommitted too soon
+   We are still looking for what is doing this
+   We use this function to to avoid attempting to access uncommitted memory
+   2023-02-06 SHL 
+*/
+BOOL is_os2_mem_accessible(PVOID pv)
+{
+	ULONG cb;
+	ULONG flags;
+	APIRET ulrc = DosQueryMem(pv, &cb, &flags);
+#	define FLAGS (PAG_COMMIT | PAG_READ | PAG_WRITE)
+	return ulrc == 0 && (flags & FLAGS) == FLAGS;
+}
+#endif // __OS2__
+
 #if defined(HAVE_PUTENV)
 static void php_putenv_destructor(zval *zv) /* {{{ */
 {
+#ifdef __OS2__
+	BOOL pe_ok;
+#endif
 	putenv_entry *pe = Z_PTR_P(zv);
 
 	if (pe->previous_value) {
@@ -3483,7 +3511,26 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 # endif
 	} else {
 # if HAVE_UNSETENV
+// 2023-02-07 SHL
+# ifndef __OS2__
 		unsetenv(pe->key);
+# else
+		if (!is_os2_mem_accessible(pe)) {
+			// FIXME for fprintf to be gone when we know zend_error will never trap
+			fprintf(stderr, "php_putenv_destructor pe %p points to uncommitted memory (%u)\n", pe, __LINE__);
+			zend_error(E_WARNING, "php_putenv_destructor pe %p points to uncommitted memory (%u)\n", pe, __LINE__);
+			pe_ok = FALSE;
+		}
+		else if (!is_os2_mem_accessible(pe->key)) {
+			fprintf(stderr, "php_putenv_destructor pe->key %p points to uncommitted memory (%u)\n", pe->key, __LINE__);
+			zend_error(E_WARNING, "php_putenv_destructor pe->key %p points to uncommitted memory (%u)\n", pe->key, __LINE__);
+			pe_ok = FALSE;
+		}
+		else {
+			unsetenv(pe->key);
+			pe_ok = TRUE;
+		}
+# endif // __OS2__
 # elif defined(PHP_WIN32)
 		SetEnvironmentVariable(pe->key, NULL);
 # ifndef ZTS
@@ -3503,9 +3550,15 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 #ifdef HAVE_TZSET
 	/* don't forget to reset the various libc globals that
 	 * we might have changed by an earlier call to tzset(). */
+#ifdef __OS2__
+	if (pe_ok) {
+#endif
 	if (!strncmp(pe->key, "TZ", pe->key_len)) {
 		tzset();
 	}
+#ifdef __OS2__
+#endif
+	} // pe_ok
 #endif
 
 	efree(pe->putenv_string);
