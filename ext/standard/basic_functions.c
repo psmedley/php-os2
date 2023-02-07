@@ -3483,24 +3483,7 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 # endif
 	} else {
 # if HAVE_UNSETENV
-#ifdef __OS2__
-		    /* 2023-02-02 SHL Avoid death if called with pe->key pointing to uncommitted memory.
-		       We do not yet know how the memory became uncommitted.
-		       The pointer looks as if it was valid at one time.
-		       This seems to happen only during php_request_shutdown processing.
-		       To avoid the trap we wrap the code in a zend_try.
-		    */
-		    zend_try {
-#endif
 		unsetenv(pe->key);
-#ifdef __OS2__
-		    } zend_catch {
-			    fprintf(stderr, "php_putenv_destructor unsetenv(pe->key) %p points to uncommitted memory (%u)\n", pe->key, __LINE__);
-			    // Try to report with zend_error - can fail - FIXME to be gone
-			    zend_error(E_NOTICE, "php_putenv_destructor pe->key %p points to uncommitted memory\n", pe->key);
-		    } zend_end_try();
-#endif
-
 # elif defined(PHP_WIN32)
 		SetEnvironmentVariable(pe->key, NULL);
 # ifndef ZTS
@@ -3510,24 +3493,10 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 		char **env;
 
 		for (env = environ; env != NULL && *env != NULL; env++) {
-#ifdef __OS2__
-		    /* 2023-02-02 SHL Avoid death if called with pe->key pointing to uncommitted memory.
-		       We do not yet know how the memory became uncommitted.
-		       The pointer looks as if it was valid at one time.
-		       This seems to happen only during php_request_shutdown processing.
-		       To avoid the trap we wrap the code in a zend_try.
-		    */
-		    zend_try {
-#endif
 			if (!strncmp(*env, pe->key, pe->key_len) && (*env)[pe->key_len] == '=') {	/* found it */
 				*env = "";
 				break;
 			}
-#ifdef __OS2__
-		    } zend_catch {
-			    fprintf(stderr, "php_putenv_destructor pe->key %p points to uncommitted memory (%u)\n", pe->key, __LINE__);
-		    } zend_end_try();
-#endif
 		}
 # endif
 	}
@@ -3542,15 +3511,16 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 	   To avoid the trap we wrap the strncmp call in a zend_try.
 	*/
 	  
-#ifdef __OS2__
-	zend_try {
-#endif
+#ifndef __OS2__
 	if (!strncmp(pe->key, "TZ", pe->key_len)) {
 		tzset();
 	}
-#ifdef __OS2__
+#else // __OS2__
+	zend_try {
+		if (!strncmp(pe->key, "TZ", pe->key_len))
+			tzset();
 	} zend_catch {
-		fprintf(stderr, "php_putenv_destructor pe->key %p points to uncommitted memory (%u)\n", pe->key, __LINE__);
+		fprintf(stderr, "php_putenv_destructor pe->key %p points to uncommitted memory\n", pe->key);
 	} zend_end_try();
 #endif
 
