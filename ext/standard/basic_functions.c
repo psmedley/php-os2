@@ -3503,27 +3503,9 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 #ifdef HAVE_TZSET
 	/* don't forget to reset the various libc globals that
 	 * we might have changed by an earlier call to tzset(). */
-
-	/* 2023-01-30 SHL Avoid death if called with pe->key pointing to uncommitted memory.
-	   We do not yet know how the memory became uncommitted.
-	   The pointer looks as if it was valid at one time.
-	   This seems to happen only during php_request_shutdown processing.
-	   To avoid the trap we wrap the strncmp call in a zend_try.
-	*/
-	  
-#ifndef __OS2__
 	if (!strncmp(pe->key, "TZ", pe->key_len)) {
 		tzset();
 	}
-#else // __OS2__
-	zend_try {
-		if (!strncmp(pe->key, "TZ", pe->key_len))
-			tzset();
-	} zend_catch {
-		fprintf(stderr, "php_putenv_destructor pe->key %p points to uncommitted memory\n", pe->key);
-	} zend_end_try();
-#endif
-
 #endif
 
 	efree(pe->putenv_string);
@@ -4165,7 +4147,7 @@ PHP_FUNCTION(getenv)
     tsrm_env_unlock();
 
     if (ptr) {
-	return;
+        return;
     }
 
 #endif
@@ -5749,9 +5731,9 @@ PHP_FUNCTION(getservbyname)
 
 #if defined(_AIX)
 	/*
-	On AIX, imap is only known as imap2 in /etc/services, while on Linux imap is an alias for imap2.
-	If a request for imap gives no result, we try again with imap2.
-	*/
+        On AIX, imap is only known as imap2 in /etc/services, while on Linux imap is an alias for imap2.
+        If a request for imap gives no result, we try again with imap2.
+        */
 	if (serv == NULL && strcmp(name,  "imap") == 0) {
 		serv = getservbyname("imap2", proto);
 	}
