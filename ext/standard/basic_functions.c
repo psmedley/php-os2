@@ -3505,14 +3505,7 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 		 * We try to avoid this by setting our own value first */
 		SetEnvironmentVariable(pe->key, "bugbug");
 # endif
-		// 2023-02-09 SHL libc getenv/putenv/unsetenv not thread safe
-#		ifdef __OS2__
-		tsrm_env_lock();
-#		endif
 		putenv(pe->previous_value);
-#		ifdef __OS2__
-		tsrm_env_unlock();
-#		endif
 # if defined(PHP_WIN32)
 		efree(pe->previous_value);
 # endif
@@ -3534,14 +3527,7 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 			pe_ok = FALSE;
 		}
 		else {
-			// 2023-02-09 SHL libc getenv/putenv/unsetenv not thread safe
-#			ifdef __OS2__
-			tsrm_env_lock();
-#			endif
 			unsetenv(pe->key);
-#			ifdef __OS2__
-			tsrm_env_unlock();
-#			endif
 			pe_ok = TRUE;
 		}
 # endif // __OS2__
