@@ -3505,7 +3505,19 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 		 * We try to avoid this by setting our own value first */
 		SetEnvironmentVariable(pe->key, "bugbug");
 # endif
+#ifndef __OS2__
 		putenv(pe->previous_value);
+#else
+		// 2023-02-12 SHL Avoid exception if memory released by owner
+		if (!is_os2_mem_accessible(pe->previous_value)) {
+			// FIXME for fprintf to be gone when we know zend_error will never trap
+			fprintf(stderr, "php_putenv_destructor pe %p points to uncommitted memory (%u)\n", pe, __LINE__);
+			zend_error(E_WARNING, "php_putenv_destructor pe %p points to uncommitted memory (%u)\n", pe, __LINE__);
+		}
+		else
+		  putenv(pe->previous_value);
+
+#endif
 # if defined(PHP_WIN32)
 		efree(pe->previous_value);
 # endif
