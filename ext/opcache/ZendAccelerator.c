@@ -1121,7 +1121,7 @@ int validate_timestamp_and_record(zend_persistent_script *persistent_script, zen
 		if (TSRMG_BULK_STATIC(accel_globals_id, zend_accel_globals *) == NULL) {
 			// FIXME for fprintf to be gone when we know zend_error will never trap
 			fprintf(stderr, "validate_timestamp_and_record ZCG is NULL (%u)\n", __LINE__);
-			zend_error(E_WARNING, "validate_timestamp_and_record ZCG is NULL (%u)\n",  __LINE__);
+			zend_error(E_WARNING, "validate_timestamp_and_record ZCG is NULL (%u)",  __LINE__);
 			return FAILURE;
 		}
 #endif
@@ -2255,6 +2255,18 @@ static int accel_gen_uname_id(void)
 /* zend_stream_open_function() replacement for PHP 5.3 and above */
 static int persistent_stream_open_function(const char *filename, zend_file_handle *handle)
 {
+#ifdef __OS2__
+	/* 2023-02-13 SHL Avoid exception if we get here with NULL globals pointer
+	   FIXME to never happen somewhen
+	   Cannot use zend_accel_error because depends on globals
+	*/
+	if (TSRMG_BULK_STATIC(accel_globals_id, zend_accel_globals *) == NULL) {
+		// FIXME for fprintf to be gone when we know zend_error will never trap
+		fprintf(stderr, "persistent_stream_open_function ZCG is NULL (%u)\n", __LINE__);
+		zend_error(E_WARNING, "persistent_stream_open_function ZCG is NULL (%u)",  __LINE__);
+		return FAILURE;
+	}
+#endif
 	if (ZCG(cache_persistent_script)) {
 		/* check if callback is called from include_once or it's a main request */
 		if ((!EG(current_execute_data) &&
