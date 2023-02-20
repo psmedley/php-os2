@@ -29,6 +29,31 @@
 
 #include "zend_vm.h"
 
+#ifdef __OS2__ // 2023-02-06 SHL
+#ifdef OS_H
+#error os2.h already #included
+#endif
+#define INCL_DOSMEMMGR
+#include <os2.h>
+#endif
+
+#ifdef __OS2__
+/* Check if OS/2 memory accessible
+   It appears that during shutdown process memory can be uncommitted too soon
+   We are still looking for what is doing this
+   We use this function to to avoid attempting to access uncommitted memory
+   2023-02-19 SHL
+*/
+static BOOL is_os2_mem_accessible(PVOID pv)
+{
+	ULONG cb;
+	ULONG flags;
+	APIRET ulrc = DosQueryMem(pv, &cb, &flags);
+#	define FLAGS (PAG_COMMIT | PAG_READ | PAG_WRITE)
+	return ulrc == 0 && (flags & FLAGS) == FLAGS;
+}
+#endif // __OS2__
+
 static void zend_extension_op_array_ctor_handler(zend_extension *extension, zend_op_array *op_array)
 {
 	if (extension->op_array_ctor) {
@@ -422,7 +447,37 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 	uint32_t i;
 
 	if (op_array->static_variables) {
+# ifndef __OS2__
 		HashTable *ht = ZEND_MAP_PTR_GET(op_array->static_variables_ptr);
+# else
+		/* 2023-02-19 SHL Avoid exceptions if op_array->static_variables_ptr
+		   points to uncommitted memory
+		*/
+#if ZEND_MAP_PTR_KIND != ZEND_MAP_PTR_KIND_PTR_OR_OFFSET
+#error expected ZEND_MAP_PTR_KIND == ZEND_MAP_PTR_KIND_PTR_OR_OFFSET
+#endif
+// See zend_map_ptr.h
+# define ZEND_MAP_PTR_GET_PTR(ptr) \
+	(ZEND_MAP_PTR_IS_OFFSET(ptr) ? \
+		(ZEND_MAP_PTR_OFFSET2PTR(ptr)) : \
+		(void*)((ZEND_MAP_PTR(ptr))))
+		void *ptr = ZEND_MAP_PTR_GET_PTR(op_array->static_variables_ptr);
+		HashTable *ht;
+		if (!is_os2_mem_accessible(ptr)) {
+			zend_error(E_WARNING, "destroy_op_array ptr %p points to uncommitted memory (%u)", ptr, __LINE__);
+			/* If we get here, static_variables_ptr points to uncommited
+			   memory so it is likely that other pointers have the same problem.
+			   Recall that when we get here, we are running (unexpectedly)
+			   on tid 1 and ap_mpm_child_main called apr_pool_destroy because the
+			   httpd worker process is shutting down for as yet not fully understood
+			   reasons.
+			   Better to get out now rather than wasting effort checking the
+			   other pointers.
+			*/
+			return;
+		}
+		ht = ZEND_MAP_PTR_GET(op_array->static_variables_ptr);
+# endif // __OS2__
 		if (ht && !(GC_FLAGS(ht) & IS_ARRAY_IMMUTABLE)) {
 			if (GC_DELREF(ht) == 0) {
 				zend_array_destroy(ht);

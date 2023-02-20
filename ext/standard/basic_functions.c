@@ -94,7 +94,7 @@ typedef struct yy_buffer_state *YY_BUFFER_STATE;
 #define INADDR_NONE ((zend_ulong) -1)
 #endif
 
-#ifdef __OS2__
+#ifdef __OS2__ // 2023-02-06 SHL 
 #ifdef OS_H
 #error os2.h already #included
 #endif
@@ -3479,7 +3479,7 @@ zend_module_entry basic_functions_module = { /* {{{ */
    We use this function to to avoid attempting to access uncommitted memory
    2023-02-06 SHL 
 */
-BOOL is_os2_mem_accessible(PVOID pv)
+static BOOL is_os2_mem_accessible(PVOID pv)
 {
 	ULONG cb;
 	ULONG flags;
@@ -3510,9 +3510,7 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 #else
 		// 2023-02-12 SHL Avoid exception if memory released by owner
 		if (!is_os2_mem_accessible(pe->previous_value)) {
-			// FIXME for fprintf to be gone when we know zend_error will never trap
-			fprintf(stderr, "php_putenv_destructor pe %p points to uncommitted memory (%u)\n", pe, __LINE__);
-			zend_error(E_WARNING, "php_putenv_destructor pe %p points to uncommitted memory (%u)\n", pe, __LINE__);
+			zend_error(E_WARNING, "php_putenv_destructor pe %p points to uncommitted memory (%u)", pe, __LINE__);
 		}
 		else
 		  putenv(pe->previous_value);
@@ -3528,14 +3526,10 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 		unsetenv(pe->key);
 # else
 		if (!is_os2_mem_accessible(pe)) {
-			// FIXME for fprintf to be gone when we know zend_error will never trap
-			fprintf(stderr, "php_putenv_destructor pe %p points to uncommitted memory (%u)\n", pe, __LINE__);
-			zend_error(E_WARNING, "php_putenv_destructor pe %p points to uncommitted memory (%u)\n", pe, __LINE__);
+			zend_error(E_WARNING, "php_putenv_destructor pe %p points to uncommitted memory (%u)", pe, __LINE__);
 			pe_ok = FALSE;
 		}
 		else if (!is_os2_mem_accessible(pe->key)) {
-			fprintf(stderr, "php_putenv_destructor pe->key %p points to uncommitted memory (%u)\n", pe->key, __LINE__);
-			zend_error(E_WARNING, "php_putenv_destructor pe->key %p points to uncommitted memory (%u)\n", pe->key, __LINE__);
 			pe_ok = FALSE;
 		}
 		else {
@@ -4271,6 +4265,7 @@ PHP_FUNCTION(putenv)
 	/* find previous value */
 	pe.previous_value = NULL;
 	for (env = environ; env != NULL && *env != NULL; env++) {
+#		ifndef __OS2__
 		if (!strncmp(*env, pe.key, pe.key_len) && (*env)[pe.key_len] == '=') {	/* found it */
 #if defined(PHP_WIN32)
 			/* must copy previous value because MSVCRT's putenv can free the string without notice */
@@ -4280,6 +4275,18 @@ PHP_FUNCTION(putenv)
 #endif
 			break;
 		}
+#		else // __OS2__
+		// 2023-02-19 SHL Avoid accessing uncommitted memory
+		if (!is_os2_mem_accessible(pe.key)) {
+			zend_error(E_WARNING, "php_putenv_destructor pe.key %p points to uncommitted memory (%u)", pe.key, __LINE__);
+			break;
+		}
+		else if (!strncmp(*env, pe.key, pe.key_len) && (*env)[pe.key_len] == '=') {	/* found it */
+			pe.previous_value = *env;
+			break;
+		}
+#		endif // __OS2__
+
 	}
 
 #if HAVE_UNSETENV
