@@ -4228,6 +4228,10 @@ PHP_FUNCTION(putenv)
 	int equals = 0;
 	int error_code;
 #endif
+#ifdef __OS2__
+	BOOL ptr_ok;
+#endif
+
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		Z_PARAM_STRING(setting, setting_len)
@@ -4265,7 +4269,7 @@ PHP_FUNCTION(putenv)
 	/* find previous value */
 	pe.previous_value = NULL;
 	for (env = environ; env != NULL && *env != NULL; env++) {
-#		ifndef __OS2__
+#ifndef __OS2__
 		if (!strncmp(*env, pe.key, pe.key_len) && (*env)[pe.key_len] == '=') {	/* found it */
 #if defined(PHP_WIN32)
 			/* must copy previous value because MSVCRT's putenv can free the string without notice */
@@ -4275,25 +4279,34 @@ PHP_FUNCTION(putenv)
 #endif
 			break;
 		}
-#		else // __OS2__
+#else // __OS2__
 		// 2023-02-19 SHL Avoid accessing uncommitted memory
 		if (!is_os2_mem_accessible(pe.key)) {
 			zend_error(E_WARNING, "php_putenv_destructor pe.key %p points to uncommitted memory (%u)", pe.key, __LINE__);
+			ptr_ok = FALSE;
 			break;
 		}
 		else if (!strncmp(*env, pe.key, pe.key_len) && (*env)[pe.key_len] == '=') {	/* found it */
 			pe.previous_value = *env;
+			ptr_ok = TRUE;
 			break;
 		}
-#		endif // __OS2__
+#endif // __OS2__
 
-	}
+	} // for
 
 #if HAVE_UNSETENV
+#ifndef __OS2__
 	if (!p) { /* no '=' means we want to unset it */
 		unsetenv(pe.putenv_string);
 	}
 	if (!p || putenv(pe.putenv_string) == 0) { /* success */
+#else // __OS2__
+	if (ptr_ok && !p) { /* no '=' means we want to unset it */
+		unsetenv(pe.putenv_string);
+	}
+	if (ptr_ok && (!p || putenv(pe.putenv_string) == 0)) { /* success */
+#endif
 #else
 # ifndef PHP_WIN32
 	if (putenv(pe.putenv_string) == 0) { /* success */
@@ -4326,8 +4339,8 @@ PHP_FUNCTION(putenv)
 	&& _wputenv_s(keyw, valw ? valw : L"") == 0
 # endif
 	) { /* success */
-# endif
-#endif
+# endif // PHP_WIN32
+#endif // HAVE_UNSETENV
 		zend_hash_str_add_mem(&BG(putenv_ht), pe.key, pe.key_len, &pe, sizeof(putenv_entry));
 #ifdef HAVE_TZSET
 		if (!strncmp(pe.key, "TZ", pe.key_len)) {
@@ -4341,6 +4354,9 @@ PHP_FUNCTION(putenv)
 #endif
 		RETURN_TRUE;
 	} else {
+		// Failure
+		// 2023-02-19 SHL Looks like upstream defect - exits while holding lock on error
+		tsrm_env_unlock();
 		efree(pe.putenv_string);
 		efree(pe.key);
 #if defined(PHP_WIN32)
