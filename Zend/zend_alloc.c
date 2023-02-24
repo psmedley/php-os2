@@ -3105,7 +3105,22 @@ static void alloc_globals_ctor(zend_alloc_globals *alloc_globals)
 static void alloc_globals_dtor(zend_alloc_globals *alloc_globals)
 {
 #ifdef __OS2__				// 2022-05-01 SHL bypass call if heap NULL
-	if (alloc_globals->mm_heap == NULL)
+	/* 2023-02-21 SHL The 2022-05-01 change got the NULL check backwards which should have
+	   caused exceptions if mm_heap was really NULL, but we have not seen any of
+	   these recently, so maybe we have avoided this exception in other ways.
+	   It also had the unfortunate side effect of bypassing all calls to zend_mm_shutdown
+	   which probably caused some memory leakage.
+	   The NULL check has been corrected and we now report the NULL condition and
+	   only call zend_mm_shutdown when the heap seems to exist.
+	*/
+	if (alloc_globals->mm_heap == NULL) {
+		pid_t pid = _getpid();
+		char szTimestamp[28];
+		formatTimestamp(szTimestamp);
+		fprintf(stderr, "%s alloc_globals_dtor called with alloc_globals_mm_heap NULL for pid:%u (%x) tid:%u",
+			szTimestamp, pid, pid, _gettid());
+	}
+	else
 		zend_mm_shutdown(alloc_globals->mm_heap, 1, 1);
 #else
 	zend_mm_shutdown(alloc_globals->mm_heap, 1, 1);
