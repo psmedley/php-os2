@@ -30,6 +30,8 @@
 #include "zend_vm.h"
 
 #ifdef __OS2__ // 2023-02-06 SHL
+#include <unistd.h>			// _getpid
+
 #ifdef OS_H
 #error os2.h already #included
 #endif
@@ -442,6 +444,24 @@ void zend_class_add_ref(zval *zv)
 	}
 }
 
+#ifdef __OS2__
+/**
+ * Format httpd log style timestamp
+ * @param pszTimestamp28 points to 28 byte or larger timestamp buffer
+ */
+
+static void formatTimestamp(char *pszTimestamp28) {
+	time_t timeLclSec = time(0);
+	// Sat Mar 21 15:58:27 1987\n\0
+	// [Tue Jun 21 12:07:31.699000 2022]
+	ctime_r(&timeLclSec, pszTimestamp28 + 1);
+	pszTimestamp28[0] = '[';
+	pszTimestamp28[25] = ']';	/* Replace NL */
+}
+#endif // __OS2__
+
+
+
 ZEND_API void destroy_op_array(zend_op_array *op_array)
 {
 	uint32_t i;
@@ -464,7 +484,13 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 		void *ptr = ZEND_MAP_PTR_GET_PTR(op_array->static_variables_ptr);
 		HashTable *ht;
 		if (!is_os2_mem_accessible(ptr)) {
-			zend_error(E_WARNING, "destroy_op_array ptr %p points to uncommitted memory (%u)", ptr, __LINE__);
+			// 2023-02-24 SHL It appears we cannot use zend_error here without trapping in zend_error
+			// zend_error(E_WARNING, "destroy_op_array ptr %p points to uncommitted memory (%u)", ptr, __LINE__);
+			pid_t pid = _getpid();
+			char szTimestamp[28];
+			formatTimestamp(szTimestamp);
+			fprintf(stderr, "\n%s destroy_op_array ptr %p points to uncommitted memory pid:%u (%x) tid:%u (%u)\n",
+				szTimestamp, ptr, pid, pid, _gettid(), __LINE__);
 			/* If we get here, static_variables_ptr points to uncommited
 			   memory so it is likely that other pointers have the same problem.
 			   Recall that when we get here, we are running (unexpectedly)
