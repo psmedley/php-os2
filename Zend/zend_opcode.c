@@ -40,20 +40,21 @@
 #endif
 
 #ifdef __OS2__
-/* Check if OS/2 memory accessible
-   It appears that during shutdown process memory can be uncommitted too soon
-   We are still looking for what is doing this
-   We use this function to to avoid attempting to access uncommitted memory
-   2023-02-19 SHL
-*/
-static BOOL is_os2_mem_accessible(PVOID pv)
-{
-	ULONG cb;
-	ULONG flags;
-	APIRET ulrc = DosQueryMem(pv, &cb, &flags);
-#	define FLAGS (PAG_COMMIT | PAG_READ | PAG_WRITE)
-	return ulrc == 0 && (flags & FLAGS) == FLAGS;
-}
+// 2023-02-25 SHL
+// See basic_functions.c
+extern BOOL is_os2_mem_accessible(PVOID pv);
+// See zend_alloc.c
+extern void format_httpd_os2_timestamp(char *pszTimestamp28);
+
+#if ZEND_MAP_PTR_KIND != ZEND_MAP_PTR_KIND_PTR_OR_OFFSET
+#error expected ZEND_MAP_PTR_KIND == ZEND_MAP_PTR_KIND_PTR_OR_OFFSET
+#endif
+// See zend_map_ptr.h
+# define ZEND_MAP_PTR_GET_PTR(ptr) \
+	(ZEND_MAP_PTR_IS_OFFSET(ptr) ? \
+		(ZEND_MAP_PTR_OFFSET2PTR(ptr)) : \
+		(void*)((ZEND_MAP_PTR(ptr))))
+
 #endif // __OS2__
 
 static void zend_extension_op_array_ctor_handler(zend_extension *extension, zend_op_array *op_array)
@@ -175,6 +176,31 @@ ZEND_API void zend_function_dtor(zval *zv)
 
 ZEND_API void zend_cleanup_internal_class_data(zend_class_entry *ce)
 {
+	/* 2023-02-25 SHL Avoid exceptions if op_array->static_variables_ptr
+	   points to uncommitted memory
+	*/
+#define CE_STATIC_MEMBERS_PTR(ce) \
+	((zval*)ZEND_MAP_PTR_GET_PTR((ce)->static_members_table))
+
+	void *ptr = CE_STATIC_MEMBERS_PTR(ce);
+
+	if (!is_os2_mem_accessible(ptr)) {
+		// 2023-02-24 SHL It appears we cannot use zend_error here without trapping in zend_error
+		// zend_error(E_WARNING, "zend_cleanup_internal_class_data ptr %p points to uncommitted memory (%u)", ptr, __LINE__);
+		pid_t pid = _getpid();
+		char szTimestamp[28];
+		format_httpd_os2_timestamp(szTimestamp);
+		fprintf(stderr, "\n%s zend_cleanup_internal_class_data ptr %p points to uncommitted memory pid:%u (%x) tid:%u (%u)\n",
+			szTimestamp, ptr, pid, pid, _gettid(), __LINE__);
+		/* If we get here, ce points to uncommited memory for not yet fully understood
+		   reasons so it is likely that other pointers have the same problem.
+		   Recall that when we get here, we are running on tid 1 and ap_mpm_child_main
+		   called apr_pool_destroy because the httpd worker process is shutting down.
+		   Better to get out now rather than wasting effort checking the other pointers.
+		*/
+		return;
+	}
+
 	if (CE_STATIC_MEMBERS(ce)) {
 		zval *static_members = CE_STATIC_MEMBERS(ce);
 		zval *p = static_members;
@@ -444,23 +470,6 @@ void zend_class_add_ref(zval *zv)
 	}
 }
 
-#ifdef __OS2__
-/**
- * Format httpd log style timestamp
- * @param pszTimestamp28 points to 28 byte or larger timestamp buffer
- */
-
-static void formatTimestamp(char *pszTimestamp28) {
-	time_t timeLclSec = time(0);
-	// Sat Mar 21 15:58:27 1987\n\0
-	// [Tue Jun 21 12:07:31.699000 2022]
-	ctime_r(&timeLclSec, pszTimestamp28 + 1);
-	pszTimestamp28[0] = '[';
-	pszTimestamp28[25] = ']';	/* Replace NL */
-}
-#endif // __OS2__
-
-
 
 ZEND_API void destroy_op_array(zend_op_array *op_array)
 {
@@ -473,14 +482,6 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 		/* 2023-02-19 SHL Avoid exceptions if op_array->static_variables_ptr
 		   points to uncommitted memory
 		*/
-#if ZEND_MAP_PTR_KIND != ZEND_MAP_PTR_KIND_PTR_OR_OFFSET
-#error expected ZEND_MAP_PTR_KIND == ZEND_MAP_PTR_KIND_PTR_OR_OFFSET
-#endif
-// See zend_map_ptr.h
-# define ZEND_MAP_PTR_GET_PTR(ptr) \
-	(ZEND_MAP_PTR_IS_OFFSET(ptr) ? \
-		(ZEND_MAP_PTR_OFFSET2PTR(ptr)) : \
-		(void*)((ZEND_MAP_PTR(ptr))))
 		void *ptr = ZEND_MAP_PTR_GET_PTR(op_array->static_variables_ptr);
 		HashTable *ht;
 		if (!is_os2_mem_accessible(ptr)) {
@@ -488,17 +489,17 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 			// zend_error(E_WARNING, "destroy_op_array ptr %p points to uncommitted memory (%u)", ptr, __LINE__);
 			pid_t pid = _getpid();
 			char szTimestamp[28];
-			formatTimestamp(szTimestamp);
+			format_httpd_os2_timestamp(szTimestamp);
 			fprintf(stderr, "\n%s destroy_op_array ptr %p points to uncommitted memory pid:%u (%x) tid:%u (%u)\n",
 				szTimestamp, ptr, pid, pid, _gettid(), __LINE__);
 			/* If we get here, static_variables_ptr points to uncommited
-			   memory so it is likely that other pointers have the same problem.
-			   Recall that when we get here, we are running (unexpectedly)
-			   on tid 1 and ap_mpm_child_main called apr_pool_destroy because the
-			   httpd worker process is shutting down for as yet not fully understood
-			   reasons.
-			   Better to get out now rather than wasting effort checking the
-			   other pointers.
+			   memory for as yet not fully understood reasons so it is likely that
+			   other pointers have the same problem.
+			   Recall that when we get here, we are running tid 1 and ap_mpm_child_main
+			   has called apr_pool_destroy because the httpd worker process is shutting
+			   down.
+			   Better to get out now rather than wasting effort checking the other
+			   pointers.
 			*/
 			return;
 		}

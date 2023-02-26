@@ -452,6 +452,8 @@ static int php_pre_config(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp
 # // 2022-03-16 SHL avoid warnings
 # if defined(__OS2__)
 extern TSRM_API void os2_tsrmls_cache_update();
+// 2023-02-25 SHL Added
+extern void format_httpd_os2_timestamp(char* szTimestamp);
 # endif
 
 
@@ -507,7 +509,14 @@ php_apache_server_startup(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp
 	// 2022-03-14 SHL if startup failed, tell the world
 	if (err != OK) {
 		// 2022-03-16 SHL FIXME to be sure this is really needed
-		apr_pool_cleanup_register(pconf, NULL, php_apache_server_shutdown, apr_pool_cleanup_null);
+		// 2023-02-25 SHL Let's try not registering this
+		// apr_pool_cleanup_register(pconf, NULL, php_apache_server_shutdown, apr_pool_cleanup_null);
+		// 2023-02-25 SHL Let's report to httpd error log or console
+		pid_t pid = _getpid();
+		char szTimestamp[28];
+		format_httpd_os2_timestamp(szTimestamp);
+		fprintf(stderr, "\n%s php_apache_server_startup failed with error %u pid:%u (%x) tid:%u (%u)\n",
+			szTimestamp, err, pid, pid, _gettid(), __LINE__);
 		return err;
 	}
 #else

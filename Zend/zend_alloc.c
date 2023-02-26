@@ -456,9 +456,10 @@ stderr_last_error(char *msg)
 /**
  * Format httpd log style timestamp
  * @param pszTimestamp28 points to 28 byte or larger timestamp buffer
+ * 2023-02-25 SHL Make public
  */
 
-static void formatTimestamp(char *pszTimestamp28) {
+void format_httpd_os2_timestamp(char *pszTimestamp28) {
 	time_t timeLclSec = time(0);
 	// Sat Mar 21 15:58:27 1987\n\0
 	// [Tue Jun 21 12:07:31.699000 2022]
@@ -486,7 +487,7 @@ static void *zend_mm_mmap_fixed(void *addr, size_t size)
 #ifdef __OS2__	/* 2022-05-25 SHL */
 		pid_t pid = _getpid();
 		char szTimestamp[28];
-		formatTimestamp(szTimestamp);
+		format_httpd_os2_timestamp(szTimestamp);
 		fprintf(stderr, "\n%s zend_mm_mmap_fixed mmap(0x%p, 0x%x) failed pid:%u (%x) tid:%u [%d] %s\n",
 			szTimestamp, addr, size, pid, pid, _gettid() ,errno, strerror(errno));
 #else
@@ -577,7 +578,7 @@ static void *zend_mm_mmap(size_t size)
 				failInfoNum = freeInfoNum;	/* Use free */
 			else {
 				/* All slots in use - time to die */
-				formatTimestamp(szTimestamp);
+				format_httpd_os2_timestamp(szTimestamp);
 				pid = _getpid();
 				failCnt_ = failInfo[failInfoNum].failCnt;
 				fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) %u concurrent failures - exiting pid:%u (%x)\n",
@@ -603,7 +604,7 @@ static void *zend_mm_mmap(size_t size)
 			failInfo[failInfoNum].failCntPerSec = 0;
 		}
 		failCntPerSec_ = ++failInfo[failInfoNum].failCntPerSec;
-		formatTimestamp(szTimestamp);
+		format_httpd_os2_timestamp(szTimestamp);
 		pid = _getpid();
 		timeToDie = failCnt_ >= 3 || failCntPerSec_ >= 10;
 		fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) failed pid:%u (%x) tid:%u failcnt:%d failcnt/sec %d%s [%d] %s\n",
@@ -637,7 +638,7 @@ static void *zend_mm_mmap(size_t size)
 		}
 		if (failInfoNum < FAILINFOCNT) {
 			/* Have failInfo entry - report recovery and free entry */
-			formatTimestamp(szTimestamp);
+			format_httpd_os2_timestamp(szTimestamp);
 			pid = _getpid();
 			failCnt_ = failInfo[failInfoNum].failCnt;
 			fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) recovered pid:%u (%x) tid:%u failcnt:%d\n",
@@ -1644,19 +1645,22 @@ static zend_always_inline void zend_mm_free_heap(zend_mm_heap *heap, void *ptr Z
 				UninstallExceptq(&reg);
 			}
 
-			formatTimestamp(szTimestamp);
+			format_httpd_os2_timestamp(szTimestamp);
 			// 2023-01-22 SHL Show ptr too
 			snprintf(msg_buf, sizeof(msg_buf),
 				 "%s zend_mm_free_heap detected heap corrupted for pid:%u (%x) tid:%u chunk->heap %p heap %p ptr %p",
 				 szTimestamp, pid, pid, tid, chunk->heap, heap, ptr);
-			/* 2023-01-27 SHL we should not get here running on tid 1 because tid 1
-			   runs ap_mpm_child_main which never calls modphp.  However, for as yet TBD reasons
-			   zend_mm_free_heap can get called on tid1 when ap_mpm_child_main
-			   calls apr_pool_destroy.
+			/* 2023-02-25 SHL normally we should not get here running on tid 1.
+			   However, when the httpd worker process shuts down ap_mpm_child_main
+                           calls apr_pool_destroy which may call the registered
+			   php_apache_server_shutdown and php_apache_child_shutdown.
 			   When zend_mm_free_heap is called from tid 1 the result is spurious,
 			   cascading errors.  To avoid this, we return rather than
-			   panicking. This allows apr_pool_destroy to finish eventually and ap_mpm_child_main
-			   will terminate along with the process that is running it.
+			   panicking. This allows apr_pool_destroy to finish eventually and
+			   ap_mpm_child_main will terminate along with the process that is running
+                           it.
+			   It is not fully understood why the worker threads have not
+                           teminated and released the memory before apr_pool_destory runs.
 			*/
 			if (tid == 1) {
 			    fprintf(stderr, "%s\n", msg_buf);
@@ -2093,7 +2097,7 @@ static void *zend_mm_alloc_huge(zend_mm_heap *heap, size_t size ZEND_FILE_LINE_D
 			pid_t pid = _getpid();
 			char szTimestamp[28];
 			char szBuf[128];
-			formatTimestamp(szTimestamp);
+			format_httpd_os2_timestamp(szTimestamp);
 			snprintf(szBuf, sizeof(szBuf), "%s zend_mm_alloc_huge out of memory for pid:%u (%x) tid:%u",
 				szTimestamp, pid, pid, _gettid());
 			zend_mm_safe_error(heap, szBuf);
@@ -2164,7 +2168,7 @@ static zend_mm_heap *zend_mm_init(void)
 #ifdef __OS2__				// 2022-05-11 SHL
 		pid_t pid = _getpid();
 		char szTimestamp[28];
-		formatTimestamp(szTimestamp);
+		format_httpd_os2_timestamp(szTimestamp);
 		fprintf(stderr, "\n%s zend_mm_heap can't initialize heap pid:%u (%x) tid:%u [%d] %s\n",
 			szTimestamp, pid, pid, _gettid(), errno, strerror(errno));
 #else
@@ -3116,7 +3120,7 @@ static void alloc_globals_dtor(zend_alloc_globals *alloc_globals)
 	if (alloc_globals->mm_heap == NULL) {
 		pid_t pid = _getpid();
 		char szTimestamp[28];
-		formatTimestamp(szTimestamp);
+		format_httpd_os2_timestamp(szTimestamp);
 		fprintf(stderr, "%s alloc_globals_dtor called with alloc_globals_mm_heap NULL for pid:%u (%x) tid:%u",
 			szTimestamp, pid, pid, _gettid());
 	}
@@ -3325,7 +3329,7 @@ static ZEND_COLD ZEND_NORETURN void zend_out_of_memory(void)
 #ifdef __OS2__ /* 2022-06-22 SHL */
 			pid_t pid = _getpid();
 			char szTimestamp[28];
-			formatTimestamp(szTimestamp);
+			format_httpd_os2_timestamp(szTimestamp);
 			fprintf(stderr, "%s zend_out_of_memory reporting out of memory for pid:%u (%x) tid:%u",
 				szTimestamp, pid, pid, _gettid());
 #else
