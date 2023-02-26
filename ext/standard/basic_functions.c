@@ -3478,8 +3478,9 @@ zend_module_entry basic_functions_module = { /* {{{ */
    We are still looking for what is doing this
    We use this function to to avoid attempting to access uncommitted memory
    2023-02-06 SHL 
+   2023-02-25 SHL Make public
 */
-static BOOL is_os2_mem_accessible(PVOID pv)
+BOOL is_os2_mem_accessible(PVOID pv)
 {
 	ULONG cb;
 	ULONG flags;
