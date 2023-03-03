@@ -51,13 +51,6 @@
  * with more specialized routines when the requested size is known.
  */
 
-#ifdef __OS2__
-// 2023-01-22 SHL Dump current process if process dumps enabled
-// IBM Toolkit requires INCL_DOSMISC bww toolkit requires INCL_DOSRAS
-#define INCL_DOSRAS
-#define INCL_DOSEXCEPTIONS
-#endif
-
 #include "zend.h"
 #include "zend_alloc.h"
 #include "zend_globals.h"
@@ -65,22 +58,30 @@
 #include "zend_multiply.h"
 #include "zend_bitset.h"
 
-// 2023-01-22 SHL For exceptq and DosDumpProcess and DosRaiseException
+// 2023-03-02 SHL For exceptq and DosDumpProcess and DosRaiseException
+#ifdef __OS2__
+
 #ifdef _OS2_H
 #error os2.h already loaded
-#else
+#endif
+
+// IBM Toolkit requires INCL_DOSMISC bww toolkit requires INCL_DOSRAS
+#define INCL_DOSRAS
+#define INCL_DOSEXCEPTIONS
 #define INCL_DOSPROCESS			// For exceptq
 #define INCL_DOSMODULEMGR		// For exceptq
 #include <os2.h>
-#endif
 
 // 2023-02-02 SHL Enable exceptq support
 #ifdef EXCEPTQ_H_INCLUDED
-#error Exceptq already loaded
-#else
-#define INCL_LOADEXCEPTQ
-#include "exceptq.h"
+#error exceptq.h already included
 #endif
+
+// Assume exceptq.dll already loaded by libc
+// #define INCL_LOADEXCEPTQ
+#include "exceptq.h"
+
+#endif // __OS2__
 
 #include <signal.h>
 
@@ -392,9 +393,9 @@ static ZEND_COLD ZEND_NORETURN void zend_mm_panic(const char *message)
 	// 2023-01-22 SHL Dump current process if process dumps enabled and requested by PHP_OS2_DEBUG
 	{
 		char* psz;
-		(psz = getenv("PHP_OS2_DEBUG")) && (psz = strstr(psz, "mm_dump"));
+		(psz = getenv("PHP_OS2_DEBUG")) && (psz = strstr(psz, "mm_panic_dump"));
 		if (psz) {
-			fputs("Attempting process dump\n", stderr);
+			fputs("zend_mm_panic attempting process dump\n", stderr);
 			DosDumpProcess(DDP_PERFORMPROCDUMP, 0, 0);
 		}
 	}
@@ -896,14 +897,15 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 		   early in startup, before it has been initialized.
 		   However, 8.1.6 changed the code paths so that zend_error_cb is
 		   initialized, but not everything needed by zend_error is ready to
-		   use so we can only use the ZEND_MM_LOG_OS2 environment
+		   use so we can only use the PHP_OS2_DEBUG environment
 		   variable to request debug output and we must write to stderr
+		   2023-03-02 SHL Switch to PHP_OS2_DEBUG
 		*/
 		{
 			static char *envp = (char *)-1;
-			/* If first time */
+			/* Initialize if first time */
 			if (envp == (char *)-1)
-				envp = getenv("ZEND_MM_LOG_OS2");
+				(envp = getenv("PHP_OS2_DEBUG")) && (envp = strstr(envp, "mm_chunk_log"));
 			if (envp != NULL)
 				fprintf(stderr, "zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u\n", ptr, fillcnt);
 		}
@@ -1614,8 +1616,6 @@ static zend_always_inline void zend_mm_free_heap(zend_mm_heap *heap, void *ptr Z
 		if (UNEXPECTED(chunk->heap != heap)) {
 			// Report heap corruption and panic
 			// Suppress panic if running on tid 1
-			EXCEPTIONREGISTRATIONRECORD reg = {0};
-			EXCEPTIONREPORTRECORD err = {0};
 			pid_t pid = _getpid();
 			int tid = _gettid();
 			char* psz;
@@ -1623,14 +1623,15 @@ static zend_always_inline void zend_mm_free_heap(zend_mm_heap *heap, void *ptr Z
 			char msg_buf[512];
 
 			/* 2023-01-30 SHL Try for exceptq report if requested by PHP_OS2_DEBUG
-			   Requires SET EXCEPTQ=D in environment
 			   Requires PassEnv EXCEPTQ in httpd.conf if running under httpd
 			   Requires PassEnv PHP_OS2_DEBUG in httpd.conf if running under httpd
 			*/
-			(psz = getenv("PHP_OS2_DEBUG")) && (psz = strstr(psz, "mm_exceptq"));
+			(psz = getenv("PHP_OS2_DEBUG")) && (psz = strstr(psz, "free_heap_exceptq"));
 			if (psz) {
 				// 2023-02-02 SHL FIXME for install/uninstall to be gone when libc supports EXCEPTQ_DEBUG_EXCEPTION
 				// Assume exceptq.dll already loaded by libc
+				EXCEPTIONREGISTRATIONRECORD reg = {0};
+				EXCEPTIONREPORTRECORD err = {0};
 				InstallExceptq(&reg, "DI", "exceptq loaded by zend_mm_free_heap");
 
 				fprintf(stderr, "Attempting exceptq report for pid %u(%x) tid %d\n", pid, pid, tid);
@@ -1652,18 +1653,24 @@ static zend_always_inline void zend_mm_free_heap(zend_mm_heap *heap, void *ptr Z
 				 szTimestamp, pid, pid, tid, chunk->heap, heap, ptr);
 			/* 2023-02-25 SHL normally we should not get here running on tid 1.
 			   However, when the httpd worker process shuts down ap_mpm_child_main
-                           calls apr_pool_destroy which may call the registered
-			   php_apache_server_shutdown and php_apache_child_shutdown.
+			   calls apr_pool_destroy which will call php_apache_server_shutdown and
+			   php_apache_child_shutdown if registered.
 			   When zend_mm_free_heap is called from tid 1 the result is spurious,
 			   cascading errors.  To avoid this, we return rather than
 			   panicking. This allows apr_pool_destroy to finish eventually and
 			   ap_mpm_child_main will terminate along with the process that is running
-                           it.
+			   it.
 			   It is not fully understood why the worker threads have not
-                           teminated and released the memory before apr_pool_destory runs.
+			   teminated and released the memory before apr_pool_destory runs.
 			*/
 			if (tid == 1) {
 			    fprintf(stderr, "%s\n", msg_buf);
+			    // 2023-03-02 SHL Attempt process dump if requested FIXME debug
+			    (psz = getenv("PHP_OS2_DEBUG")) && (psz = strstr(psz, "free_heap_dump"));
+			    if (psz) {
+				    fputs("zend_mm_free_heap attempting process dump\n", stderr);
+				    DosDumpProcess(DDP_PERFORMPROCDUMP, 0, 0);
+			    }
 			    return;
 			}
 			zend_mm_panic(msg_buf);

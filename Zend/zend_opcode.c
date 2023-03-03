@@ -30,16 +30,31 @@
 #include "zend_vm.h"
 
 #ifdef __OS2__ // 2023-02-06 SHL
+
 #include <unistd.h>			// _getpid
 
+// 2023-03-02 SHL For exceptq and DosDumpProcess and DosRaiseException
 #ifdef OS_H
 #error os2.h already #included
 #endif
+
+// IBM Toolkit requires INCL_DOSMISC bww toolkit requires INCL_DOSRAS
+#define INCL_DOSRAS
+#define INCL_DOSEXCEPTIONS
+#define INCL_DOSPROCESS			// For exceptq
+#define INCL_DOSMODULEMGR		// For exceptq
 #define INCL_DOSMEMMGR
 #include <os2.h>
+
+// 2023-02-02 SHL Enable exceptq support
+#ifdef EXCEPTQ_H_INCLUDED
+#error exceptq.h already included
 #endif
 
-#ifdef __OS2__
+// Assume exceptq.dll already loaded by libc
+// #define INCL_LOADEXCEPTQ
+#include "exceptq.h"
+
 // 2023-02-25 SHL
 // See basic_functions.c
 extern BOOL is_os2_mem_accessible(PVOID pv);
@@ -187,7 +202,11 @@ ZEND_API void zend_cleanup_internal_class_data(zend_class_entry *ce)
 	if (!is_os2_mem_accessible(ptr)) {
 		// 2023-02-24 SHL It appears we cannot use zend_error here without trapping in zend_error
 		// zend_error(E_WARNING, "zend_cleanup_internal_class_data ptr %p points to uncommitted memory (%u)", ptr, __LINE__);
+		EXCEPTIONREGISTRATIONRECORD reg = {0};
+		EXCEPTIONREPORTRECORD err = {0};
 		pid_t pid = _getpid();
+		int tid = _gettid();
+		char *psz;
 		char szTimestamp[28];
 		format_httpd_os2_timestamp(szTimestamp);
 		fprintf(stderr, "\n%s zend_cleanup_internal_class_data ptr %p points to uncommitted memory pid:%u (%x) tid:%u (%u)\n",
@@ -198,6 +217,31 @@ ZEND_API void zend_cleanup_internal_class_data(zend_class_entry *ce)
 		   called apr_pool_destroy because the httpd worker process is shutting down.
 		   Better to get out now rather than wasting effort checking the other pointers.
 		*/
+		// 2023-03-02 SHL FIXME debug
+		(psz = getenv("PHP_OS2_DEBUG")) && (psz = strstr(psz, "cleanup_internal_exceptq"));
+		if (psz) {
+			// 2023-02-02 SHL FIXME for install/uninstall to be gone when libc supports EXCEPTQ_DEBUG_EXCEPTION
+			// Assume exceptq.dll already loaded by libc
+			InstallExceptq(&reg, "DI", "exceptq loaded by zend_cleanup_internal_class_data");
+
+			fprintf(stderr, "Attempting exceptq report for pid %u(%x) tid %d\n", pid, pid, tid);
+			err.ExceptionNum = EXCEPTQ_DEBUG_EXCEPTION;
+			err.cParameters = 4;
+			err.ExceptionInfo[0] = 0;
+			err.ExceptionInfo[1] = (ULONG)ptr;
+			err.ExceptionInfo[2] = 0;
+			err.ExceptionInfo[3] = 0;
+			DosRaiseException(&err);
+
+			UninstallExceptq(&reg);
+		}
+		// 2023-03-02 SHL FIXME debug
+		(psz = getenv("PHP_OS2_DEBUG")) && (psz = strstr(psz, "cleanup_internal_dump"));
+		if (psz) {
+			fputs("zend_cleanup_internal_class_data attempting process dump\n", stderr);
+			DosDumpProcess(DDP_PERFORMPROCDUMP, 0, 0);
+		}
+
 		return;
 	}
 
@@ -485,9 +529,11 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 		void *ptr = ZEND_MAP_PTR_GET_PTR(op_array->static_variables_ptr);
 		HashTable *ht;
 		if (!is_os2_mem_accessible(ptr)) {
+		  	char *psz;
 			// 2023-02-24 SHL It appears we cannot use zend_error here without trapping in zend_error
 			// zend_error(E_WARNING, "destroy_op_array ptr %p points to uncommitted memory (%u)", ptr, __LINE__);
 			pid_t pid = _getpid();
+			int tid = _gettid();
 			char szTimestamp[28];
 			format_httpd_os2_timestamp(szTimestamp);
 			fprintf(stderr, "\n%s destroy_op_array ptr %p points to uncommitted memory pid:%u (%x) tid:%u (%u)\n",
@@ -501,6 +547,32 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 			   Better to get out now rather than wasting effort checking the other
 			   pointers.
 			*/
+			// 2023-03-02 SHL FIXME debug
+			(psz = getenv("PHP_OS2_DEBUG")) && (psz = strstr(psz, "destroy_array_exceptq"));
+			if (psz) {
+				// 2023-02-02 SHL FIXME for install/uninstall to be gone when libc supports EXCEPTQ_DEBUG_EXCEPTION
+				EXCEPTIONREGISTRATIONRECORD reg = {0};
+				EXCEPTIONREPORTRECORD err = {0};
+				// Assume exceptq.dll already loaded by libc
+				InstallExceptq(&reg, "DI", "exceptq loaded by destroy_op_array");
+
+				fprintf(stderr, "destroy_op_array attempting exceptq report for pid %u(%x) tid %d\n", pid, pid, tid);
+				err.ExceptionNum = EXCEPTQ_DEBUG_EXCEPTION;
+				err.cParameters = 4;
+				err.ExceptionInfo[0] = 0;
+				err.ExceptionInfo[1] = (ULONG)ptr;
+				err.ExceptionInfo[2] = 0;
+				err.ExceptionInfo[3] = 0;
+				DosRaiseException(&err);
+
+				UninstallExceptq(&reg);
+			}
+			// 2023-03-02 SHL FIXME debug
+			(psz = getenv("PHP_OS2_DEBUG")) && (psz = strstr(psz, "destroy_array_dump"));
+			if (psz) {
+				fputs("destroy_op_array attempting process dump\n", stderr);
+				DosDumpProcess(DDP_PERFORMPROCDUMP, 0, 0);
+			}
 			return;
 		}
 		ht = ZEND_MAP_PTR_GET(op_array->static_variables_ptr);
