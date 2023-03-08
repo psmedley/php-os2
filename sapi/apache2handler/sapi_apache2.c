@@ -538,6 +538,11 @@ static apr_status_t php_server_context_cleanup(void *data_)
 	return APR_SUCCESS;
 }
 
+#ifdef __OS2__ // 2023-03-07 SHL trycatch debug
+char *os2_try_catch_file;		// 2023-03-07 SHL trycatch debug
+int os2_try_catch_line;			// 2023-03-07 SHL trycatch debug
+#endif
+
 static int php_apache_request_ctor(request_rec *r, php_struct *ctx)
 {
 	char *content_length;
@@ -573,6 +578,11 @@ static int php_apache_request_ctor(request_rec *r, php_struct *ctx)
 
 	ctx->r->user = apr_pstrdup(ctx->r->pool, SG(request_info).auth_user);
 
+
+#ifdef __OS2__ // 2023-03-07 SHL trycatch debug
+	os2_try_catch_file = __FILE__;	// 2023-03-07 SHL trycatch debug
+	os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
+#endif
 	return php_request_startup();
 }
 
@@ -687,15 +697,23 @@ normal:
 	}
 zend_first_try {
 
+	os2_try_catch_file = __FILE__;	// 2023-03-07 SHL trycatch debug
+	os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
+
 	if (ctx == NULL) {
 		brigade = apr_brigade_create(r->pool, r->connection->bucket_alloc);
 		ctx = SG(server_context);
 		ctx->brigade = brigade;
 
+		os2_try_catch_file = __FILE__;	// 2023-03-07 SHL trycatch debug
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
 		if (php_apache_request_ctor(r, ctx)!=SUCCESS) {
 			zend_bailout();
 		}
+		os2_try_catch_file = __FILE__;	// 2023-03-07 SHL trycatch debug
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
 	} else {
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
 		if (!parent_req) {
 			parent_req = ctx->r;
 		}
@@ -704,9 +722,12 @@ zend_first_try {
 				strcmp(parent_req->handler, PHP_SOURCE_MAGIC_TYPE) &&
 				strcmp(parent_req->handler, PHP_SCRIPT)) {
 			if (php_apache_request_ctor(r, ctx)!=SUCCESS) {
+				os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
 				zend_bailout();
 			}
 		}
+
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
 
 		/*
 		 * check if coming due to ErrorDocument
@@ -734,17 +755,35 @@ zend_first_try {
 		zend_file_handle zfd;
 		zend_stream_init_filename(&zfd, (char *) r->filename);
 
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
+
 		if (!parent_req) {
 			php_execute_script(&zfd);
 		} else {
 			zend_execute_scripts(ZEND_INCLUDE, NULL, 1, &zfd);
 		}
 
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
+
 		apr_table_set(r->notes, "mod_php_memory_usage",
 			apr_psprintf(ctx->r->pool, "%" APR_SIZE_T_FMT, zend_memory_peak_usage(1)));
 	}
 
+	os2_try_catch_line = 0;	// 2023-03-07 SHL trycatch debug
+
 } zend_end_try();
+
+	// 2023-03-07 SHL trycatch debug
+	if (os2_try_catch_line) {
+	  // route to httpd log just in case zend_error is goine to fail
+	  fprintf(stderr, "php_handler bailed in %s at %u\n",
+		  os2_try_catch_file ? os2_try_catch_file : "**unknown**",
+		  os2_try_catch_line);
+
+		zend_error(E_ERROR, "php_handler bailed in %s at %u\n",
+			   os2_try_catch_file ? os2_try_catch_file : "**unknown**",
+			    os2_try_catch_line);
+	}
 
 	if (!parent_req) {
 		php_apache_request_dtor(r);
