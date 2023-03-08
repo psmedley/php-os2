@@ -1806,8 +1806,8 @@ static void sigchld_handler(int apar)
 #endif
 
 #ifdef __OS2__ // 2023-03-07 SHL trycatch debug
-extern char *os2_try_catch_file;	// 2023-03-07 SHL trycatch debug
-extern int os2_try_catch_line;	// 2023-03-07 SHL trycatch debug
+ZEND_API char *os2_try_catch_file;	// 2023-03-07 SHL trycatch debug
+ZEND_API int os2_try_catch_line;	// 2023-03-07 SHL trycatch debug
 #endif
 
 
