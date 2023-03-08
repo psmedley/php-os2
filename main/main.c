@@ -1805,6 +1805,12 @@ static void sigchld_handler(int apar)
 /* }}} */
 #endif
 
+#ifdef __OS2__ // 2023-03-07 SHL trycatch debug
+extern char *os2_try_catch_file;	// 2023-03-07 SHL trycatch debug
+extern int os2_try_catch_line;	// 2023-03-07 SHL trycatch debug
+#endif
+
+
 /* {{{ php_request_startup
  */
 int php_request_startup(void)
@@ -1832,6 +1838,9 @@ int php_request_startup(void)
 		PG(in_error_log) = 0;
 		PG(during_request_startup) = 1;
 
+		os2_try_catch_file = __FILE__;	// 2023-03-07 SHL trycatch debug
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
+
 		php_output_activate();
 
 		/* initialize global variables */
@@ -1840,12 +1849,21 @@ int php_request_startup(void)
 		PG(connection_status) = PHP_CONNECTION_NORMAL;
 		PG(in_user_include) = 0;
 
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
+
 		zend_activate();
+
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
+
 		sapi_activate();
 
 #ifdef ZEND_SIGNALS
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
+
 		zend_signal_activate();
 #endif
+
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
 
 		if (PG(max_input_time) == -1) {
 			zend_set_timeout(EG(timeout_seconds), 1);
@@ -1877,8 +1895,15 @@ int php_request_startup(void)
 		/* We turn this off in php_execute_script() */
 		/* PG(during_request_startup) = 0; */
 
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
+
 		php_hash_environment();
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
+
 		zend_activate_modules();
+
+		os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
+
 		PG(modules_activated)=1;
 	} zend_catch {
 		retval = FAILURE;
