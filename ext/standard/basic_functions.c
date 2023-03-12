@@ -100,7 +100,7 @@ typedef struct yy_buffer_state *YY_BUFFER_STATE;
 #endif
 #define INCL_DOSMEMMGR
 #include <os2.h>
-#endif
+#endif // __OS2__
 
 #include "zend_globals.h"
 #include "php_globals.h"
@@ -3479,14 +3479,14 @@ zend_module_entry basic_functions_module = { /* {{{ */
    We use this function to to avoid attempting to access uncommitted memory
    2023-02-06 SHL 
    2023-02-25 SHL Make public
+   2023-03-12 SHL Pass back cb, flags and ulrc
 */
-BOOL is_os2_mem_accessible(PVOID pv)
+BOOL is_os2_mem_accessible(PVOID pv, PULONG pcb, PULONG pflags, APIRET *pulrc)
 {
-	ULONG cb;
-	ULONG flags;
-	APIRET ulrc = DosQueryMem(pv, &cb, &flags);
+	*pcb = 0x2000000;		// 512MB - functional max is smaller
+	*pulrc = DosQueryMem(pv, pcb, pflags);
 #	define FLAGS (PAG_COMMIT | PAG_READ | PAG_WRITE)
-	return ulrc == 0 && (flags & FLAGS) == FLAGS;
+	return *pulrc == 0 && (*pflags & FLAGS) == FLAGS;
 }
 #endif // __OS2__
 
@@ -3495,7 +3495,10 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 {
 #ifdef __OS2__
 	BOOL pe_ok;
-#endif
+	ULONG cb;
+	ULONG flags;
+	APIRET ulrc;
+#endif // __OS2__
 	putenv_entry *pe = Z_PTR_P(zv);
 
 	if (pe->previous_value) {
@@ -3508,15 +3511,17 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 # endif
 #ifndef __OS2__
 		putenv(pe->previous_value);
-#else
+#else // __OS2__
 		// 2023-02-12 SHL Avoid exception if memory released by owner
-		if (!is_os2_mem_accessible(pe->previous_value)) {
-			zend_error(E_WARNING, "php_putenv_destructor pe %p points to uncommitted memory (%u)", pe, __LINE__);
+		// 2023-03-12 SHL Show cb and flags
+		if (!is_os2_mem_accessible(pe->previous_value, &cb, &flags, &ulrc)) {
+			zend_error(E_WARNING, "php_putenv_destructor pe->previous_value %p points to uncommitted memory, cb 0x%x flags 0x%x ulrc %u (%u)",
+				   pe, cb, flags, ulrc, __LINE__);
 		}
 		else
 		  putenv(pe->previous_value);
 
-#endif
+#endif // __OS2__
 # if defined(PHP_WIN32)
 		efree(pe->previous_value);
 # endif
@@ -3525,12 +3530,16 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 // 2023-02-07 SHL
 # ifndef __OS2__
 		unsetenv(pe->key);
-# else
-		if (!is_os2_mem_accessible(pe)) {
-			zend_error(E_WARNING, "php_putenv_destructor pe %p points to uncommitted memory (%u)", pe, __LINE__);
+# else // __OS2__
+		// 2023-03-12 SHL Show cb and flags
+		if (!is_os2_mem_accessible(pe, &cb, &flags, &ulrc)) {
+			zend_error(E_WARNING, "php_putenv_destructor pe %p points to uncommitted memory, cb 0x%x flags 0x%x ulrc %u (%u)",
+				   pe, cb, flags, ulrc, __LINE__);
 			pe_ok = FALSE;
 		}
-		else if (!is_os2_mem_accessible(pe->key)) {
+		else if (!is_os2_mem_accessible(pe->key, &cb, &flags, &ulrc)) {
+			zend_error(E_WARNING, "php_putenv_destructor pe->key %p points to uncommitted memory, cb 0x%x flags 0x%x ulrc %u (%u)",
+				   pe, cb, flags, ulrc, __LINE__);
 			pe_ok = FALSE;
 		}
 		else {
@@ -3564,8 +3573,8 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 		tzset();
 	}
 #ifdef __OS2__
-#endif
 	} // pe_ok
+#endif
 #endif
 
 	efree(pe->putenv_string);
@@ -4231,6 +4240,9 @@ PHP_FUNCTION(putenv)
 #endif
 #ifdef __OS2__
 	BOOL ptr_ok;
+	ULONG cb;
+	ULONG flags;
+	APIRET ulrc;
 #endif
 
 
@@ -4282,8 +4294,10 @@ PHP_FUNCTION(putenv)
 		}
 #else // __OS2__
 		// 2023-02-19 SHL Avoid accessing uncommitted memory
-		if (!is_os2_mem_accessible(pe.key)) {
-			zend_error(E_WARNING, "php_putenv_destructor pe.key %p points to uncommitted memory (%u)", pe.key, __LINE__);
+		// 2023-03-12 SHL Show cb and flags
+		if (!is_os2_mem_accessible(pe.key, &cb, &flags, &ulrc)) {
+			zend_error(E_WARNING, "php_putenv_destructor pe.key %p points to uncommitted memory, cb 0x%x flags 0x%x ulrc %u (%u)",
+			pe.key, cb, flags, ulrc, __LINE__);
 			ptr_ok = FALSE;
 			break;
 		}
@@ -4307,7 +4321,7 @@ PHP_FUNCTION(putenv)
 		unsetenv(pe.putenv_string);
 	}
 	if (ptr_ok && (!p || putenv(pe.putenv_string) == 0)) { /* success */
-#endif
+#endif // __OS2__
 #else
 # ifndef PHP_WIN32
 	if (putenv(pe.putenv_string) == 0) { /* success */

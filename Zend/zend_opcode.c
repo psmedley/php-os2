@@ -57,7 +57,8 @@
 
 // 2023-02-25 SHL
 // See basic_functions.c
-extern BOOL is_os2_mem_accessible(PVOID pv);
+extern BOOL is_os2_mem_accessible(PVOID pv, PULONG pcb, PULONG pflags, APIRET *pulrc);
+
 // See zend_alloc.c
 extern void format_httpd_os2_timestamp(char *pszTimestamp28);
 
@@ -191,15 +192,22 @@ ZEND_API void zend_function_dtor(zval *zv)
 
 ZEND_API void zend_cleanup_internal_class_data(zend_class_entry *ce)
 {
+#ifdef __OS2__ // 2023-02-06 SHL
+
 	/* 2023-02-25 SHL Avoid exceptions if op_array->static_variables_ptr
 	   points to uncommitted memory
 	*/
+
+	ULONG cb;
+	ULONG flags;
+	APIRET ulrc;
+
 #define CE_STATIC_MEMBERS_PTR(ce) \
 	((zval*)ZEND_MAP_PTR_GET_PTR((ce)->static_members_table))
 
 	void *ptr = CE_STATIC_MEMBERS_PTR(ce);
 
-	if (!is_os2_mem_accessible(ptr)) {
+	if (!is_os2_mem_accessible(ptr, &cb, &flags, &ulrc)) {
 		// 2023-02-24 SHL It appears we cannot use zend_error here without trapping in zend_error
 		// zend_error(E_WARNING, "zend_cleanup_internal_class_data ptr %p points to uncommitted memory (%u)", ptr, __LINE__);
 		EXCEPTIONREGISTRATIONRECORD reg = {0};
@@ -209,8 +217,8 @@ ZEND_API void zend_cleanup_internal_class_data(zend_class_entry *ce)
 		char *psz;
 		char szTimestamp[28];
 		format_httpd_os2_timestamp(szTimestamp);
-		fprintf(stderr, "\n%s zend_cleanup_internal_class_data ptr %p points to uncommitted memory pid:%u (%x) tid:%u (%u)\n",
-			szTimestamp, ptr, pid, pid, _gettid(), __LINE__);
+		fprintf(stderr, "\n%s zend_cleanup_internal_class_data ptr %p points to uncommitted memory, cb 0x%x flags 0x%x ulrc %u pid:%u (%x) tid:%u (%u)\n",
+			szTimestamp, ptr, cb, flags, ulrc, pid, pid, _gettid(), __LINE__);
 		/* If we get here, ce points to uncommited memory for not yet fully understood
 		   reasons so it is likely that other pointers have the same problem.
 		   Recall that when we get here, we are running on tid 1 and ap_mpm_child_main
@@ -244,6 +252,7 @@ ZEND_API void zend_cleanup_internal_class_data(zend_class_entry *ce)
 
 		return;
 	}
+#endif // __OS2__ 2023-02-06 SHL
 
 	if (CE_STATIC_MEMBERS(ce)) {
 		zval *static_members = CE_STATIC_MEMBERS(ce);
@@ -522,13 +531,16 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 	if (op_array->static_variables) {
 # ifndef __OS2__
 		HashTable *ht = ZEND_MAP_PTR_GET(op_array->static_variables_ptr);
-# else
+# else // __OS2__
 		/* 2023-02-19 SHL Avoid exceptions if op_array->static_variables_ptr
 		   points to uncommitted memory
 		*/
+		ULONG cb;
+		ULONG flags;
+		APIRET ulrc;
 		void *ptr = ZEND_MAP_PTR_GET_PTR(op_array->static_variables_ptr);
 		HashTable *ht;
-		if (!is_os2_mem_accessible(ptr)) {
+		if (!is_os2_mem_accessible(ptr, &cb, &flags, &ulrc)) {
 		  	char *psz;
 			// 2023-02-24 SHL It appears we cannot use zend_error here without trapping in zend_error
 			// zend_error(E_WARNING, "destroy_op_array ptr %p points to uncommitted memory (%u)", ptr, __LINE__);
@@ -536,8 +548,8 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 			int tid = _gettid();
 			char szTimestamp[28];
 			format_httpd_os2_timestamp(szTimestamp);
-			fprintf(stderr, "\n%s destroy_op_array ptr %p points to uncommitted memory pid:%u (%x) tid:%u (%u)\n",
-				szTimestamp, ptr, pid, pid, _gettid(), __LINE__);
+			fprintf(stderr, "\n%s destroy_op_array ptr %p points to uncommitted memory, cb 0x%x flags 0x%x ulrc %u pid:%u (%x) tid:%u (%u)\n",
+				szTimestamp, ptr, cb, flags, ulrc, pid, pid, _gettid(), __LINE__);
 			/* If we get here, static_variables_ptr points to uncommited
 			   memory for as yet not fully understood reasons so it is likely that
 			   other pointers have the same problem.
