@@ -541,24 +541,28 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 		void *ptr = ZEND_MAP_PTR_GET_PTR(op_array->static_variables_ptr);
 		HashTable *ht;
 		if (!is_os2_mem_accessible(ptr, &cb, &flags, &ulrc)) {
-		  	char *psz;
-			// 2023-02-24 SHL It appears we cannot use zend_error here without trapping in zend_error
-			// zend_error(E_WARNING, "destroy_op_array ptr %p points to uncommitted memory (%u)", ptr, __LINE__);
+			char *psz;
 			pid_t pid = _getpid();
 			int tid = _gettid();
-			char szTimestamp[28];
-			format_httpd_os2_timestamp(szTimestamp);
-			fprintf(stderr, "\n%s destroy_op_array ptr %p points to uncommitted memory, cb 0x%x flags 0x%x ulrc %u pid:%u (%x) tid:%u (%u)\n",
-				szTimestamp, ptr, cb, flags, ulrc, pid, pid, _gettid(), __LINE__);
 			/* If we get here, static_variables_ptr points to uncommited
 			   memory for as yet not fully understood reasons so it is likely that
 			   other pointers have the same problem.
-			   Recall that when we get here, we are running tid 1 and ap_mpm_child_main
+			   Recall that when we get here, we are running as tid 1 and ap_mpm_child_main
 			   has called apr_pool_destroy because the httpd worker process is shutting
 			   down.
 			   Better to get out now rather than wasting effort checking the other
 			   pointers.
 			*/
+			// 2023-03-15 SHL FIXME debug
+			(psz = getenv("PHP_OS2_DEBUG")) && (psz = strstr(psz, "destroy_array_log"));
+			if (psz) {
+			  char szTimestamp[28];
+			  // 2023-02-24 SHL It appears we cannot use zend_error here without trapping in zend_error
+			  // zend_error(E_WARNING, "destroy_op_array ptr %p points to uncommitted memory (%u)", ptr, __LINE__);
+			  format_httpd_os2_timestamp(szTimestamp);
+			  fprintf(stderr, "\n%s destroy_op_array ptr %p points to uncommitted memory, cb 0x%x flags 0x%x ulrc %u pid:%u (%x) tid:%u (%u)\n",
+				  szTimestamp, ptr, cb, flags, ulrc, pid, pid, _gettid(), __LINE__);
+			}
 			// 2023-03-02 SHL FIXME debug
 			(psz = getenv("PHP_OS2_DEBUG")) && (psz = strstr(psz, "destroy_array_exceptq"));
 			if (psz) {
@@ -585,7 +589,7 @@ ZEND_API void destroy_op_array(zend_op_array *op_array)
 				fputs("destroy_op_array attempting process dump\n", stderr);
 				DosDumpProcess(DDP_PERFORMPROCDUMP, 0, 0);
 			}
-			return;
+			return;		// Avoid trapping
 		}
 		ht = ZEND_MAP_PTR_GET(op_array->static_variables_ptr);
 # endif // __OS2__
