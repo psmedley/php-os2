@@ -45,9 +45,6 @@
 /* Whether to build dba as dynamic module */
 #undef COMPILE_DL_DBA
 
-/* Whether to build dl_test as dynamic module */
-#undef COMPILE_DL_DL_TEST
-
 /* Whether to build dom as dynamic module */
 #undef COMPILE_DL_DOM
 
@@ -1162,6 +1159,9 @@
 
 /* */
 #undef HAVE_OCIENVNLSCREATE
+
+/* */
+#undef HAVE_OCILOBREAD2
 
 /* */
 #undef HAVE_OCISTMTFETCH2

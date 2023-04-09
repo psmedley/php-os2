@@ -717,7 +717,7 @@ static zend_string *date_format(const char *format, size_t format_len, timelib_t
 			/* timezone */
 			case 'I': length = slprintf(buffer, sizeof(buffer), "%d", localtime ? offset->is_dst : 0); break;
 			case 'p':
-				if (!localtime || strcmp(offset->abbr, "UTC") == 0 || strcmp(offset->abbr, "Z") == 0) {
+				if (!localtime || strcmp(offset->abbr, "UTC") == 0 || strcmp(offset->abbr, "Z") == 0 || strcmp(offset->abbr, "GMT+0000") == 0) {
 					length = slprintf(buffer, sizeof(buffer), "%s", "Z");
 					break;
 				}
@@ -2896,6 +2896,10 @@ static int php_date_modify(zval *object, char *modify, size_t modify_len) /* {{{
 
 	if (tmp_time->us != -99999) {
 		dateobj->time->us = tmp_time->us;
+	}
+
+	if (tmp_time->have_zone && tmp_time->zone_type == TIMELIB_ZONETYPE_OFFSET) {
+		timelib_set_timezone_from_offset(dateobj->time, tmp_time->z);
 	}
 
 	timelib_time_dtor(tmp_time);
