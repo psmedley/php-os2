@@ -1182,6 +1182,9 @@
 #undef HAVE_OCIENVNLSCREATE
 
 /* */
+#undef HAVE_OCILOBREAD2
+
+/* */
 #undef HAVE_OCISTMTFETCH2
 
 /* Defined to 1 if OCI8 configuration located Oracle's Instant Client

@@ -1394,7 +1394,7 @@
 /* #undef HAVE_SHMOP */
 
 /* Define if you have SysV IPC SHM support */
-/* #undef HAVE_SHM_IPC */
+#define HAVE_SHM_IPC 1
 
 /* Define if you have mmap(MAP_ANON) SHM support */
 #define HAVE_SHM_MMAP_ANON 1
