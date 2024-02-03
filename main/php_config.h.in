@@ -153,6 +153,9 @@
 /* Whether to build phar as dynamic module */
 #undef COMPILE_DL_PHAR
 
+/* Whether to build phpbz2 as dynamic module */
+#undef COMPILE_DL_PHPBZ2
+
 /* Whether to build posix as dynamic module */
 #undef COMPILE_DL_POSIX
 
