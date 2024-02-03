@@ -1,6 +1,6 @@
 ** EXPERIMENTAL (HLL) ** Open Watcom Linker Version 2.0beta1 Limited Availability by SHL on Jul  2 2020
 Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
-Created on:       23/01/27 16:43:45
+Created on:       23/04/09 18:21:14
 Executable Image: sapi/cgi/php-cgi.exe
 creating an OS/2 EMX executable
 
@@ -89,7 +89,7 @@ Module: U:\usr\lib\crt0hi.obj(D:\Temp\ccreGMA2.s)
 0002:00000708  ___eh_term__
 0002:00000714+ ___fork_parent1__
 0002:0000071c+ ___fork_child1__
-Module: U:\dev\php-8.2-os2\main\fastcgi.obj(U:\dev\php-8.2-os2\main\fastcgi.c)
+Module: U:\dev\php-8.2-os2\main\fastcgi.obj(fastcgi.obj)
 0001:000000f8* _fcgi_free_mgmt_var_cb
 0001:0000109e* _fcgi_set_in_shutdown
 0001:000010ab  _fcgi_in_shutdown
@@ -118,8 +118,8 @@ Module: U:\dev\php-8.2-os2\main\fastcgi.obj(U:\dev\php-8.2-os2\main\fastcgi.c)
 0001:000027a8  _fcgi_is_fastcgi
 0001:00002888  _fcgi_listen
 0001:00002e0c* _fcgi_get_last_client_ip
-0001:000010ca* _fcgi_log$w$zEb1NvGMKa8syQc24
-Module: U:\dev\php-8.2-os2\sapi\cgi\cgi_main.obj(U:\dev\php-8.2-os2\sapi\cgi\cgi_main.c)
+0001:000010ca* _fcgi_log$w$Zz6hgB6FDc8ZBT6j3
+Module: U:\dev\php-8.2-os2\sapi\cgi\cgi_main.obj(cgi_main.obj)
 0001:00002e88* @zif_apache_request_headers@8
 0001:000046e6* _fastcgi_cleanup
 0001:0000474c* @zif_apache_response_headers@8
@@ -139,7 +139,7 @@ Module: U:\usr\lib\libend.lib(src/libend/386/end.asm)
 0000:00000000* WEAK$ZERO
 0002:00000950  __end
 0002:00000730  __edata
-Module: U:\tmp\ldconv_libgcc_a_361963d36b981249f0.lib(_chkstk_ms.obj)
+Module: U:\tmp\ldconv_libgcc_a_bb4f64327c81143238.lib(_chkstk_ms.obj)
 0001:00008a10  ___chkstk_ms
 Module: U:\usr\lib\libc_dll.lib(setsockopt.obj)
 0001:00008a40  _setsockopt
@@ -157,7 +157,7 @@ Module: U:\usr\lib\libc_dll.lib(bind.obj)
 0001:00009070  _bind
 Module: U:\usr\lib\libc_dll.lib(listen.obj)
 0001:00009190  _listen
-Module: U:\tmp\ldconv_libgcc_a_361963d36b981249f0.lib(__main.obj)
+Module: U:\tmp\ldconv_libgcc_a_bb4f64327c81143238.lib(__main.obj)
 0001:00009250* ___do_global_dtors
 0001:00009255* ___do_global_ctors
 0001:00009270  ___main
@@ -166,13 +166,13 @@ Module: U:\usr\lib\libc_dll.lib(highmemsocket.obj)
 0001:000093a4  ___libsocket_safe_addr_pre
 0001:000094c4  ___libsocket_safe_addr_post
 0001:00009575  ___libsocket_safe_addr_free
-Module: U:\tmp\ldconv_libgcc_eh_a_361963d36b9811ffb8.lib(emx-ctordtor.obj)
+Module: U:\tmp\ldconv_libgcc_eh_a_bb4f64327c8113fb88.lib(emx-ctordtor.obj)
 0001:000095a0  ___ctordtorInit
 0001:000095d6  ___ctordtorTerm
-Module: U:\tmp\ldconv_libgcc_eh_a_361963d36b9811ffb8.lib(emx-eh.obj)
+Module: U:\tmp\ldconv_libgcc_eh_a_bb4f64327c8113fb88.lib(emx-eh.obj)
 0001:00009610  ___ehInit
 0001:0000964e* ___ehTerm
-Module: U:\tmp\ldconv_libgcc_eh_a_361963d36b9811ffb8.lib(unwind-dw2-fde.obj)
+Module: U:\tmp\ldconv_libgcc_eh_a_bb4f64327c8113fb88.lib(unwind-dw2-fde.obj)
 0001:0000a82a* ___register_frame_info_bases
 0001:0000a89c* ___register_frame_info
 0001:0000a911* ___register_frame
@@ -183,7 +183,7 @@ Module: U:\tmp\ldconv_libgcc_eh_a_361963d36b9811ffb8.lib(unwind-dw2-fde.obj)
 0001:0000aadf* ___deregister_frame_info
 0001:0000aaf9  ___deregister_frame
 0001:0000ab1c* __Unwind_Find_FDE
-Module: U:\tmp\ldconv_libgcc_a_361963d36b981249f0.lib(gthr-os2.obj)
+Module: U:\tmp\ldconv_libgcc_a_bb4f64327c81143238.lib(gthr-os2.obj)
 0001:0000b0d3* ___gthread_os2_mutex_init
 0001:0000b108* ___gthread_os2_mutex_destroy
 0001:0000b128  ___gthread_os2_mutex_lock
@@ -418,8 +418,8 @@ DosSleep                            doscalls
 
 U:\extras\lib\libcx.lib
 U:\dev\php-8.2-os2\.libs\php.lib
-U:\tmp\ldconv_libgcc_eh_a_361963d36b9811ffb8.lib
-U:\tmp\ldconv_libgcc_a_361963d36b981249f0.lib
+U:\tmp\ldconv_libgcc_eh_a_bb4f64327c8113fb88.lib
+U:\tmp\ldconv_libgcc_a_bb4f64327c81143238.lib
 U:\usr\lib\libc_alias.lib
 U:\usr\lib\libc_dll.lib
 U:\usr\lib\libos2.lib
@@ -433,4 +433,4 @@ U:\usr\lib\libend.lib
 Stack size:  007d0000 (8192000.)
 Memory size:  007dc010 (8241168.)
 Entry point address: 0001:00000000
-Link time: 00:00.98
+Link time: 00:00.92

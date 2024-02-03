@@ -1,6 +1,6 @@
 ** EXPERIMENTAL (HLL) ** Open Watcom Linker Version 2.0beta1 Limited Availability by SHL on Jul  2 2020
 Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
-Created on:       23/01/27 16:43:41
+Created on:       23/04/09 18:21:10
 Executable Image: sapi/cli/php.exe
 creating an OS/2 EMX executable
 
@@ -89,7 +89,7 @@ Module: U:\usr\lib\crt0hi.obj(D:\Temp\ccreGMA2.s)
 0002:000007c8  ___eh_term__
 0002:000007d4+ ___fork_parent1__
 0002:000007dc+ ___fork_child1__
-Module: U:\dev\php-8.2-os2\sapi\cli\php_cli.obj(U:\dev\php-8.2-os2\sapi\cli\php_cli.c)
+Module: U:\dev\php-8.2-os2\sapi\cli\php_cli.obj(php_cli.obj)
 0001:00003120  _OPTIONS
 0001:000029dc* _php_cli_get_shell_callbacks
 0001:000029e2* _sapi_cli_single_write
@@ -97,12 +97,12 @@ Module: U:\dev\php-8.2-os2\sapi\cli\php_cli.obj(U:\dev\php-8.2-os2\sapi\cli\php_
 0001:00003300* _HARDCODED_INI
 0002:000007f0* _cli_shell_callbacks
 0001:00002ab4* main
-Module: U:\dev\php-8.2-os2\sapi\cli\php_http_parser.obj(U:\dev\php-8.2-os2\sapi\cli\php_http_parser.c)
+Module: U:\dev\php-8.2-os2\sapi\cli\php_http_parser.obj(php_http_parser.obj)
 0001:000034fc  _php_http_parser_execute
 0001:00005b33* _php_http_should_keep_alive
 0001:00005b63  _php_http_method_str
 0001:00005b72  _php_http_parser_init
-Module: U:\dev\php-8.2-os2\sapi\cli\php_cli_server.obj(U:\dev\php-8.2-os2\sapi\cli\php_cli_server.c)
+Module: U:\dev\php-8.2-os2\sapi\cli\php_cli_server.obj(php_cli_server.obj)
 0001:000078a3* @zif_apache_response_headers@8
 0001:0000b767* @zif_apache_request_headers@8
 0001:0000b8cd  _do_cli_server
@@ -110,14 +110,14 @@ Module: U:\dev\php-8.2-os2\sapi\cli\php_cli_server.obj(U:\dev\php-8.2-os2\sapi\c
 0002:000001b0* _cli_server_module_entry
 0002:00000110  _cli_server_sapi_module
 0002:00000810* _cli_server_globals_id
-Module: U:\dev\php-8.2-os2\sapi\cli\ps_title.obj(U:\dev\php-8.2-os2\sapi\cli\ps_title.c)
+Module: U:\dev\php-8.2-os2\sapi\cli\ps_title.obj(ps_title.obj)
 0001:000165c0  _save_ps_args
 0001:000165c8  _is_ps_title_available
 0001:000165e1  _ps_title_errno
 0001:000165fa  _set_ps_title
 0001:00016600  _get_ps_title
 0001:00016606  _cleanup_ps_args
-Module: U:\dev\php-8.2-os2\sapi\cli\php_cli_process_title.obj(U:\dev\php-8.2-os2\sapi\cli\php_cli_process_title.c)
+Module: U:\dev\php-8.2-os2\sapi\cli\php_cli_process_title.obj(php_cli_process_title.obj)
 0001:0001669b  @zif_cli_set_process_title@8
 0001:0001674f  @zif_cli_get_process_title@8
 Module: U:\usr\lib\libend.lib(src/libend/386/endlink386.asm)
@@ -129,11 +129,11 @@ Module: U:\usr\lib\libend.lib(src/libend/386/end.asm)
 0000:00000000* WEAK$ZERO
 0002:00000d50  __end
 0002:000007f0  __edata
-Module: U:\tmp\ldconv_libgcc_a_35fe63d36b9215fb40.lib(__main.obj)
+Module: U:\tmp\ldconv_libgcc_a_bb3464327c7b1a6fe0.lib(__main.obj)
 0001:00016880* ___do_global_dtors
 0001:00016885* ___do_global_ctors
 0001:000168a0  ___main
-Module: U:\tmp\ldconv_libgcc_a_35fe63d36b9215fb40.lib(_chkstk_ms.obj)
+Module: U:\tmp\ldconv_libgcc_a_bb3464327c7b1a6fe0.lib(_chkstk_ms.obj)
 0001:000168d0  ___chkstk_ms
 Module: U:\usr\lib\libc_dll.lib(recv.obj)
 0001:00016900  _recv
@@ -153,7 +153,7 @@ Module: U:\usr\lib\libc_dll.lib(listen.obj)
 0001:00016fe0  _listen
 Module: U:\usr\lib\libc_dll.lib(getsockname.obj)
 0001:000170a0  _getsockname
-Module: U:\tmp\ldconv_libgcc_eh_a_35fe63d36b9215a938.lib(emx-ctordtor.obj)
+Module: U:\tmp\ldconv_libgcc_eh_a_bb3464327c7b1a3160.lib(emx-ctordtor.obj)
 0001:000171e0  ___ctordtorInit
 0001:00017216  ___ctordtorTerm
 Module: U:\usr\lib\libc_dll.lib(highmemsocket.obj)
@@ -161,10 +161,10 @@ Module: U:\usr\lib\libc_dll.lib(highmemsocket.obj)
 0001:00017354  ___libsocket_safe_addr_pre
 0001:00017474  ___libsocket_safe_addr_post
 0001:00017525  ___libsocket_safe_addr_free
-Module: U:\tmp\ldconv_libgcc_eh_a_35fe63d36b9215a938.lib(emx-eh.obj)
+Module: U:\tmp\ldconv_libgcc_eh_a_bb3464327c7b1a3160.lib(emx-eh.obj)
 0001:00017550  ___ehInit
 0001:0001758e* ___ehTerm
-Module: U:\tmp\ldconv_libgcc_eh_a_35fe63d36b9215a938.lib(unwind-dw2-fde.obj)
+Module: U:\tmp\ldconv_libgcc_eh_a_bb3464327c7b1a3160.lib(unwind-dw2-fde.obj)
 0001:0001876a* ___register_frame_info_bases
 0001:000187dc* ___register_frame_info
 0001:00018851* ___register_frame
@@ -175,7 +175,7 @@ Module: U:\tmp\ldconv_libgcc_eh_a_35fe63d36b9215a938.lib(unwind-dw2-fde.obj)
 0001:00018a1f* ___deregister_frame_info
 0001:00018a39  ___deregister_frame
 0001:00018a5c* __Unwind_Find_FDE
-Module: U:\tmp\ldconv_libgcc_a_35fe63d36b9215fb40.lib(gthr-os2.obj)
+Module: U:\tmp\ldconv_libgcc_a_bb3464327c7b1a6fe0.lib(gthr-os2.obj)
 0001:00019013* ___gthread_os2_mutex_init
 0001:00019048* ___gthread_os2_mutex_destroy
 0001:00019068  ___gthread_os2_mutex_lock
@@ -453,8 +453,8 @@ __std_calloc                        libcn0
 
 U:\extras\lib\libcx.lib
 U:\dev\php-8.2-os2\.libs\php.lib
-U:\tmp\ldconv_libgcc_eh_a_35fe63d36b9215a938.lib
-U:\tmp\ldconv_libgcc_a_35fe63d36b9215fb40.lib
+U:\tmp\ldconv_libgcc_eh_a_bb3464327c7b1a3160.lib
+U:\tmp\ldconv_libgcc_a_bb3464327c7b1a6fe0.lib
 U:\usr\lib\libc_alias.lib
 U:\usr\lib\libc_dll.lib
 U:\usr\lib\libos2.lib
@@ -468,4 +468,4 @@ U:\usr\lib\libend.lib
 Stack size:  00100000 (1048576.)
 Memory size:  0011a350 (1155920.)
 Entry point address: 0001:00000000
-Link time: 00:00.52
+Link time: 00:00.55

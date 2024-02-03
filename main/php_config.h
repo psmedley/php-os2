@@ -1183,6 +1183,9 @@
 /* #undef HAVE_OCIENVNLSCREATE */
 
 /* */
+/* #undef HAVE_OCILOBREAD2 */
+
+/* */
 /* #undef HAVE_OCISTMTFETCH2 */
 
 /* Defined to 1 if OCI8 configuration located Oracle's Instant Client
@@ -1394,7 +1397,7 @@
 /* #undef HAVE_SHMOP */
 
 /* Define if you have SysV IPC SHM support */
-#define HAVE_SHM_IPC 1
+/* #undef HAVE_SHM_IPC */
 
 /* Define if you have mmap(MAP_ANON) SHM support */
 #define HAVE_SHM_MMAP_ANON 1
