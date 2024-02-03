@@ -33,6 +33,13 @@ if test "$PHP_BZ2" != "no"; then
     -L$BZIP_DIR/$PHP_LIBDIR
   ])
 
-  PHP_NEW_EXTENSION(bz2, bz2.c bz2_filter.c, $ext_shared)
+  case $host_alias in
+    *os2* )
+      PHP_NEW_EXTENSION(phpbz2, bz2.c bz2_filter.c, $ext_shared)
+      ;;
+    * )
+      PHP_NEW_EXTENSION(bz2, bz2.c bz2_filter.c, $ext_shared)
+      ;;
+  esac
   PHP_SUBST(BZ2_SHARED_LIBADD)
 fi

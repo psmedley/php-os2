@@ -148,7 +148,7 @@ static void php_sock_stream_wait_for_data(php_stream *stream, php_netstream_data
 	}
 }
 
-#ifdef __OS2__				// 2022-05-04 SHL
+#ifdef __OS2__xx				// 2022-05-04 SHL
 /**
  * touch buffer pages to ensure committed
  */
@@ -180,7 +180,7 @@ static ssize_t php_sockop_read(php_stream *stream, char *buf, size_t count)
 			return 0;
 	}
 
-#ifdef __OS2__				// 2022-05-04 SHL switch to touch_pages for speed
+#ifdef __OS2__xx				// 2022-05-04 SHL switch to touch_pages for speed
 	touch_pages(buf, count); 	// Fix issues with recv failing
 #endif
 
@@ -317,7 +317,7 @@ static inline int sock_recvfrom(php_netstream_data_t *sock, char *buf, size_t bu
 			}
 		}
 	} else {
-#ifdef __OS2__				// 2022-05-04 SHL switch to touch_pages for speed
+#ifdef __OS2__xx				// 2022-05-04 SHL switch to touch_pages for speed
   		touch_pages(buf,  buflen);	// Fix issues with recv failing
 #endif
 		ret = recv(sock->socket, buf, XP_SOCK_BUF_SIZE(buflen), flags);
@@ -366,7 +366,7 @@ static int php_sockop_set_option(php_stream *stream, int option, int value, void
 #endif
 					int err;
 
-#ifdef __OS2__				// 2022-05-04 SHL switch to touch_pages for speed
+#ifdef __OS2__xx				// 2022-05-04 SHL switch to touch_pages for speed
 					touch_pages(&buf,  sizeof(buf));	// Fix issues with recv failing
 #endif
 					ret = recv(sock->socket, &buf, sizeof(buf), MSG_PEEK);
