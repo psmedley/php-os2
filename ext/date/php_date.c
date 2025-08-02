@@ -1608,6 +1608,7 @@ static zval *date_period_it_current_data(zend_object_iterator *iter)
 	php_date_obj   *newdateobj;
 
 	/* Create new object */
+	zval_ptr_dtor(&iterator->current);
 	php_date_instantiate(get_base_date_class(object->start_ce), &iterator->current);
 	newdateobj = Z_PHPDATE_P(&iterator->current);
 	newdateobj->time = timelib_time_ctor();
@@ -4400,6 +4401,9 @@ static zval *date_interval_get_property_ptr_ptr(zend_object *object, zend_string
 		zend_string_equals_literal(name, "days") ||
 		zend_string_equals_literal(name, "invert") ) {
 		/* Fallback to read_property. */
+		if (cache_slot) {
+			cache_slot[0] = cache_slot[1] = cache_slot[2] = NULL;
+		}
 		ret = NULL;
 	} else {
 		ret = zend_std_get_property_ptr_ptr(object, name, type, cache_slot);
@@ -4904,9 +4908,11 @@ static bool date_period_init_iso8601_string(php_period_obj *dpobj, zend_class_en
 
 static bool date_period_init_finish(php_period_obj *dpobj, zend_long options, zend_long recurrences)
 {
-	if (dpobj->end == NULL && recurrences < 1) {
+	const zend_long max_recurrences = (INT_MAX - 8);
+
+	if (dpobj->end == NULL && (recurrences < 1 || recurrences > max_recurrences)) {
 		zend_string *func = get_active_function_or_method_name();
-		zend_throw_exception_ex(date_ce_date_malformed_period_string_exception, 0, "%s(): Recurrence count must be greater than 0", ZSTR_VAL(func));
+		zend_throw_exception_ex(date_ce_date_malformed_period_string_exception, 0, "%s(): Recurrence count must be greater or equal to 1 and lower than " ZEND_LONG_FMT, ZSTR_VAL(func), max_recurrences + 1);
 		zend_string_release(func);
 		return false;
 	}
@@ -4915,8 +4921,17 @@ static bool date_period_init_finish(php_period_obj *dpobj, zend_long options, ze
 	dpobj->include_start_date = !(options & PHP_DATE_PERIOD_EXCLUDE_START_DATE);
 	dpobj->include_end_date = options & PHP_DATE_PERIOD_INCLUDE_END_DATE;
 
-	/* recurrrences */
-	dpobj->recurrences = recurrences + dpobj->include_start_date + dpobj->include_end_date;
+	/* recurrences */
+	recurrences += dpobj->include_start_date + dpobj->include_end_date;
+
+	if (UNEXPECTED(recurrences > max_recurrences)) {
+		zend_string *func = get_active_function_or_method_name();
+		zend_throw_exception_ex(date_ce_date_malformed_string_exception, 0, "%s(): Recurrence count must be greater or equal to 1 and lower than " ZEND_LONG_FMT " (including options)", ZSTR_VAL(func), max_recurrences + 1);
+		zend_string_release(func);
+		return false;
+	}
+
+	dpobj->recurrences = (int)recurrences;
 
 	dpobj->initialized = 1;
 
@@ -5333,7 +5348,7 @@ static void php_do_date_sunrise_sunset(INTERNAL_FUNCTION_PARAMETERS, bool calc_s
 	if (N > 24 || N < 0) {
 		N -= floor(N / 24) * 24;
 	}
-	if (N > 24 || N < 0) {
+	if (!(N <= 24 && N >= 0)) {
 		RETURN_FALSE;
 	}
 
@@ -5405,7 +5420,7 @@ PHP_FUNCTION(date_sun_info)
 	array_init(return_value);
 
 	/* Get sun up/down and transit */
-	rs = timelib_astro_rise_set_altitude(t, longitude, latitude, -50.0/60, 1, &ddummy, &ddummy, &rise, &set, &transit);
+	rs = timelib_astro_rise_set_altitude(t, longitude, latitude, -35.0/60, 1, &ddummy, &ddummy, &rise, &set, &transit);
 	switch (rs) {
 		case -1: /* always below */
 			add_assoc_bool(return_value, "sunrise", 0);

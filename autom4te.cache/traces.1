@@ -7,7 +7,7 @@ m4trace:configure.ac:11: -1- m4_include([build/php.m4])
 m4trace:configure.ac:12: -1- m4_include([build/pkg.m4])
 m4trace:configure.ac:13: -1- m4_include([TSRM/threads.m4])
 m4trace:configure.ac:14: -1- m4_include([TSRM/tsrm.m4])
-m4trace:configure.ac:20: -1- AC_INIT([PHP], [8.3.14], [https://github.com/php/php-src/issues], [php], [https://www.php.net])
+m4trace:configure.ac:20: -1- AC_INIT([PHP], [8.3.24], [https://github.com/php/php-src/issues], [php], [https://www.php.net])
 m4trace:configure.ac:20: -1- m4_pattern_forbid([^_?A[CHUM]_])
 m4trace:configure.ac:20: -1- m4_pattern_forbid([_AC_])
 m4trace:configure.ac:20: -1- m4_pattern_forbid([^LIBOBJS$], [do not use LIBOBJS directly, use AC_LIBOBJ (see section 'AC_LIBOBJ vs LIBOBJS'])
@@ -2076,13 +2076,13 @@ m4trace:ext/curl/config.m4:30: -1- AH_OUTPUT([HAVE_OPENSSL_CRYPTO_H], [/* Define
 @%:@undef HAVE_OPENSSL_CRYPTO_H])
 m4trace:ext/curl/config.m4:30: -1- AC_DEFINE_TRACE_LITERAL([HAVE_OPENSSL_CRYPTO_H])
 m4trace:ext/curl/config.m4:30: -1- m4_pattern_allow([^HAVE_OPENSSL_CRYPTO_H$])
-m4trace:ext/curl/config.m4:75: -1- AC_DEFINE_TRACE_LITERAL([HAVE_CURL])
-m4trace:ext/curl/config.m4:75: -1- m4_pattern_allow([^HAVE_CURL$])
-m4trace:ext/curl/config.m4:75: -1- AH_OUTPUT([HAVE_CURL], [/* */
+m4trace:ext/curl/config.m4:81: -1- AC_DEFINE_TRACE_LITERAL([HAVE_CURL])
+m4trace:ext/curl/config.m4:81: -1- m4_pattern_allow([^HAVE_CURL$])
+m4trace:ext/curl/config.m4:81: -1- AH_OUTPUT([HAVE_CURL], [/* */
 @%:@undef HAVE_CURL])
-m4trace:ext/curl/config.m4:84: -1- AC_DEFINE_TRACE_LITERAL([COMPILE_DL_CURL])
-m4trace:ext/curl/config.m4:84: -1- m4_pattern_allow([^COMPILE_DL_CURL$])
-m4trace:ext/curl/config.m4:84: -1- AH_OUTPUT([COMPILE_DL_CURL], [/* Whether to build curl as dynamic module */
+m4trace:ext/curl/config.m4:90: -1- AC_DEFINE_TRACE_LITERAL([COMPILE_DL_CURL])
+m4trace:ext/curl/config.m4:90: -1- m4_pattern_allow([^COMPILE_DL_CURL$])
+m4trace:ext/curl/config.m4:90: -1- AH_OUTPUT([COMPILE_DL_CURL], [/* Whether to build curl as dynamic module */
 @%:@undef COMPILE_DL_CURL])
 m4trace:configure.ac:1137: -1- sinclude([ext/dba/config.m4])
 m4trace:ext/dba/config.m4:153: -1- AC_DEFINE_TRACE_LITERAL([QDBM_INCLUDE_FILE])
@@ -2545,29 +2545,29 @@ m4trace:ext/gd/config.m4:255: -1- m4_pattern_allow([^COMPILE_DL_GD$])
 m4trace:ext/gd/config.m4:255: -1- AH_OUTPUT([COMPILE_DL_GD], [/* Whether to build gd as dynamic module */
 @%:@undef COMPILE_DL_GD])
 m4trace:configure.ac:1137: -1- sinclude([ext/gettext/config.m4])
-m4trace:ext/gettext/config.m4:34: -1- AC_DEFINE_TRACE_LITERAL([HAVE_LIBINTL])
-m4trace:ext/gettext/config.m4:34: -1- m4_pattern_allow([^HAVE_LIBINTL$])
-m4trace:ext/gettext/config.m4:34: -1- AH_OUTPUT([HAVE_LIBINTL], [/* */
+m4trace:ext/gettext/config.m4:45: -1- AC_DEFINE_TRACE_LITERAL([HAVE_LIBINTL])
+m4trace:ext/gettext/config.m4:45: -1- m4_pattern_allow([^HAVE_LIBINTL$])
+m4trace:ext/gettext/config.m4:45: -1- AH_OUTPUT([HAVE_LIBINTL], [/* */
 @%:@undef HAVE_LIBINTL])
-m4trace:ext/gettext/config.m4:35: -1- AC_DEFINE_TRACE_LITERAL([COMPILE_DL_GETTEXT])
-m4trace:ext/gettext/config.m4:35: -1- m4_pattern_allow([^COMPILE_DL_GETTEXT$])
-m4trace:ext/gettext/config.m4:35: -1- AH_OUTPUT([COMPILE_DL_GETTEXT], [/* Whether to build gettext as dynamic module */
+m4trace:ext/gettext/config.m4:46: -1- AC_DEFINE_TRACE_LITERAL([COMPILE_DL_GETTEXT])
+m4trace:ext/gettext/config.m4:46: -1- m4_pattern_allow([^COMPILE_DL_GETTEXT$])
+m4trace:ext/gettext/config.m4:46: -1- AH_OUTPUT([COMPILE_DL_GETTEXT], [/* Whether to build gettext as dynamic module */
 @%:@undef COMPILE_DL_GETTEXT])
-m4trace:ext/gettext/config.m4:40: -1- AC_DEFINE_TRACE_LITERAL([HAVE_NGETTEXT])
-m4trace:ext/gettext/config.m4:40: -1- m4_pattern_allow([^HAVE_NGETTEXT$])
-m4trace:ext/gettext/config.m4:40: -1- AH_OUTPUT([HAVE_NGETTEXT], [/* */
+m4trace:ext/gettext/config.m4:51: -1- AC_DEFINE_TRACE_LITERAL([HAVE_NGETTEXT])
+m4trace:ext/gettext/config.m4:51: -1- m4_pattern_allow([^HAVE_NGETTEXT$])
+m4trace:ext/gettext/config.m4:51: -1- AH_OUTPUT([HAVE_NGETTEXT], [/* */
 @%:@undef HAVE_NGETTEXT])
-m4trace:ext/gettext/config.m4:41: -1- AC_DEFINE_TRACE_LITERAL([HAVE_DNGETTEXT])
-m4trace:ext/gettext/config.m4:41: -1- m4_pattern_allow([^HAVE_DNGETTEXT$])
-m4trace:ext/gettext/config.m4:41: -1- AH_OUTPUT([HAVE_DNGETTEXT], [/* */
+m4trace:ext/gettext/config.m4:52: -1- AC_DEFINE_TRACE_LITERAL([HAVE_DNGETTEXT])
+m4trace:ext/gettext/config.m4:52: -1- m4_pattern_allow([^HAVE_DNGETTEXT$])
+m4trace:ext/gettext/config.m4:52: -1- AH_OUTPUT([HAVE_DNGETTEXT], [/* */
 @%:@undef HAVE_DNGETTEXT])
-m4trace:ext/gettext/config.m4:42: -1- AC_DEFINE_TRACE_LITERAL([HAVE_DCNGETTEXT])
-m4trace:ext/gettext/config.m4:42: -1- m4_pattern_allow([^HAVE_DCNGETTEXT$])
-m4trace:ext/gettext/config.m4:42: -1- AH_OUTPUT([HAVE_DCNGETTEXT], [/* */
+m4trace:ext/gettext/config.m4:53: -1- AC_DEFINE_TRACE_LITERAL([HAVE_DCNGETTEXT])
+m4trace:ext/gettext/config.m4:53: -1- m4_pattern_allow([^HAVE_DCNGETTEXT$])
+m4trace:ext/gettext/config.m4:53: -1- AH_OUTPUT([HAVE_DCNGETTEXT], [/* */
 @%:@undef HAVE_DCNGETTEXT])
-m4trace:ext/gettext/config.m4:43: -1- AC_DEFINE_TRACE_LITERAL([HAVE_BIND_TEXTDOMAIN_CODESET])
-m4trace:ext/gettext/config.m4:43: -1- m4_pattern_allow([^HAVE_BIND_TEXTDOMAIN_CODESET$])
-m4trace:ext/gettext/config.m4:43: -1- AH_OUTPUT([HAVE_BIND_TEXTDOMAIN_CODESET], [/* */
+m4trace:ext/gettext/config.m4:54: -1- AC_DEFINE_TRACE_LITERAL([HAVE_BIND_TEXTDOMAIN_CODESET])
+m4trace:ext/gettext/config.m4:54: -1- m4_pattern_allow([^HAVE_BIND_TEXTDOMAIN_CODESET$])
+m4trace:ext/gettext/config.m4:54: -1- AH_OUTPUT([HAVE_BIND_TEXTDOMAIN_CODESET], [/* */
 @%:@undef HAVE_BIND_TEXTDOMAIN_CODESET])
 m4trace:configure.ac:1137: -1- sinclude([ext/gmp/config.m4])
 m4trace:ext/gmp/config.m4:32: -1- AC_DEFINE_TRACE_LITERAL([COMPILE_DL_GMP])
@@ -4151,13 +4151,17 @@ m4trace:ext/tidy/config.m4:60: -1- AC_DEFINE_TRACE_LITERAL([HAVE_TIDYRELEASEDATE
 m4trace:ext/tidy/config.m4:60: -1- m4_pattern_allow([^HAVE_TIDYRELEASEDATE$])
 m4trace:ext/tidy/config.m4:60: -1- AH_OUTPUT([HAVE_TIDYRELEASEDATE], [/* */
 @%:@undef HAVE_TIDYRELEASEDATE])
-m4trace:ext/tidy/config.m4:70: -1- AC_DEFINE_TRACE_LITERAL([COMPILE_DL_TIDY])
-m4trace:ext/tidy/config.m4:70: -1- m4_pattern_allow([^COMPILE_DL_TIDY$])
-m4trace:ext/tidy/config.m4:70: -1- AH_OUTPUT([COMPILE_DL_TIDY], [/* Whether to build tidy as dynamic module */
+m4trace:ext/tidy/config.m4:65: -1- AC_DEFINE_TRACE_LITERAL([HAVE_TIDYOPTGETCATEGORY])
+m4trace:ext/tidy/config.m4:65: -1- m4_pattern_allow([^HAVE_TIDYOPTGETCATEGORY$])
+m4trace:ext/tidy/config.m4:65: -1- AH_OUTPUT([HAVE_TIDYOPTGETCATEGORY], [/* */
+@%:@undef HAVE_TIDYOPTGETCATEGORY])
+m4trace:ext/tidy/config.m4:75: -1- AC_DEFINE_TRACE_LITERAL([COMPILE_DL_TIDY])
+m4trace:ext/tidy/config.m4:75: -1- m4_pattern_allow([^COMPILE_DL_TIDY$])
+m4trace:ext/tidy/config.m4:75: -1- AH_OUTPUT([COMPILE_DL_TIDY], [/* Whether to build tidy as dynamic module */
 @%:@undef COMPILE_DL_TIDY])
-m4trace:ext/tidy/config.m4:72: -1- AC_DEFINE_TRACE_LITERAL([HAVE_TIDY])
-m4trace:ext/tidy/config.m4:72: -1- m4_pattern_allow([^HAVE_TIDY$])
-m4trace:ext/tidy/config.m4:72: -1- AH_OUTPUT([HAVE_TIDY], [/* */
+m4trace:ext/tidy/config.m4:77: -1- AC_DEFINE_TRACE_LITERAL([HAVE_TIDY])
+m4trace:ext/tidy/config.m4:77: -1- m4_pattern_allow([^HAVE_TIDY$])
+m4trace:ext/tidy/config.m4:77: -1- AH_OUTPUT([HAVE_TIDY], [/* */
 @%:@undef HAVE_TIDY])
 m4trace:configure.ac:1137: -1- sinclude([ext/tokenizer/config.m4])
 m4trace:ext/tokenizer/config.m4:8: -1- AC_DEFINE_TRACE_LITERAL([COMPILE_DL_TOKENIZER])

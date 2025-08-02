@@ -42,6 +42,15 @@
 #define IN_UNSET	ZEND_GUARD_PROPERTY_UNSET
 #define IN_ISSET	ZEND_GUARD_PROPERTY_ISSET
 
+static zend_always_inline bool zend_objects_check_stack_limit(void)
+{
+#ifdef ZEND_CHECK_STACK_LIMIT
+	return zend_call_stack_overflowed(EG(stack_limit));
+#else
+	return false;
+#endif
+}
+
 /*
   __X accessors explanation:
 
@@ -1348,7 +1357,7 @@ ZEND_API zend_function *zend_get_call_trampoline_func(const zend_class_entry *ce
 	func->fn_flags = ZEND_ACC_CALL_VIA_TRAMPOLINE
 		| ZEND_ACC_PUBLIC
 		| ZEND_ACC_VARIADIC
-		| (fbc->common.fn_flags & ZEND_ACC_RETURN_REFERENCE);
+		| (fbc->common.fn_flags & (ZEND_ACC_RETURN_REFERENCE|ZEND_ACC_ABSTRACT));
 	if (is_static) {
 		func->fn_flags |= ZEND_ACC_STATIC;
 	}
@@ -1541,19 +1550,27 @@ ZEND_API zend_function *zend_std_get_static_method(zend_class_entry *ce, zend_st
 	if (EXPECTED(fbc)) {
 		if (UNEXPECTED(fbc->common.fn_flags & ZEND_ACC_ABSTRACT)) {
 			zend_abstract_method_call(fbc);
-			fbc = NULL;
+			goto fail;
 		} else if (UNEXPECTED(fbc->common.scope->ce_flags & ZEND_ACC_TRAIT)) {
 			zend_error(E_DEPRECATED,
 				"Calling static trait method %s::%s is deprecated, "
 				"it should only be called on a class using the trait",
 				ZSTR_VAL(fbc->common.scope->name), ZSTR_VAL(fbc->common.function_name));
 			if (EG(exception)) {
-				return NULL;
+				goto fail;
 			}
 		}
 	}
 
 	return fbc;
+
+ fail:
+	if (UNEXPECTED(fbc->common.fn_flags & ZEND_ACC_CALL_VIA_TRAMPOLINE)) {
+		zend_string_release_ex(fbc->common.function_name, 0);
+		zend_free_trampoline(fbc);
+	}
+
+	return NULL;
 }
 /* }}} */
 
@@ -1705,6 +1722,11 @@ ZEND_API zend_function *zend_std_get_constructor(zend_object *zobj) /* {{{ */
 ZEND_API int zend_std_compare_objects(zval *o1, zval *o2) /* {{{ */
 {
 	zend_object *zobj1, *zobj2;
+
+	if (zend_objects_check_stack_limit()) {
+		zend_throw_error(NULL, "Maximum call stack size reached during object comparison");
+		return ZEND_UNCOMPARABLE;
+	}
 
 	if (Z_TYPE_P(o1) != Z_TYPE_P(o2)) {
 		/* Object and non-object */

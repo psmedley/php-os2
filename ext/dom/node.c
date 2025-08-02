@@ -98,11 +98,17 @@ int dom_node_node_name_read(dom_object *obj, zval *retval)
 		}
 		case XML_DOCUMENT_TYPE_NODE:
 		case XML_DTD_NODE:
+			if (nodep->name) {
+				ZVAL_STRING(retval, (const char *) nodep->name);
+			} else {
+				ZVAL_EMPTY_STRING(retval);
+			}
+			break;
 		case XML_PI_NODE:
 		case XML_ENTITY_DECL:
 		case XML_ENTITY_REF_NODE:
 		case XML_NOTATION_NODE:
-			ZVAL_STRING(retval, (char *) nodep->name);
+			ZVAL_STRING(retval, (const char *) nodep->name);
 			break;
 		case XML_CDATA_SECTION_NODE:
 			ZVAL_STRING(retval, "#cdata-section");
@@ -1024,6 +1030,7 @@ PHP_METHOD(DOMNode, insertBefore)
 	}
 
 	if (child->doc == NULL && parentp->doc != NULL) {
+		xmlSetTreeDoc(child, parentp->doc);
 		dom_set_document_ref_pointers(child, intern->document);
 	}
 
@@ -1188,6 +1195,7 @@ PHP_METHOD(DOMNode, replaceChild)
 	}
 
 	if (newchild->doc == NULL && nodep->doc != NULL) {
+		xmlSetTreeDoc(newchild, nodep->doc);
 		dom_set_document_ref_pointers(newchild, intern->document);
 	}
 
@@ -1291,6 +1299,7 @@ PHP_METHOD(DOMNode, appendChild)
 	}
 
 	if (child->doc == NULL && nodep->doc != NULL) {
+		xmlSetTreeDoc(child, nodep->doc);
 		dom_set_document_ref_pointers(child, intern->document);
 	}
 

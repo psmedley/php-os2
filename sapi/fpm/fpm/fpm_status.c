@@ -62,7 +62,8 @@ int fpm_status_export_to_zval(zval *status)
 
 	/* copy the scoreboard not to bother other processes */
 	scoreboard = *scoreboard_p;
-	struct fpm_scoreboard_proc_s procs[scoreboard.nprocs];
+	struct fpm_scoreboard_proc_s *procs = safe_emalloc(
+			sizeof(struct fpm_scoreboard_proc_s), scoreboard.nprocs, 0);
 
 	struct fpm_scoreboard_proc_s *proc_p;
 	for(i=0; i<scoreboard.nprocs; i++) {
@@ -131,6 +132,8 @@ int fpm_status_export_to_zval(zval *status)
 		add_next_index_zval(&fpm_proc_stats, &fpm_proc_stat);
 	}
 	add_assoc_zval(status, "procs", &fpm_proc_stats);
+	efree(procs);
+
 	return 0;
 }
 /* }}} */
@@ -595,7 +598,7 @@ int fpm_status_handle_request(void) /* {{{ */
 					time_buffer,
 					(unsigned long) (now_epoch - proc->start_epoch),
 					proc->requests,
-					duration.tv_sec * 1000000UL + duration.tv_usec,
+					(unsigned long) (duration.tv_sec * 1000000UL + duration.tv_usec),
 					proc->request_method[0] != '\0' ? proc->request_method : "-",
 					proc->request_uri[0] != '\0' ? proc->request_uri : "-",
 					query_string ? "?" : "",

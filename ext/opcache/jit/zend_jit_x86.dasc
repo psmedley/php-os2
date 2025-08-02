@@ -1443,6 +1443,9 @@ static size_t tsrm_tls_offset;
 |1:
 ||			}
 |			IF_GC_MAY_NOT_LEAK FCARG1a, >4
+||			if (opline) {
+|				SET_EX_OPLINE opline, r0
+||			}
 |			// gc_possible_root(Z_COUNTED_P(z))
 |			EXT_CALL gc_possible_root, r0
 ||		}
@@ -2907,7 +2910,7 @@ static int zend_jit_setup(void)
 
 		__asm__(
 			"leaq _tsrm_ls_cache@tlsgd(%%rip), %0\n"
-			: "=a" (ti));
+			: "=D" (ti));
 		tsrm_tls_offset = ti[1];
 		tsrm_tls_index = ti[0] * 8;
 #elif defined(__FreeBSD__)
@@ -2915,7 +2918,7 @@ static int zend_jit_setup(void)
 
 		__asm__(
 			"leaq _tsrm_ls_cache@tlsgd(%%rip), %0\n"
-			: "=a" (ti));
+			: "=D" (ti));
 		tsrm_tls_offset = ti[1];
 		/* Index is offset by 1 on FreeBSD (https://github.com/freebsd/freebsd-src/blob/bf56e8b9c8639ac4447d223b83cdc128107cc3cd/libexec/rtld-elf/rtld.c#L5260) */
 		tsrm_tls_index = (ti[0] + 1) * 8;
@@ -2924,7 +2927,7 @@ static int zend_jit_setup(void)
 
 		__asm__(
 			"leaq _tsrm_ls_cache@tlsgd(%%rip), %0\n"
-			: "=a" (ti));
+			: "=D" (ti));
 		tsrm_tls_offset = ti[1];
 		tsrm_tls_index = ti[0] * 16;
 #endif
@@ -6524,6 +6527,9 @@ static int zend_jit_assign_to_variable(dasm_State    **Dst,
 			if (RC_MAY_BE_N(var_info) && (var_info & (MAY_BE_ARRAY|MAY_BE_OBJECT)) != 0) {
 				|4:
 				|	IF_GC_MAY_NOT_LEAK FCARG1a, >8
+				if (opline) {
+					|	SET_EX_OPLINE opline, r0
+				}
 				|	EXT_CALL gc_possible_root, r0
 				if (in_cold) {
 					|	jmp >8
@@ -6551,6 +6557,9 @@ static int zend_jit_assign_to_variable(dasm_State    **Dst,
 				|	GET_ZVAL_PTR FCARG1a, var_use_addr
 				|	GC_DELREF FCARG1a
 				|	IF_GC_MAY_NOT_LEAK FCARG1a, >5
+				if (opline) {
+					|	SET_EX_OPLINE opline, r0
+				}
 				|	EXT_CALL gc_possible_root, r0
 				if (Z_REG(var_use_addr) != ZREG_FP) {
 					|	mov Ra(Z_REG(var_use_addr)), T1 // restore
@@ -9065,6 +9074,7 @@ static int zend_jit_push_call_frame(dasm_State **Dst, const zend_op *opline, con
 {
 	uint32_t used_stack;
 	bool stack_check = 1;
+	const size_t func_type_offset = is_closure ? offsetof(zend_closure, func.type) : offsetof(zend_function, type);
 
 	if (func) {
 		used_stack = zend_vm_calc_used_stack(opline->extended_value, func);
@@ -9075,13 +9085,9 @@ static int zend_jit_push_call_frame(dasm_State **Dst, const zend_op *opline, con
 		used_stack = (ZEND_CALL_FRAME_SLOT + opline->extended_value + ZEND_OBSERVER_ENABLED) * sizeof(zval);
 
 		|	// if (EXPECTED(ZEND_USER_CODE(func->type))) {
-		if (!is_closure) {
-			|	test byte [r0 + offsetof(zend_function, type)], 1
-			|	mov FCARG1a, used_stack
-			|	jnz >1
-		} else {
-			|	mov FCARG1a, used_stack
-		}
+		|	test byte [r0 + func_type_offset], 1
+		|	mov FCARG1a, used_stack
+		|	jnz >1
 		|	// used_stack += (func->op_array.last_var + func->op_array.T - MIN(func->op_array.num_args, num_args)) * sizeof(zval);
 		|	mov edx, opline->extended_value
 		if (!is_closure) {
@@ -9251,11 +9257,17 @@ static int zend_jit_push_call_frame(dasm_State **Dst, const zend_op *opline, con
 		|	or dword EX:RX->This.u1.type_info, edx
 		|	// Z_PTR(call->This) = object_or_called_scope;
 		|	mov aword EX:RX->This.value.ptr, r1
-		|	cmp aword [r0 + offsetof(zend_closure, func.op_array.run_time_cache__ptr)], 0
-		|	jnz >1
-		|	lea FCARG1a, aword [r0 + offsetof(zend_closure, func)]
-		|	EXT_CALL zend_jit_init_func_run_time_cache_helper, r0
-		|1:
+		if (!func) {
+			|	cmp byte [r0 + offsetof(zend_closure, func.type)], ZEND_USER_FUNCTION
+			|	jnz >1
+		}
+		if (!func || func->common.type == ZEND_USER_FUNCTION) {
+			|	lea FCARG1a, aword [r0 + offsetof(zend_closure, func)]
+			|	EXT_CALL zend_jit_init_func_run_time_cache_helper, r0
+		}
+		if (!func) {
+			|1:
+		}
 	}
 	|	// ZEND_CALL_NUM_ARGS(call) = num_args;
 	|	mov dword EX:RX->This.u2.num_args, opline->extended_value
@@ -9267,19 +9279,11 @@ static int zend_jit_init_fcall_guard(dasm_State **Dst, uint32_t level, const zen
 	int32_t exit_point;
 	const void *exit_addr;
 
-	if (func->type == ZEND_INTERNAL_FUNCTION) {
-#ifdef ZEND_WIN32
-		// TODO: ASLR may cause different addresses in different workers ???
-		return 0;
-#endif
-	} else if (func->type == ZEND_USER_FUNCTION) {
+	if (func->type == ZEND_USER_FUNCTION) {
 		if (!zend_accel_in_shm(func->op_array.opcodes)) {
 			/* op_array and op_array->opcodes are not persistent. We can't link. */
 			return 0;
 		}
-	} else {
-		ZEND_UNREACHABLE();
-		return 0;
 	}
 
 	exit_point = zend_jit_trace_get_exit_point(to_opline, ZEND_JIT_EXIT_POLYMORPHISM);
@@ -9313,6 +9317,22 @@ static int zend_jit_init_fcall_guard(dasm_State **Dst, uint32_t level, const zen
 		|		cmp aword [r1 + offsetof(zend_op_array, opcodes)], opcodes
 		|	.endif
 		|	jne &exit_addr
+#ifdef _WIN32
+	} else if (func->type == ZEND_INTERNAL_FUNCTION) {
+		const zif_handler handler = func->internal_function.handler;
+
+		|   .if X64
+		||		if (!IS_SIGNED_32BIT(handler)) {
+		|			mov64 r2, ((ptrdiff_t)handler)
+		|			cmp aword [r1 + offsetof(zend_internal_function, handler)], r2
+		||		} else {
+		|			cmp aword [r1 + offsetof(zend_internal_function, handler)], handler
+		||		}
+		|	.else
+		|		cmp aword [r1 + offsetof(zend_internal_function, handler)], handler
+		|	.endif
+		|	jne &exit_addr
+#endif
 	} else {
 		|   .if X64
 		||		if (!IS_SIGNED_32BIT(func)) {
@@ -9459,6 +9479,22 @@ static int zend_jit_init_fcall(dasm_State **Dst, const zend_op *opline, uint32_t
 					|		cmp aword [r0 + offsetof(zend_op_array, opcodes)], opcodes
 					|	.endif
 					|	jz >3
+#ifdef _WIN32
+				} else if (func->type == ZEND_INTERNAL_FUNCTION) {
+					const zif_handler handler = func->internal_function.handler;
+
+					|   .if X64
+					||		if (!IS_SIGNED_32BIT(handler)) {
+					|			mov64 r1, ((ptrdiff_t)handler)
+					|			cmp aword [r0 + offsetof(zend_internal_function, handler)], r1
+					||		} else {
+					|			cmp aword [r0 + offsetof(zend_internal_function, handler)], handler
+					||		}
+					|	.else
+					|		cmp aword [r0 + offsetof(zend_internal_function, handler)], handler
+					|	.endif
+					|	jz >3
+#endif
 				} else {
 					|   .if X64
 					||		if (!IS_SIGNED_32BIT(func)) {
@@ -9645,11 +9681,7 @@ static int zend_jit_init_method_call(dasm_State          **Dst,
 	if ((!func || zend_jit_may_be_modified(func, op_array))
 	 && trace
 	 && trace->op == ZEND_JIT_TRACE_INIT_CALL
-	 && trace->func
-#ifdef _WIN32
-	 && trace->func->type != ZEND_INTERNAL_FUNCTION
-#endif
-	) {
+	 && trace->func) {
 		int32_t exit_point;
 		const void *exit_addr;
 
@@ -9678,6 +9710,22 @@ static int zend_jit_init_method_call(dasm_State          **Dst,
 			|		cmp aword [r0 + offsetof(zend_op_array, opcodes)], opcodes
 			|	.endif
 			|	jne &exit_addr
+#ifdef _WIN32
+		} else if (func->type == ZEND_INTERNAL_FUNCTION) {
+			const zif_handler handler = func->internal_function.handler;
+
+			|   .if X64
+			||		if (!IS_SIGNED_32BIT(handler)) {
+			|			mov64 r1, ((ptrdiff_t)handler)
+			|			cmp aword [r0 + offsetof(zend_internal_function, handler)], r1
+			||		} else {
+			|			cmp aword [r0 + offsetof(zend_internal_function, handler)], handler
+			||		}
+			|	.else
+			|		cmp aword [r0 + offsetof(zend_internal_function, handler)], handler
+			|	.endif
+			|	jne &exit_addr
+#endif
 		} else {
 			|   .if X64
 			||		if (!IS_SIGNED_32BIT(func)) {
@@ -9891,9 +9939,9 @@ static int zend_jit_do_fcall(dasm_State **Dst, const zend_op *opline, const zend
 			func = call_info->callee_func;
 		}
 		if ((op_array->fn_flags & ZEND_ACC_TRAIT_CLONE)
-		 && JIT_G(current_frame)
-		 && JIT_G(current_frame)->call
-		 && !JIT_G(current_frame)->call->func) {
+		 && (!JIT_G(current_frame) ||
+		     !JIT_G(current_frame)->call ||
+		     !JIT_G(current_frame)->call->func)) {
 			call_info = NULL; func = NULL; /* megamorphic call from trait */
 		}
 	}
@@ -12619,6 +12667,9 @@ static int zend_jit_bind_global(dasm_State **Dst, const zend_op *opline, uint32_
 			|3:
 			|	// GC_ZVAL_CHECK_POSSIBLE_ROOT(variable_ptr)
 			|	IF_GC_MAY_NOT_LEAK FCARG1a, >5
+			if (opline) {
+				|	SET_EX_OPLINE opline, r0
+			}
 			|	EXT_CALL gc_possible_root, r1
 			|	jmp >5
 		}

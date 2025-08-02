@@ -1745,7 +1745,8 @@ static zend_ssa *zend_jit_trace_build_tssa(zend_jit_trace_rec *trace_buffer, uin
 						if (!(orig_op1_type & IS_TRACE_PACKED)) {
 							zend_ssa_var_info *info = &tssa->var_info[tssa->ops[idx].op1_use];
 
-							if (MAY_BE_PACKED(info->type) && MAY_BE_HASH(info->type)) {
+							if (MAY_BE_PACKED(info->type) && MAY_BE_HASH(info->type)
+							 && (info->type & (MAY_BE_ANY|MAY_BE_UNDEF)) == MAY_BE_ARRAY) {
 								info->type |= MAY_BE_PACKED_GUARD;
 								info->type &= ~MAY_BE_ARRAY_PACKED;
 							}
@@ -1754,7 +1755,8 @@ static zend_ssa *zend_jit_trace_build_tssa(zend_jit_trace_rec *trace_buffer, uin
 								&& val_type != IS_UNDEF) {
 							zend_ssa_var_info *info = &tssa->var_info[tssa->ops[idx].op1_use];
 
-							if (MAY_BE_PACKED(info->type) && MAY_BE_HASH(info->type)) {
+							if (MAY_BE_PACKED(info->type) && MAY_BE_HASH(info->type)
+							 && (info->type & (MAY_BE_ANY|MAY_BE_UNDEF)) == MAY_BE_ARRAY) {
 								info->type |= MAY_BE_PACKED_GUARD;
 								info->type &= ~(MAY_BE_ARRAY_NUMERIC_HASH|MAY_BE_ARRAY_STRING_HASH);
 							}
@@ -1833,7 +1835,8 @@ static zend_ssa *zend_jit_trace_build_tssa(zend_jit_trace_rec *trace_buffer, uin
 
 						zend_ssa_var_info *info = &tssa->var_info[tssa->ops[idx].op1_use];
 
-						if (MAY_BE_PACKED(info->type) && MAY_BE_HASH(info->type)) {
+						if (MAY_BE_PACKED(info->type) && MAY_BE_HASH(info->type)
+						 && (info->type & (MAY_BE_ANY|MAY_BE_UNDEF)) == MAY_BE_ARRAY) {
 							info->type |= MAY_BE_PACKED_GUARD;
 							if (orig_op1_type & IS_TRACE_PACKED) {
 								info->type &= ~(MAY_BE_ARRAY_NUMERIC_HASH|MAY_BE_ARRAY_STRING_HASH);
@@ -1935,7 +1938,8 @@ static zend_ssa *zend_jit_trace_build_tssa(zend_jit_trace_rec *trace_buffer, uin
 
 						zend_ssa_var_info *info = &tssa->var_info[tssa->ops[idx].op1_use];
 
-						if (MAY_BE_PACKED(info->type) && MAY_BE_HASH(info->type)) {
+						if (MAY_BE_PACKED(info->type) && MAY_BE_HASH(info->type)
+						 && (info->type & (MAY_BE_ANY|MAY_BE_UNDEF)) == MAY_BE_ARRAY) {
 							info->type |= MAY_BE_PACKED_GUARD;
 							if (orig_op1_type & IS_TRACE_PACKED) {
 								info->type &= ~(MAY_BE_ARRAY_NUMERIC_HASH|MAY_BE_ARRAY_STRING_HASH);
@@ -1965,7 +1969,8 @@ static zend_ssa *zend_jit_trace_build_tssa(zend_jit_trace_rec *trace_buffer, uin
 
 						zend_ssa_var_info *info = &tssa->var_info[tssa->ops[idx].op1_use];
 
-						if (MAY_BE_PACKED(info->type) && MAY_BE_HASH(info->type)) {
+						if (MAY_BE_PACKED(info->type) && MAY_BE_HASH(info->type)
+						 && (info->type & (MAY_BE_ANY|MAY_BE_UNDEF)) == MAY_BE_ARRAY) {
 							info->type |= MAY_BE_PACKED_GUARD;
 							info->type &= ~MAY_BE_ARRAY_PACKED;
 						}
@@ -4164,10 +4169,14 @@ static const void *zend_jit_trace(zend_jit_trace_rec *trace_buffer, uint32_t par
 			if ((info & MAY_BE_PACKED_GUARD) != 0
 			 && (trace_buffer->stop == ZEND_JIT_TRACE_STOP_LOOP
 			  || trace_buffer->stop == ZEND_JIT_TRACE_STOP_RECURSIVE_CALL
-			  || trace_buffer->stop == ZEND_JIT_TRACE_STOP_RECURSIVE_RET)
+			  || (trace_buffer->stop == ZEND_JIT_TRACE_STOP_RECURSIVE_RET
+			   && (opline-1)->result_type == IS_VAR
+			   && EX_VAR_TO_NUM((opline-1)->result.var) == i))
 			 && (ssa->vars[i].use_chain != -1
 			  || (ssa->vars[i].phi_use_chain
 			   && !(ssa->var_info[ssa->vars[i].phi_use_chain->ssa_var].type & MAY_BE_PACKED_GUARD)))) {
+				ZEND_ASSERT(STACK_TYPE(stack, i) == IS_ARRAY);
+
 				if (!zend_jit_packed_guard(&dasm_state, opline, EX_NUM_TO_VAR(i), info)) {
 					goto jit_failure;
 				}
@@ -4652,7 +4661,7 @@ static const void *zend_jit_trace(zend_jit_trace_rec *trace_buffer, uint32_t par
 						if (opline->op1_type == IS_UNUSED) {
 							op1_info = MAY_BE_OBJECT|MAY_BE_RC1|MAY_BE_RCN;
 							ce = op_array->scope;
-							ce_is_instanceof = (ce->ce_flags & ZEND_ACC_FINAL) != 0;
+							ce_is_instanceof = !(ce->ce_flags & ZEND_ACC_FINAL);
 							op1_addr = 0;
 							on_this = 1;
 						} else {
@@ -4743,7 +4752,7 @@ static const void *zend_jit_trace(zend_jit_trace_rec *trace_buffer, uint32_t par
 						if (opline->op1_type == IS_UNUSED) {
 							op1_info = MAY_BE_OBJECT|MAY_BE_RC1|MAY_BE_RCN;
 							ce = op_array->scope;
-							ce_is_instanceof = (ce->ce_flags & ZEND_ACC_FINAL) != 0;
+							ce_is_instanceof = !(ce->ce_flags & ZEND_ACC_FINAL);
 							op1_addr = 0;
 							on_this = 1;
 						} else {
@@ -4823,7 +4832,7 @@ static const void *zend_jit_trace(zend_jit_trace_rec *trace_buffer, uint32_t par
 						if (opline->op1_type == IS_UNUSED) {
 							op1_info = MAY_BE_OBJECT|MAY_BE_RC1|MAY_BE_RCN;
 							ce = op_array->scope;
-							ce_is_instanceof = (ce->ce_flags & ZEND_ACC_FINAL) != 0;
+							ce_is_instanceof = !(ce->ce_flags & ZEND_ACC_FINAL);
 							op1_addr = 0;
 							on_this = 1;
 						} else {
@@ -5408,6 +5417,9 @@ static const void *zend_jit_trace(zend_jit_trace_rec *trace_buffer, uint32_t par
 							res_type = Z_TYPE_P(RT_CONSTANT(opline, opline->op1));
 						} else if (op1_type != IS_UNKNOWN) {
 							res_type = op1_type;
+							if (res_type == IS_UNDEF) {
+								res_type = IS_NULL;
+							}
 						}
 						if (op_array->type == ZEND_EVAL_CODE
 						 // TODO: support for top-level code
@@ -5843,7 +5855,7 @@ static const void *zend_jit_trace(zend_jit_trace_rec *trace_buffer, uint32_t par
 						if (opline->op1_type == IS_UNUSED) {
 							op1_info = MAY_BE_OBJECT|MAY_BE_RC1|MAY_BE_RCN;
 							ce = op_array->scope;
-							ce_is_instanceof = (ce->ce_flags & ZEND_ACC_FINAL) != 0;
+							ce_is_instanceof = !(ce->ce_flags & ZEND_ACC_FINAL);
 							op1_addr = 0;
 							on_this = 1;
 						} else {
@@ -6122,7 +6134,7 @@ static const void *zend_jit_trace(zend_jit_trace_rec *trace_buffer, uint32_t par
 						if (opline->op1_type == IS_UNUSED) {
 							op1_info = MAY_BE_OBJECT|MAY_BE_RC1|MAY_BE_RCN;
 							ce = op_array->scope;
-							ce_is_instanceof = (ce->ce_flags & ZEND_ACC_FINAL) != 0;
+							ce_is_instanceof = !(ce->ce_flags & ZEND_ACC_FINAL);
 							op1_addr = 0;
 							on_this = 1;
 						} else {
@@ -7178,6 +7190,11 @@ static zend_jit_trace_stop zend_jit_compile_root_trace(zend_jit_trace_rec *trace
 			t->polymorphism = 0;
 			t->jmp_table_size = 0;
 			t->op_array = trace_buffer[0].op_array;
+			if (!(t->op_array->fn_flags & ZEND_ACC_IMMUTABLE)) {
+				zend_jit_op_array_trace_extension *jit_extension =
+					(zend_jit_op_array_trace_extension*)ZEND_FUNC_INFO(t->op_array);
+				t->op_array = jit_extension->op_array;
+			}
 			t->opline = trace_buffer[1].opline;
 			t->exit_info = exit_info;
 			t->stack_map = NULL;

@@ -107,6 +107,7 @@ static int pdo_odbc_ucs22utf8(pdo_stmt_t *stmt, int is_unicode, zval *result)
 		zend_string *str = zend_string_alloc(ret, 0);
 		ret = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR) Z_STRVAL_P(result), Z_STRLEN_P(result)/sizeof(WCHAR), ZSTR_VAL(str), ZSTR_LEN(str), NULL, NULL);
 		if (ret == 0) {
+			zend_string_efree(str);
 			return PDO_ODBC_CONV_FAIL;
 		}
 
@@ -139,7 +140,11 @@ static int odbc_stmt_dtor(pdo_stmt_t *stmt)
 {
 	pdo_odbc_stmt *S = (pdo_odbc_stmt*)stmt->driver_data;
 
-	if (S->stmt != SQL_NULL_HANDLE) {
+	// TODO: Factor this out; pg/mysql/firebird do the same thing
+	bool server_obj_usable = !Z_ISUNDEF(stmt->database_object_handle)
+		&& IS_OBJ_VALID(EG(objects_store).object_buckets[Z_OBJ_HANDLE(stmt->database_object_handle)])
+		&& !(OBJ_FLAGS(Z_OBJ(stmt->database_object_handle)) & IS_OBJ_FREE_CALLED);
+	if (S->stmt != SQL_NULL_HANDLE && server_obj_usable) {
 		if (stmt->executed) {
 			SQLCloseCursor(S->stmt);
 		}

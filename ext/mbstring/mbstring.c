@@ -1567,7 +1567,9 @@ PHP_FUNCTION(mb_output_handler)
 		char *mimetype = NULL;
 
 		/* Analyze mime type */
-		if (SG(sapi_headers).mimetype && _php_mb_match_regex(MBSTRG(http_output_conv_mimetypes), SG(sapi_headers).mimetype, strlen(SG(sapi_headers).mimetype))) {
+		if (SG(sapi_headers).mimetype
+		 && MBSTRG(http_output_conv_mimetypes)
+		 && _php_mb_match_regex(MBSTRG(http_output_conv_mimetypes), SG(sapi_headers).mimetype, strlen(SG(sapi_headers).mimetype))) {
 			char *s;
 			if ((s = strchr(SG(sapi_headers).mimetype, ';')) == NULL) {
 				mimetype = estrdup(SG(sapi_headers).mimetype);
@@ -3092,7 +3094,8 @@ try_next_encoding:;
 	}
 
 	for (size_t i = 0; i < length; i++) {
-		array[i].demerits *= array[i].multiplier;
+		double demerits = array[i].demerits * (double) array[i].multiplier;
+		array[i].demerits = demerits < (double) UINT64_MAX ? (uint64_t) demerits : UINT64_MAX;
 	}
 
 	return length;

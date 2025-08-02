@@ -1252,6 +1252,7 @@ PHP_METHOD(PDOStatement, fetchAll)
 	zval *arg2 = NULL;
 	zend_class_entry *old_ce;
 	zval old_ctor_args, *ctor_args = NULL;
+	HashTable *current_ctor = NULL;
 	bool error = false;
 	int flags, old_arg_count;
 
@@ -1269,6 +1270,10 @@ PHP_METHOD(PDOStatement, fetchAll)
 
 	old_ce = stmt->fetch.cls.ce;
 	ZVAL_COPY_VALUE(&old_ctor_args, &stmt->fetch.cls.ctor_args);
+	if (Z_TYPE(old_ctor_args) == IS_ARRAY) {
+		/* Protect against destruction by marking this as immutable: we consider this non-owned temporarily */
+		Z_TYPE_INFO(stmt->fetch.cls.ctor_args) = IS_ARRAY;
+	}
 	old_arg_count = stmt->fetch.cls.fci.param_count;
 
 	do_fetch_opt_finish(stmt, 0);
@@ -1293,7 +1298,13 @@ PHP_METHOD(PDOStatement, fetchAll)
 			}
 
 			if (ctor_args && zend_hash_num_elements(Z_ARRVAL_P(ctor_args)) > 0) {
-				ZVAL_COPY_VALUE(&stmt->fetch.cls.ctor_args, ctor_args); /* we're not going to free these */
+				/* We increase the refcount and store it in case usercode has been messing around with the ctor args.
+				 * We need to store current_ctor separately as usercode may change the ctor_args which will cause a leak. */
+				current_ctor = Z_ARRVAL_P(ctor_args);
+				ZVAL_COPY(&stmt->fetch.cls.ctor_args, ctor_args);
+				/* Protect against destruction by marking this as immutable: we consider this non-owned
+				 * as destruction is handled via current_ctor. */
+				Z_TYPE_INFO(stmt->fetch.cls.ctor_args) = IS_ARRAY;
 			} else {
 				ZVAL_UNDEF(&stmt->fetch.cls.ctor_args);
 			}
@@ -1365,6 +1376,7 @@ PHP_METHOD(PDOStatement, fetchAll)
 	}
 
 	PDO_STMT_CLEAR_ERR();
+
 	if ((how & PDO_FETCH_GROUP) || how == PDO_FETCH_KEY_PAIR ||
 		(how == PDO_FETCH_USE_DEFAULT && stmt->default_fetch_type == PDO_FETCH_KEY_PAIR)
 	) {
@@ -1389,9 +1401,15 @@ PHP_METHOD(PDOStatement, fetchAll)
 	}
 
 	do_fetch_opt_finish(stmt, 0);
+	if (current_ctor) {
+		zend_array_release(current_ctor);
+	}
 
 	/* Restore defaults which were changed by PDO_FETCH_CLASS mode */
 	stmt->fetch.cls.ce = old_ce;
+	/* ctor_args may have been changed to an owned object in the meantime, so destroy it.
+	 * If it was not, then the type flags update will have protected us against destruction. */
+	zval_ptr_dtor(&stmt->fetch.cls.ctor_args);
 	ZVAL_COPY_VALUE(&stmt->fetch.cls.ctor_args, &old_ctor_args);
 	stmt->fetch.cls.fci.param_count = old_arg_count;
 
@@ -2076,6 +2094,26 @@ out:
 	return fbc;
 }
 
+static HashTable *dbstmt_get_gc(zend_object *object, zval **gc_data, int *gc_count)
+{
+	pdo_stmt_t *stmt = php_pdo_stmt_fetch_object(object);
+
+	zend_get_gc_buffer *gc_buffer = zend_get_gc_buffer_create();
+	zend_get_gc_buffer_add_zval(gc_buffer, &stmt->database_object_handle);
+	zend_get_gc_buffer_add_zval(gc_buffer, &stmt->fetch.into);
+	zend_get_gc_buffer_use(gc_buffer, gc_data, gc_count);
+
+	/**
+	 * If there are no dynamic properties and the default property is 1 (that is, there is only one property
+	 * of string that does not participate in GC), there is no need to call zend_std_get_properties().
+	 */
+	if (object->properties == NULL && object->ce->default_properties_count <= 1) {
+		return NULL;
+	} else {
+		return zend_std_get_properties(object);
+	}
+}
+
 zend_object_handlers pdo_dbstmt_object_handlers;
 zend_object_handlers pdo_row_object_handlers;
 
@@ -2455,8 +2493,10 @@ static zval *pdo_row_get_property_ptr_ptr(zend_object *object, zend_string *name
 	ZEND_IGNORE_VALUE(object);
 	ZEND_IGNORE_VALUE(name);
 	ZEND_IGNORE_VALUE(type);
-	ZEND_IGNORE_VALUE(cache_slot);
 
+	if (cache_slot) {
+		cache_slot[0] = cache_slot[1] = cache_slot[2] = NULL;
+	}
 	return NULL;
 }
 
@@ -2467,6 +2507,7 @@ void pdo_row_free_storage(zend_object *std)
 		ZVAL_UNDEF(&row->stmt->lazy_object_ref);
 		OBJ_RELEASE(&row->stmt->std);
 	}
+	zend_object_std_dtor(std);
 }
 
 zend_object *pdo_row_new(zend_class_entry *ce)
@@ -2492,6 +2533,7 @@ void pdo_stmt_init(void)
 	pdo_dbstmt_object_handlers.get_method = dbstmt_method_get;
 	pdo_dbstmt_object_handlers.compare = zend_objects_not_comparable;
 	pdo_dbstmt_object_handlers.clone_obj = NULL;
+	pdo_dbstmt_object_handlers.get_gc = dbstmt_get_gc;
 
 	pdo_row_ce = register_class_PDORow();
 	pdo_row_ce->create_object = pdo_row_new;
