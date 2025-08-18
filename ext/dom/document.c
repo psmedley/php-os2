@@ -22,7 +22,6 @@
 #include "php.h"
 #if defined(HAVE_LIBXML) && defined(HAVE_DOM)
 #include "php_dom.h"
-#include <libxml/SAX.h>
 #include <libxml/xmlsave.h>
 #ifdef LIBXML_SCHEMAS_ENABLED
 #include <libxml/relaxng.h>
@@ -809,14 +808,14 @@ PHP_METHOD(DOMDocument, importNode)
 			xmlNsPtr nsptr = NULL;
 			xmlNodePtr root = xmlDocGetRootElement(docp);
 
-			nsptr = xmlSearchNsByHref (nodep->doc, root, nodep->ns->href);
+			nsptr = xmlSearchNsByHref (docp, root, nodep->ns->href);
 			if (nsptr == NULL || nsptr->prefix == NULL) {
 				int errorcode;
 				nsptr = dom_get_ns(root, (char *) nodep->ns->href, &errorcode, (char *) nodep->ns->prefix);
 
 				/* If there is no root, the namespace cannot be attached to it, so we have to attach it to the old list. */
 				if (nsptr != NULL && root == NULL) {
-					php_libxml_set_old_ns(nodep->doc, nsptr);
+					php_libxml_set_old_ns(docp, nsptr);
 				}
 			}
 			retnodep->ns = nsptr;
@@ -1586,47 +1585,6 @@ PHP_METHOD(DOMDocument, saveXML)
 }
 /* }}} end dom_document_savexml */
 
-static xmlNodePtr php_dom_free_xinclude_node(xmlNodePtr cur) /* {{{ */
-{
-	xmlNodePtr xincnode;
-
-	xincnode = cur;
-	cur = cur->next;
-	xmlUnlinkNode(xincnode);
-	php_libxml_node_free_resource(xincnode);
-
-	return cur;
-}
-/* }}} */
-
-static void php_dom_remove_xinclude_nodes(xmlNodePtr cur) /* {{{ */
-{
-	while(cur) {
-		if (cur->type == XML_XINCLUDE_START) {
-			cur = php_dom_free_xinclude_node(cur);
-
-			/* XML_XINCLUDE_END node will be a sibling of XML_XINCLUDE_START */
-			while(cur && cur->type != XML_XINCLUDE_END) {
-				/* remove xinclude processing nodes from recursive xincludes */
-				if (cur->type == XML_ELEMENT_NODE) {
-					   php_dom_remove_xinclude_nodes(cur->children);
-				}
-				cur = cur->next;
-			}
-
-			if (cur && cur->type == XML_XINCLUDE_END) {
-				cur = php_dom_free_xinclude_node(cur);
-			}
-		} else {
-			if (cur->type == XML_ELEMENT_NODE) {
-				php_dom_remove_xinclude_nodes(cur->children);
-			}
-			cur = cur->next;
-		}
-	}
-}
-/* }}} */
-
 /* Backported from master branch xml_common.h */
 static zend_always_inline xmlNodePtr php_dom_next_in_tree_order(const xmlNode *nodep, const xmlNode *basep)
 {
@@ -1648,29 +1606,45 @@ static zend_always_inline xmlNodePtr php_dom_next_in_tree_order(const xmlNode *n
 	}
 }
 
+static void dom_xinclude_strip_references_for_attributes(xmlNodePtr basep)
+{
+	for (xmlAttrPtr prop = basep->properties; prop; prop = prop->next) {
+		php_libxml_node_free_resource((xmlNodePtr) prop);
+		for (xmlNodePtr child = prop->children; child; child = child->next) {
+			php_libxml_node_free_resource(child);
+		}
+	}
+}
+
 static void dom_xinclude_strip_references(xmlNodePtr basep)
 {
 	php_libxml_node_free_resource(basep);
+	dom_xinclude_strip_references_for_attributes(basep);
 
 	xmlNodePtr current = basep->children;
 
 	while (current) {
 		php_libxml_node_free_resource(current);
+		if (current->type == XML_ELEMENT_NODE) {
+			dom_xinclude_strip_references_for_attributes(current);
+		}
 		current = php_dom_next_in_tree_order(current, basep);
 	}
 }
 
-/* See GH-14702.
- * We have to remove userland references to xinclude fallback nodes because libxml2 will make clones of these
+/* See GH-14702 and GH-17847.
+ * We have to remove userland references to xinclude nodes because libxml2 will make clones of these
  * and remove the original nodes. If the originals are removed while there are still userland references
  * this will cause memory corruption. */
 static void dom_xinclude_strip_fallback_references(const xmlNode *basep)
 {
 	xmlNodePtr current = basep->children;
 
+	/* TODO: try to improve loop search performance */
 	while (current) {
-		if (current->type == XML_ELEMENT_NODE && current->ns != NULL && current->_private != NULL
-			&& xmlStrEqual(current->name, XINCLUDE_FALLBACK)
+		if (current->type == XML_ELEMENT_NODE
+			&& current->ns != NULL
+			&& xmlStrEqual(current->name, XINCLUDE_NODE)
 			&& (xmlStrEqual(current->ns->href, XINCLUDE_NS) || xmlStrEqual(current->ns->href, XINCLUDE_OLD_NS))) {
 			dom_xinclude_strip_references(current);
 		}
@@ -1684,7 +1658,6 @@ PHP_METHOD(DOMDocument, xinclude)
 {
 	zval *id;
 	xmlDoc *docp;
-	xmlNodePtr root;
 	zend_long flags = 0;
 	int err;
 	dom_object *intern;
@@ -1703,21 +1676,10 @@ PHP_METHOD(DOMDocument, xinclude)
 
 	dom_xinclude_strip_fallback_references((const xmlNode *) docp);
 
+	flags |= XML_PARSE_NOXINCNODE;
 	PHP_LIBXML_SANITIZE_GLOBALS(xinclude);
 	err = xmlXIncludeProcessFlags(docp, (int)flags);
 	PHP_LIBXML_RESTORE_GLOBALS(xinclude);
-
-	/* XML_XINCLUDE_START and XML_XINCLUDE_END nodes need to be removed as these
-	are added via xmlXIncludeProcess to mark beginning and ending of xincluded document
-	but are not wanted in resulting document - must be done even if err as it could fail after
-	having processed some xincludes */
-	root = (xmlNodePtr) docp->children;
-	while(root && root->type != XML_ELEMENT_NODE && root->type != XML_XINCLUDE_START) {
-		root = root->next;
-	}
-	if (root) {
-		php_dom_remove_xinclude_nodes(root);
-	}
 
 	php_libxml_invalidate_node_list_cache(intern->document);
 

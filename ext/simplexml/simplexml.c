@@ -54,6 +54,16 @@ static void php_sxe_iterator_move_forward(zend_object_iterator *iter);
 static void php_sxe_iterator_rewind(zend_object_iterator *iter);
 static zend_result sxe_object_cast_ex(zend_object *readobj, zval *writeobj, int type);
 
+static void sxe_unlink_node(xmlNodePtr node)
+{
+	xmlUnlinkNode(node);
+	/* Only destroy the nodes if we have no objects using them anymore.
+	 * Don't assume simplexml owns these. */
+	if (!node->_private) {
+		php_libxml_node_free_resource(node);
+	}
+}
+
 /* {{{ _node_as_zval() */
 static void _node_as_zval(php_sxe_object *sxe, xmlNodePtr node, zval *value, SXE_ITER itertype, char *name, const xmlChar *nsprefix, int isprefix)
 {
@@ -554,8 +564,7 @@ next_iter:
 			}
 			if (value_str) {
 				while ((tempnode = (xmlNodePtr) newnode->children)) {
-					xmlUnlinkNode(tempnode);
-					php_libxml_node_free_resource((xmlNodePtr) tempnode);
+					sxe_unlink_node(tempnode);
 				}
 				change_node_zval(newnode, value_str);
 			}
@@ -567,7 +576,10 @@ next_iter:
 				if (!member || Z_TYPE_P(member) == IS_LONG) {
 					newnode = xmlNewTextChild(mynode->parent, mynode->ns, mynode->name, value_str ? (xmlChar *)ZSTR_VAL(value_str) : NULL);
 				} else {
-					newnode = xmlNewTextChild(mynode, mynode->ns, (xmlChar *)Z_STRVAL_P(member), value_str ? (xmlChar *)ZSTR_VAL(value_str) : NULL);
+					/* Note: we cannot set the namespace here unconditionally because the parent may be a document.
+					 * Passing NULL will let libxml decide to either inherit the namespace or not set one at all,
+					 * depending on whether the parent is an element. */
+					newnode = xmlNewTextChild(mynode, NULL, (xmlChar *)Z_STRVAL_P(member), value_str ? (xmlChar *)ZSTR_VAL(value_str) : NULL);
 				}
 			} else if (!member || Z_TYPE_P(member) == IS_LONG) {
 				if (member && cnt < Z_LVAL_P(member)) {
@@ -622,6 +634,10 @@ static zval *sxe_property_get_adr(zend_object *object, zend_string *zname, int f
 	char           *name;
 	SXE_ITER        type;
 	zval            member;
+
+	if (cache_slot) {
+		cache_slot[0] = cache_slot[1] = cache_slot[2] = NULL;
+	}
 
 	sxe = php_sxe_fetch_object(object);
 	GET_NODE(sxe, node);
@@ -829,8 +845,7 @@ static void sxe_prop_dim_delete(zend_object *object, zval *member, bool elements
 				while (attr && nodendx <= Z_LVAL_P(member)) {
 					if ((!test || xmlStrEqual(attr->name, sxe->iter.name)) && match_ns(sxe, (xmlNodePtr) attr, sxe->iter.nsprefix, sxe->iter.isprefix)) {
 						if (nodendx == Z_LVAL_P(member)) {
-							xmlUnlinkNode((xmlNodePtr) attr);
-							php_libxml_node_free_resource((xmlNodePtr) attr);
+							sxe_unlink_node((xmlNodePtr) attr);
 							break;
 						}
 						nodendx++;
@@ -841,8 +856,7 @@ static void sxe_prop_dim_delete(zend_object *object, zval *member, bool elements
 				while (attr) {
 					anext = attr->next;
 					if ((!test || xmlStrEqual(attr->name, sxe->iter.name)) && xmlStrEqual(attr->name, (xmlChar *)Z_STRVAL_P(member)) && match_ns(sxe, (xmlNodePtr) attr, sxe->iter.nsprefix, sxe->iter.isprefix)) {
-						xmlUnlinkNode((xmlNodePtr) attr);
-						php_libxml_node_free_resource((xmlNodePtr) attr);
+						sxe_unlink_node((xmlNodePtr) attr);
 						break;
 					}
 					attr = anext;
@@ -857,8 +871,7 @@ static void sxe_prop_dim_delete(zend_object *object, zval *member, bool elements
 				}
 				node = sxe_get_element_by_offset(sxe, Z_LVAL_P(member), node, NULL);
 				if (node) {
-					xmlUnlinkNode(node);
-					php_libxml_node_free_resource(node);
+					sxe_unlink_node(node);
 				}
 			} else {
 				node = node->children;
@@ -868,8 +881,7 @@ static void sxe_prop_dim_delete(zend_object *object, zval *member, bool elements
 					SKIP_TEXT(node);
 
 					if (xmlStrEqual(node->name, (xmlChar *)Z_STRVAL_P(member)) && match_ns(sxe, node, sxe->iter.nsprefix, sxe->iter.isprefix)) {
-						xmlUnlinkNode(node);
-						php_libxml_node_free_resource(node);
+						sxe_unlink_node(node);
 					}
 
 next_iter:
@@ -2181,8 +2193,8 @@ static void sxe_object_free_storage(zend_object *object)
 	sxe_object_free_iterxpath(sxe);
 
 	if (sxe->properties) {
-		zend_hash_destroy(sxe->properties);
-		FREE_HASHTABLE(sxe->properties);
+		ZEND_ASSERT(!(GC_FLAGS(sxe->properties) & IS_ARRAY_IMMUTABLE));
+		zend_hash_release(sxe->properties);
 	}
 }
 /* }}} */
@@ -2532,7 +2544,11 @@ static zval *php_sxe_iterator_current_data(zend_object_iterator *iter) /* {{{ */
 {
 	php_sxe_iterator *iterator = (php_sxe_iterator *)iter;
 
-	return &iterator->sxe->iter.data;
+	zval *data = &iterator->sxe->iter.data;
+	if (Z_ISUNDEF_P(data)) {
+		return NULL;
+	}
+	return data;
 }
 /* }}} */
 

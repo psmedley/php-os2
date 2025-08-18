@@ -89,11 +89,6 @@ static void php_phpdbg_destroy_bp_condition(zval *data) /* {{{ */
 	efree(brake);
 } /* }}} */
 
-static void php_phpdbg_destroy_registered(zval *data) /* {{{ */
-{
-	zend_function_dtor(data);
-} /* }}} */
-
 static void php_phpdbg_destroy_file_source(zval *data) /* {{{ */
 {
 	phpdbg_file_source *source = (phpdbg_file_source *) Z_PTR_P(data);
@@ -163,7 +158,7 @@ static PHP_MINIT_FUNCTION(phpdbg) /* {{{ */
 	zend_hash_init(&PHPDBG_G(bp)[PHPDBG_BREAK_MAP], 8, NULL, NULL, 0);
 
 	zend_hash_init(&PHPDBG_G(seek), 8, NULL, NULL, 0);
-	zend_hash_init(&PHPDBG_G(registered), 8, NULL, php_phpdbg_destroy_registered, 0);
+	zend_hash_init(&PHPDBG_G(registered), 8, NULL, NULL, true);
 
 	zend_hash_init(&PHPDBG_G(file_sources), 0, NULL, php_phpdbg_destroy_file_source, 0);
 	phpdbg_setup_watchpoints();
@@ -182,12 +177,6 @@ static PHP_MSHUTDOWN_FUNCTION(phpdbg) /* {{{ */
 
 	if (!(PHPDBG_G(flags) & PHPDBG_IS_QUITTING)) {
 		phpdbg_notice("Script ended normally");
-	}
-
-	/* hack to restore mm_heap->use_custom_heap in order to receive memory leak info */
-	if (use_mm_wrappers) {
-		/* ASSUMING that mm_heap->use_custom_heap is the first element of the struct ... */
-		*(int *) zend_mm_get_heap() = 0;
 	}
 
 	if (PHPDBG_G(buffer)) {
@@ -369,6 +358,7 @@ PHP_FUNCTION(phpdbg_clear)
 	zend_hash_clean(&PHPDBG_G(bp)[PHPDBG_BREAK_FILE_OPLINE]);
 	zend_hash_clean(&PHPDBG_G(bp)[PHPDBG_BREAK_OPLINE]);
 	zend_hash_clean(&PHPDBG_G(bp)[PHPDBG_BREAK_METHOD]);
+	zend_hash_clean(&PHPDBG_G(bp)[PHPDBG_BREAK_MAP]);
 	zend_hash_clean(&PHPDBG_G(bp)[PHPDBG_BREAK_COND]);
 } /* }}} */
 

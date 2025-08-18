@@ -2207,7 +2207,7 @@ ZEND_API size_t zend_mm_gc(zend_mm_heap *heap)
 				i++;
 			}
 		}
-		if (chunk->free_pages == ZEND_MM_PAGES - ZEND_MM_FIRST_PAGE) {
+		if (chunk->free_pages == ZEND_MM_PAGES - ZEND_MM_FIRST_PAGE && chunk != heap->main_chunk) {
 			zend_mm_chunk *next_chunk = chunk->next;
 
 			zend_mm_delete_chunk(heap, chunk);
@@ -2434,7 +2434,10 @@ void zend_mm_shutdown(zend_mm_heap *heap, bool full, bool silent)
 				/* Make sure the heap free below does not use tracked_free(). */
 				heap->custom_heap.std._free = free;
 			}
+#if ZEND_MM_STAT
 			heap->size = 0;
+			heap->real_size = 0;
+#endif
 		}
 
 		if (full) {
@@ -2631,8 +2634,8 @@ ZEND_API bool is_zend_ptr(const void *ptr)
 
 	zend_mm_huge_list *block = AG(mm_heap)->huge_list;
 	while (block) {
-		if (ptr >= (void*)block
-				&& ptr < (void*)((char*)block + block->size)) {
+		if (ptr >= block->ptr
+				&& ptr < (void*)((char*)block->ptr + block->size)) {
 			return 1;
 		}
 		block = block->next;
@@ -2983,6 +2986,7 @@ static zend_always_inline zval *tracked_get_size_zv(zend_mm_heap *heap, void *pt
 }
 
 static zend_always_inline void tracked_check_limit(zend_mm_heap *heap, size_t add_size) {
+#if ZEND_MM_STAT
 	if (add_size > heap->limit - heap->size && !heap->overflow) {
 #if ZEND_DEBUG
 		zend_mm_safe_error(heap,
@@ -2994,6 +2998,7 @@ static zend_always_inline void tracked_check_limit(zend_mm_heap *heap, size_t ad
 			heap->limit, add_size);
 #endif
 	}
+#endif
 }
 
 static void *tracked_malloc(size_t size)
@@ -3007,7 +3012,10 @@ static void *tracked_malloc(size_t size)
 	}
 
 	tracked_add(heap, ptr, size);
+#if ZEND_MM_STAT
 	heap->size += size;
+	heap->real_size = heap->size;
+#endif
 	return ptr;
 }
 
@@ -3018,7 +3026,10 @@ static void tracked_free(void *ptr) {
 
 	zend_mm_heap *heap = AG(mm_heap);
 	zval *size_zv = tracked_get_size_zv(heap, ptr);
+#if ZEND_MM_STAT
 	heap->size -= Z_LVAL_P(size_zv);
+	heap->real_size = heap->size;
+#endif
 	zend_hash_del_bucket(heap->tracked_allocs, (Bucket *) size_zv);
 	free(ptr);
 }
@@ -3043,7 +3054,10 @@ static void *tracked_realloc(void *ptr, size_t new_size) {
 
 	ptr = __zend_realloc(ptr, new_size);
 	tracked_add(heap, ptr, new_size);
+#if ZEND_MM_STAT
 	heap->size += new_size - old_size;
+	heap->real_size = heap->size;
+#endif
 	return ptr;
 }
 
@@ -3211,7 +3225,7 @@ ZEND_API zend_mm_storage *zend_mm_get_storage(zend_mm_heap *heap)
 #if ZEND_MM_STORAGE
 	return heap->storage;
 #else
-	return NULL
+	return NULL;
 #endif
 }
 

@@ -1165,6 +1165,7 @@ static int php_sqlite3_stream_seek(php_stream *stream, zend_off_t offset, int wh
 					sqlite3_stream->position = sqlite3_stream->position + offset;
 					*newoffs = sqlite3_stream->position;
 					stream->eof = 0;
+					stream->fatal_error = 0;
 					return 0;
 				}
 			} else {
@@ -1176,6 +1177,7 @@ static int php_sqlite3_stream_seek(php_stream *stream, zend_off_t offset, int wh
 					sqlite3_stream->position = sqlite3_stream->position + offset;
 					*newoffs = sqlite3_stream->position;
 					stream->eof = 0;
+					stream->fatal_error = 0;
 					return 0;
 				}
 			}
@@ -1188,6 +1190,7 @@ static int php_sqlite3_stream_seek(php_stream *stream, zend_off_t offset, int wh
 				sqlite3_stream->position = offset;
 				*newoffs = sqlite3_stream->position;
 				stream->eof = 0;
+				stream->fatal_error = 0;
 				return 0;
 			}
 		case SEEK_END:
@@ -1203,6 +1206,7 @@ static int php_sqlite3_stream_seek(php_stream *stream, zend_off_t offset, int wh
 				sqlite3_stream->position = sqlite3_stream->size + offset;
 				*newoffs = sqlite3_stream->position;
 				stream->eof = 0;
+				stream->fatal_error = 0;
 				return 0;
 			}
 		default:
@@ -2256,13 +2260,15 @@ static HashTable *php_sqlite3_get_gc(zend_object *object, zval **table, int *n)
 {
 	php_sqlite3_db_object *intern = php_sqlite3_db_from_obj(object);
 
-	if (intern->funcs == NULL && intern->collations == NULL) {
+	if (intern->funcs == NULL && intern->collations == NULL && !ZEND_FCC_INITIALIZED(intern->authorizer_fcc)) {
 		/* Fast path without allocations */
 		*table = NULL;
 		*n = 0;
 		return zend_std_get_gc(object, table, n);
 	} else {
 		zend_get_gc_buffer *gc_buffer = zend_get_gc_buffer_create();
+
+		php_sqlite3_gc_buffer_add_fcc(gc_buffer, &intern->authorizer_fcc);
 
 		php_sqlite3_func *func = intern->funcs;
 		while (func != NULL) {

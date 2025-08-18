@@ -1504,6 +1504,7 @@ int phar_create_or_parse_filename(char *fname, size_t fname_len, char *alias, si
 			}
 		}
 
+		ZEND_ASSERT(!mydata->is_persistent);
 		mydata->alias = alias ? estrndup(alias, alias_len) : estrndup(mydata->fname, fname_len);
 		mydata->alias_len = alias ? alias_len : fname_len;
 	}
@@ -1703,6 +1704,7 @@ static int phar_open_from_fp(php_stream* fp, char *fname, size_t fname_len, char
 				php_stream_filter_append(&temp->writefilters, filter);
 
 				if (SUCCESS != php_stream_copy_to_stream_ex(fp, temp, PHP_STREAM_COPY_ALL, NULL)) {
+					php_stream_filter_remove(filter, 1);
 					if (err) {
 						php_stream_close(temp);
 						MAPPHAR_ALLOC_FAIL("unable to decompress gzipped phar archive \"%s\", ext/zlib is buggy in PHP versions older than 5.2.6")
@@ -1749,6 +1751,7 @@ static int phar_open_from_fp(php_stream* fp, char *fname, size_t fname_len, char
 				php_stream_filter_append(&temp->writefilters, filter);
 
 				if (SUCCESS != php_stream_copy_to_stream_ex(fp, temp, PHP_STREAM_COPY_ALL, NULL)) {
+					php_stream_filter_remove(filter, 1);
 					php_stream_close(temp);
 					MAPPHAR_ALLOC_FAIL("unable to decompress bzipped phar archive \"%s\" to temporary file")
 				}
@@ -1774,7 +1777,7 @@ static int phar_open_from_fp(php_stream* fp, char *fname, size_t fname_len, char
 				return phar_parse_zipfile(fp, fname, fname_len, alias, alias_len, pphar, error);
 			}
 
-			if (got > 512) {
+			if (got >= 512) {
 				if (phar_is_tar(pos, fname)) {
 					php_stream_rewind(fp);
 					return phar_parse_tarfile(fp, fname, fname_len, alias, alias_len, pphar, is_data, compression, error);
@@ -2734,7 +2737,7 @@ int phar_flush(phar_archive_data *phar, char *user_stub, zend_long len, int conv
 			/* remove this from the new phar */
 			continue;
 		}
-		if (!entry->is_modified && entry->fp_refcount) {
+		if (entry->fp_refcount) {
 			/* open file pointers refer to this fp, do not free the stream */
 			switch (entry->fp_type) {
 				case PHAR_FP:
@@ -2832,6 +2835,7 @@ int phar_flush(phar_archive_data *phar, char *user_stub, zend_long len, int conv
 		}
 		entry->cfp = shared_cfp;
 		if (!entry->cfp) {
+			php_stream_filter_free(filter);
 			if (error) {
 				spprintf(error, 0, "unable to create temporary file");
 			}
@@ -2846,6 +2850,7 @@ int phar_flush(phar_archive_data *phar, char *user_stub, zend_long len, int conv
 		entry->header_offset = php_stream_tell(entry->cfp);
 		php_stream_flush(file);
 		if (-1 == phar_seek_efp(entry, 0, SEEK_SET, 0, 0)) {
+			php_stream_filter_free(filter);
 			if (closeoldfile) {
 				php_stream_close(oldfile);
 			}
@@ -2857,6 +2862,7 @@ int phar_flush(phar_archive_data *phar, char *user_stub, zend_long len, int conv
 		}
 		php_stream_filter_append((&entry->cfp->writefilters), filter);
 		if (SUCCESS != php_stream_copy_to_stream_ex(file, entry->cfp, entry->uncompressed_filesize, NULL)) {
+			php_stream_filter_remove(filter, 1);
 			if (closeoldfile) {
 				php_stream_close(oldfile);
 			}

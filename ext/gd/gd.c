@@ -1322,7 +1322,7 @@ static int _php_ctx_getmbi(gdIOCtx *ctx)
 
 	do {
 		i = (ctx->getC)(ctx);
-		if (i < 0) {
+		if (i < 0 || mbi > (INT_MAX >> 7)) {
 			return -1;
 		}
 		mbi = (mbi << 7) | (i & 0x7f);
@@ -3082,6 +3082,17 @@ static void php_imagettftext_common(INTERNAL_FUNCTION_PARAMETERS, int mode)
 		im = php_gd_libgdimageptr_from_zval_p(IM);
 	}
 
+	// FT_F26Dot6 is a signed long alias
+	if (ptsize < (double)LONG_MIN / 64 || ptsize > (double)LONG_MAX / 64) {
+		zend_argument_value_error(2, "must be between " ZEND_LONG_FMT " and " ZEND_LONG_FMT, (zend_long)((double)LONG_MIN / 64), (zend_long)((double)LONG_MAX / 64));
+		RETURN_THROWS();
+	}
+
+	if (UNEXPECTED(!zend_finite(ptsize))) {
+		zend_argument_value_error(2, "must be finite");
+		RETURN_THROWS();
+	}
+
 	/* convert angle to radians */
 	angle = angle * (M_PI/180);
 
@@ -3417,7 +3428,7 @@ PHP_FUNCTION(imageconvolution)
 	}
 
 	for (i=0; i<3; i++) {
-		if ((var = zend_hash_index_find(Z_ARRVAL_P(hash_matrix), (i))) != NULL && Z_TYPE_P(var) == IS_ARRAY) {
+		if ((var = zend_hash_index_find_deref(Z_ARRVAL_P(hash_matrix), (i))) != NULL && Z_TYPE_P(var) == IS_ARRAY) {
 			if (zend_hash_num_elements(Z_ARRVAL_P(var)) != 3 ) {
 				zend_argument_value_error(2, "must be a 3x3 array, matrix[%d] only has %d elements", i, zend_hash_num_elements(Z_ARRVAL_P(var)));
 				RETURN_THROWS();
@@ -3433,7 +3444,24 @@ PHP_FUNCTION(imageconvolution)
 			}
 		}
 	}
-	res = gdImageConvolution(im_src, matrix, (float)div, (float)offset);
+
+	if (UNEXPECTED(!zend_finite(div))) {
+		zend_argument_value_error(3, "must be finite");
+		RETURN_THROWS();
+	}
+
+	float div_float = (float) div;
+	if (UNEXPECTED(div_float == 0.0f)) {
+		zend_argument_value_error(3, "must not be 0");
+		RETURN_THROWS();
+	}
+
+	if (UNEXPECTED(!zend_finite(offset))) {
+		zend_argument_value_error(4, "must be finite");
+		RETURN_THROWS();
+	}
+
+	res = gdImageConvolution(im_src, matrix, div_float, (float) offset);
 
 	if (res) {
 		RETURN_TRUE;
@@ -3540,6 +3568,26 @@ PHP_FUNCTION(imagecrop)
 		rect.height = zval_get_long(tmp);
 	} else {
 		zend_argument_value_error(2, "must have a \"height\" key");
+		RETURN_THROWS();
+	}
+
+	if ((rect.width > 0 && rect.x > INT_MAX - rect.width)) {
+		zend_argument_value_error(2, "overflow with \"x\" and \"width\" keys");
+		RETURN_THROWS();
+	}
+
+	if ((rect.width < 0 && rect.x < INT_MIN - rect.width)) {
+		zend_argument_value_error(2, "underflow with \"x\" and \"width\" keys");
+		RETURN_THROWS();
+	}
+
+	if ((rect.height > 0 && rect.y > INT_MAX - rect.height)) {
+		zend_argument_value_error(2, "overflow with \"y\" and \"height\" keys");
+		RETURN_THROWS();
+	}
+
+	if ((rect.height < 0 && rect.y < INT_MIN - rect.height)) {
+		zend_argument_value_error(2, "underflow with \"y\" and \"height\" keys");
 		RETURN_THROWS();
 	}
 
@@ -3680,7 +3728,7 @@ PHP_FUNCTION(imageaffine)
 	}
 
 	for (i = 0; i < nelems; i++) {
-		if ((zval_affine_elem = zend_hash_index_find(Z_ARRVAL_P(z_affine), i)) != NULL) {
+		if ((zval_affine_elem = zend_hash_index_find_deref(Z_ARRVAL_P(z_affine), i)) != NULL) {
 			switch (Z_TYPE_P(zval_affine_elem)) {
 				case IS_LONG:
 					affine[i] = Z_LVAL_P(zval_affine_elem);
@@ -3856,7 +3904,7 @@ PHP_FUNCTION(imageaffinematrixconcat)
 	}
 
 	for (i = 0; i < 6; i++) {
-		if ((tmp = zend_hash_index_find(Z_ARRVAL_P(z_m1), i)) != NULL) {
+		if ((tmp = zend_hash_index_find_deref(Z_ARRVAL_P(z_m1), i)) != NULL) {
 			switch (Z_TYPE_P(tmp)) {
 				case IS_LONG:
 					m1[i]  = Z_LVAL_P(tmp);
@@ -3873,7 +3921,7 @@ PHP_FUNCTION(imageaffinematrixconcat)
 			}
 		}
 
-		if ((tmp = zend_hash_index_find(Z_ARRVAL_P(z_m2), i)) != NULL) {
+		if ((tmp = zend_hash_index_find_deref(Z_ARRVAL_P(z_m2), i)) != NULL) {
 			switch (Z_TYPE_P(tmp)) {
 				case IS_LONG:
 					m2[i]  = Z_LVAL_P(tmp);

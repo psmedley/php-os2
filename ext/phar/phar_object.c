@@ -1926,7 +1926,8 @@ static int phar_copy_file_contents(phar_entry_info *entry, php_stream *fp) /* {{
 {
 	char *error;
 	zend_off_t offset;
-	phar_entry_info *link;
+
+	ZEND_ASSERT(!entry->link);
 
 	if (FAILURE == phar_open_entry_fp(entry, &error, 1)) {
 		if (error) {
@@ -1941,24 +1942,12 @@ static int phar_copy_file_contents(phar_entry_info *entry, php_stream *fp) /* {{
 	}
 
 	/* copy old contents in entirety */
-	phar_seek_efp(entry, 0, SEEK_SET, 0, 1);
+	phar_seek_efp(entry, 0, SEEK_SET, 0, 0);
 	offset = php_stream_tell(fp);
-	link = phar_get_link_source(entry);
-
-	if (!link) {
-		link = entry;
-	}
-
-	if (SUCCESS != php_stream_copy_to_stream_ex(phar_get_efp(link, 0), fp, link->uncompressed_filesize, NULL)) {
+	if (SUCCESS != php_stream_copy_to_stream_ex(phar_get_efp(entry, 0), fp, entry->uncompressed_filesize, NULL)) {
 		zend_throw_exception_ex(spl_ce_UnexpectedValueException, 0,
 			"Cannot convert phar archive \"%s\", unable to copy entry \"%s\" contents", entry->phar->fname, entry->filename);
 		return FAILURE;
-	}
-
-	if (entry->fp_type == PHAR_MOD) {
-		/* save for potential restore on error */
-		entry->cfp = entry->fp;
-		entry->fp = NULL;
 	}
 
 	/* set new location of file contents */
@@ -2112,9 +2101,8 @@ static zend_object *phar_rename_archive(phar_archive_data **sphar, char *ext) /*
 	efree(newname);
 
 	if (PHAR_G(manifest_cached) && NULL != (pphar = zend_hash_str_find_ptr(&cached_phars, newpath, phar->fname_len))) {
-		efree(oldpath);
 		zend_throw_exception_ex(spl_ce_BadMethodCallException, 0, "Unable to add newly converted phar \"%s\" to the list of phars, new phar name is in phar.cache_list", phar->fname);
-		return NULL;
+		goto err_oldpath;
 	}
 
 	if (NULL != (pphar = zend_hash_str_find_ptr(&(PHAR_G(phar_fname_map)), newpath, phar->fname_len))) {
@@ -2126,41 +2114,42 @@ static zend_object *phar_rename_archive(phar_archive_data **sphar, char *ext) /*
 				pphar->flags = phar->flags;
 				pphar->fp = phar->fp;
 				phar->fp = NULL;
-				/* FIX: GH-10755 Double-free issue caught by ASAN check */
-				pphar->alias = phar->alias; /* Transfer alias to pphar to */
-				phar->alias = NULL;         /* avoid being free'd twice   */
+				/* The alias is not owned by the phar, so set it to NULL to avoid freeing it. */
+				phar->alias = NULL;
 				phar_destroy_phar_data(phar);
 				*sphar = NULL;
 				phar = pphar;
+				/* NOTE: this phar is now reused, so the refcount must be increased. */
+				phar->refcount++;
 				newpath = oldpath;
 				goto its_ok;
 			}
 		}
 
-		efree(oldpath);
 		zend_throw_exception_ex(spl_ce_BadMethodCallException, 0, "Unable to add newly converted phar \"%s\" to the list of phars, a phar with that name already exists", phar->fname);
-		return NULL;
+		goto err_oldpath;
 	}
 its_ok:
 	if (SUCCESS == php_stream_stat_path(newpath, &ssb)) {
 		zend_throw_exception_ex(spl_ce_BadMethodCallException, 0, "phar \"%s\" exists and must be unlinked prior to conversion", newpath);
-		efree(oldpath);
-		return NULL;
+		goto err_reused_oldpath;
 	}
 	if (!phar->is_data) {
 		if (SUCCESS != phar_detect_phar_fname_ext(newpath, phar->fname_len, (const char **) &(phar->ext), &ext_len, 1, 1, 1)) {
-			efree(oldpath);
 			zend_throw_exception_ex(spl_ce_BadMethodCallException, 0, "phar \"%s\" has invalid extension %s", phar->fname, ext);
-			return NULL;
+			goto err_reused_oldpath;
 		}
 		phar->ext_len = ext_len;
 
-		if (phar->alias) {
+		/* If we are reusing a phar, then the aliases should be already set up correctly,
+		 * and so we should not clear out the alias information.
+		 * This would also leak memory because, unlike the non-reuse path, we actually own the alias memory. */
+		if (phar->alias && phar != pphar) {
 			if (phar->is_temporary_alias) {
 				phar->alias = NULL;
 				phar->alias_len = 0;
 			} else {
-				phar->alias = estrndup(newpath, strlen(newpath));
+				phar->alias = pestrndup(newpath, strlen(newpath), phar->is_persistent);
 				phar->alias_len = strlen(newpath);
 				phar->is_temporary_alias = 1;
 				zend_hash_str_update_ptr(&(PHAR_G(phar_alias_map)), newpath, phar->fname_len, phar);
@@ -2170,20 +2159,21 @@ its_ok:
 	} else {
 
 		if (SUCCESS != phar_detect_phar_fname_ext(newpath, phar->fname_len, (const char **) &(phar->ext), &ext_len, 0, 1, 1)) {
-			efree(oldpath);
 			zend_throw_exception_ex(spl_ce_BadMethodCallException, 0, "data phar \"%s\" has invalid extension %s", phar->fname, ext);
-			return NULL;
+			goto err_reused_oldpath;
 		}
 		phar->ext_len = ext_len;
 
-		phar->alias = NULL;
-		phar->alias_len = 0;
+		/* See comment in other branch. */
+		if (phar != pphar) {
+			phar->alias = NULL;
+			phar->alias_len = 0;
+		}
 	}
 
 	if ((!pphar || phar == pphar) && NULL == zend_hash_str_update_ptr(&(PHAR_G(phar_fname_map)), newpath, phar->fname_len, phar)) {
-		efree(oldpath);
 		zend_throw_exception_ex(spl_ce_BadMethodCallException, 0, "Unable to add newly converted phar \"%s\" to the list of phars", phar->fname);
-		return NULL;
+		goto err_oldpath;
 	}
 
 	phar_flush(phar, 0, 0, 1, &error);
@@ -2193,8 +2183,7 @@ its_ok:
 		*sphar = NULL;
 		zend_throw_exception_ex(spl_ce_BadMethodCallException, 0, "%s", error);
 		efree(error);
-		efree(oldpath);
-		return NULL;
+		goto err_oldpath;
 	}
 
 	efree(oldpath);
@@ -2217,6 +2206,16 @@ its_ok:
 	zend_call_known_instance_method_with_1_params(ce->constructor, Z_OBJ(ret), NULL, &arg1);
 	zval_ptr_dtor(&arg1);
 	return Z_OBJ(ret);
+
+err_reused_oldpath:
+	if (pphar == phar) {
+		/* NOTE: we know it's not the last reference because the phar is reused. */
+		phar->refcount--;
+	}
+	/* fallthrough */
+err_oldpath:
+	efree(oldpath);
+	return NULL;
 }
 /* }}} */
 
@@ -2289,6 +2288,10 @@ static zend_object *phar_convert_to_other(phar_archive_data *source, int convert
 			return NULL;
 		}
 no_copy:
+		/* Reset file pointers, they have to be reset here such that if a copy happens the original
+		 * source fp can be accessed. */
+		newentry.fp = NULL;
+		newentry.cfp = NULL;
 		newentry.filename = estrndup(newentry.filename, newentry.filename_len);
 
 		phar_metadata_tracker_clone(&newentry.metadata_tracker);
@@ -2747,7 +2750,7 @@ valid_alias:
 	old_temp = phar_obj->archive->is_temporary_alias;
 
 	if (alias_len) {
-		phar_obj->archive->alias = estrndup(alias, alias_len);
+		phar_obj->archive->alias = pestrndup(alias, alias_len, phar_obj->archive->is_persistent);
 	} else {
 		phar_obj->archive->alias = NULL;
 	}
@@ -4296,7 +4299,7 @@ static int extract_helper(phar_archive_data *archive, zend_string *search, char 
 			if (FAILURE == phar_extract_file(overwrite, entry, pathto, pathto_len, error)) return -1;
 			extracted++;
 		} ZEND_HASH_FOREACH_END();
-	} else if ('/' == ZSTR_VAL(search)[ZSTR_LEN(search) - 1]) {
+	} else if (ZSTR_LEN(search) > 0 && '/' == ZSTR_VAL(search)[ZSTR_LEN(search) - 1]) {
 		/* ends in "/" -- extract all entries having that prefix */
 		ZEND_HASH_MAP_FOREACH_PTR(&archive->manifest, entry) {
 			if (0 != strncmp(ZSTR_VAL(search), entry->filename, ZSTR_LEN(search))) continue;
@@ -4473,6 +4476,9 @@ PHP_METHOD(PharFileInfo, __construct)
 	efree(entry);
 
 	entry_obj->entry = entry_info;
+	if (!entry_info->is_persistent && !entry_info->is_temp_dir) {
+		++entry_info->fp_refcount;
+	}
 
 	ZVAL_STRINGL(&arg1, fname, fname_len);
 
@@ -4502,15 +4508,23 @@ PHP_METHOD(PharFileInfo, __destruct)
 		RETURN_THROWS();
 	}
 
-	if (entry_obj->entry && entry_obj->entry->is_temp_dir) {
+	if (!entry_obj->entry) {
+		return;
+	}
+
+	if (entry_obj->entry->is_temp_dir) {
 		if (entry_obj->entry->filename) {
 			efree(entry_obj->entry->filename);
 			entry_obj->entry->filename = NULL;
 		}
 
 		efree(entry_obj->entry);
-		entry_obj->entry = NULL;
+	} else if (!entry_obj->entry->is_persistent) {
+		--entry_obj->entry->fp_refcount;
+		/* It is necessarily still in the manifest, which will ultimately free this. */
 	}
+
+	entry_obj->entry = NULL;
 }
 /* }}} */
 

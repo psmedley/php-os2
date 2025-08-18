@@ -1513,7 +1513,7 @@ function header_register_callback(callable $callback): bool {}
 
 /* main/output.c */
 
-/** @param callable $callback */
+/** @param callable|null $callback */
 function ob_start($callback = null, int $chunk_size = 0, int $flags = PHP_OUTPUT_HANDLER_STDFLAGS): bool {}
 
 function ob_flush(): bool {}
@@ -1678,13 +1678,11 @@ function array_merge_recursive(array ...$arrays): array {}
 
 /**
  * @compile-time-eval
- * @refcount 1
  */
 function array_replace(array $array, array ...$replacements): array {}
 
 /**
  * @compile-time-eval
- * @refcount 1
  */
 function array_replace_recursive(array $array, array ...$replacements): array {}
 
@@ -1757,19 +1755,16 @@ function array_intersect_key(array $array, array ...$arrays): array {}
 
 /**
  * @param array|callable $rest
- * @refcount 1
  */
 function array_intersect_ukey(array $array, ...$rest): array {}
 
 /**
  * @compile-time-eval
- * @refcount 1
  */
 function array_intersect(array $array, array ...$arrays): array {}
 
 /**
  * @param array|callable $rest
- * @refcount 1
  */
 function array_uintersect(array $array, ...$rest): array {}
 
@@ -1787,13 +1782,11 @@ function array_uintersect_assoc(array $array, ...$rest): array {}
 
 /**
  * @param array|callable $rest
- * @refcount 1
  */
 function array_intersect_uassoc(array $array, ...$rest): array {}
 
 /**
  * @param array|callable $rest
- * @refcount 1
  */
 function array_uintersect_uassoc(array $array, ...$rest): array {}
 

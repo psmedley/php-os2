@@ -103,6 +103,8 @@ typedef struct _zend_jit_stub {
 #define JIT_STUB(name, offset, adjustment) \
 	{JIT_STUB_PREFIX #name, zend_jit_ ## name ## _stub, offset, adjustment}
 
+bool zend_jit_startup_ok = false;
+
 zend_ulong zend_jit_profile_counter = 0;
 int zend_jit_profile_counter_rid = -1;
 
@@ -3191,7 +3193,7 @@ static int zend_jit(const zend_op_array *op_array, zend_ssa *ssa, const zend_op 
 						if (opline->op1_type == IS_UNUSED) {
 							op1_info = MAY_BE_OBJECT|MAY_BE_RC1|MAY_BE_RCN;
 							ce = op_array->scope;
-							ce_is_instanceof = (ce->ce_flags & ZEND_ACC_FINAL) != 0;
+							ce_is_instanceof = !(ce->ce_flags & ZEND_ACC_FINAL);
 							op1_addr = 0;
 							on_this = 1;
 						} else {
@@ -3239,7 +3241,7 @@ static int zend_jit(const zend_op_array *op_array, zend_ssa *ssa, const zend_op 
 						if (opline->op1_type == IS_UNUSED) {
 							op1_info = MAY_BE_OBJECT|MAY_BE_RC1|MAY_BE_RCN;
 							ce = op_array->scope;
-							ce_is_instanceof = (ce->ce_flags & ZEND_ACC_FINAL) != 0;
+							ce_is_instanceof = !(ce->ce_flags & ZEND_ACC_FINAL);
 							op1_addr = 0;
 							on_this = 1;
 						} else {
@@ -3280,7 +3282,7 @@ static int zend_jit(const zend_op_array *op_array, zend_ssa *ssa, const zend_op 
 						if (opline->op1_type == IS_UNUSED) {
 							op1_info = MAY_BE_OBJECT|MAY_BE_RC1|MAY_BE_RCN;
 							ce = op_array->scope;
-							ce_is_instanceof = (ce->ce_flags & ZEND_ACC_FINAL) != 0;
+							ce_is_instanceof = !(ce->ce_flags & ZEND_ACC_FINAL);
 							op1_addr = 0;
 							on_this = 1;
 						} else {
@@ -3783,7 +3785,7 @@ static int zend_jit(const zend_op_array *op_array, zend_ssa *ssa, const zend_op 
 							op1_info = MAY_BE_OBJECT|MAY_BE_RC1|MAY_BE_RCN;
 							op1_addr = 0;
 							ce = op_array->scope;
-							ce_is_instanceof = (ce->ce_flags & ZEND_ACC_FINAL) != 0;
+							ce_is_instanceof = !(ce->ce_flags & ZEND_ACC_FINAL);
 							on_this = 1;
 						} else {
 							op1_info = OP1_INFO();
@@ -3934,7 +3936,7 @@ static int zend_jit(const zend_op_array *op_array, zend_ssa *ssa, const zend_op 
 							op1_info = MAY_BE_OBJECT|MAY_BE_RC1|MAY_BE_RCN;
 							op1_addr = 0;
 							ce = op_array->scope;
-							ce_is_instanceof = (ce->ce_flags & ZEND_ACC_FINAL) != 0;
+							ce_is_instanceof = !(ce->ce_flags & ZEND_ACC_FINAL);
 							on_this = 1;
 						} else {
 							op1_info = OP1_INFO();
@@ -4626,8 +4628,16 @@ ZEND_EXT_API int zend_jit_script(zend_script *script)
 	 || JIT_G(trigger) == ZEND_JIT_ON_HOT_TRACE) {
 		zend_class_entry *ce;
 		zend_op_array *op_array;
+		zval *zv;
 
-		ZEND_HASH_MAP_FOREACH_PTR(&script->class_table, ce) {
+		ZEND_HASH_MAP_FOREACH_VAL(&script->class_table, zv) {
+			if (Z_TYPE_P(zv) == IS_ALIAS_PTR) {
+				continue;
+			}
+
+			ce = Z_PTR_P(zv);
+			ZEND_ASSERT(ce->type == ZEND_USER_CLASS);
+
 			ZEND_HASH_MAP_FOREACH_PTR(&ce->function_table, op_array) {
 				if (!ZEND_FUNC_INFO(op_array)) {
 					void *jit_extension = zend_shared_alloc_get_xlat_entry(op_array->opcodes);
@@ -5104,6 +5114,13 @@ static void zend_jit_reset_counters(void)
 
 ZEND_EXT_API void zend_jit_activate(void)
 {
+#ifdef ZTS
+	if (!zend_jit_startup_ok) {
+		JIT_G(enabled) = 0;
+		JIT_G(on) = 0;
+		return;
+	}
+#endif
 	zend_jit_profile_counter = 0;
 	if (JIT_G(on)) {
 		if (JIT_G(trigger) == ZEND_JIT_ON_HOT_COUNTERS) {

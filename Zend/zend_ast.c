@@ -564,9 +564,10 @@ ZEND_API zend_result ZEND_FASTCALL zend_ast_evaluate_inner(
 				/* op1 > op2 is the same as op2 < op1 */
 				binary_op_type op = ast->kind == ZEND_AST_GREATER
 					? is_smaller_function : is_smaller_or_equal_function;
-				ret = op(result, &op2, &op1);
+				op(result, &op2, &op1);
 				zval_ptr_dtor_nogc(&op1);
 				zval_ptr_dtor_nogc(&op2);
+				ret = EG(exception) ? FAILURE : SUCCESS;
 			}
 			break;
 		case ZEND_AST_UNARY_OP:
@@ -1562,7 +1563,7 @@ static ZEND_COLD void zend_ast_export_zval(smart_str *str, zval *zv, int priorit
 			break;
 		case IS_DOUBLE:
 			smart_str_append_double(
-				str, Z_DVAL_P(zv), (int) EG(precision), /* zero_fraction */ false);
+				str, Z_DVAL_P(zv), (int) EG(precision), /* zero_fraction */ true);
 			break;
 		case IS_STRING:
 			smart_str_appendc(str, '\'');
@@ -2443,6 +2444,7 @@ simple_list:
 			if (ast->child[3]) {
 				zend_ast_export_attributes(str, ast->child[3], indent, 0);
 			}
+			zend_ast_export_visibility(str, ast->attr);
 			if (ast->child[0]) {
 				zend_ast_export_type(str, ast->child[0], indent);
 				smart_str_appendc(str, ' ');

@@ -303,6 +303,9 @@ static zval *dom_get_property_ptr_ptr(zend_object *object, zend_string *name, in
 		return zend_std_get_property_ptr_ptr(object, name, type, cache_slot);
 	}
 
+	if (cache_slot) {
+		cache_slot[0] = cache_slot[1] = cache_slot[2] = NULL;
+	}
 	return NULL;
 }
 
@@ -1018,6 +1021,10 @@ void dom_namednode_iter(dom_object *basenode, int ntype, dom_object *intern, xml
 	mapptr->baseobj = basenode;
 	mapptr->nodetype = ntype;
 	mapptr->ht = ht;
+	if (EXPECTED(doc != NULL)) {
+		mapptr->dict = doc->dict;
+		xmlDictReference(doc->dict);
+	}
 
 	const xmlChar* tmp;
 
@@ -1128,6 +1135,7 @@ void dom_nnodemap_objects_free_storage(zend_object *object) /* {{{ */
 		if (!Z_ISUNDEF(objmap->baseobj_zv)) {
 			zval_ptr_dtor(&objmap->baseobj_zv);
 		}
+		xmlDictFree(objmap->dict);
 		efree(objmap);
 		intern->ptr = NULL;
 	}
@@ -1158,6 +1166,7 @@ zend_object *dom_nnodemap_objects_new(zend_class_entry *class_type)
 	objmap->cached_length = -1;
 	objmap->cached_obj = NULL;
 	objmap->cached_obj_index = 0;
+	objmap->dict = NULL;
 
 	return &intern->std;
 }

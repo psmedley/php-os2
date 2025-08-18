@@ -2122,7 +2122,7 @@ ZEND_API size_t zend_dirname(char *path, size_t len)
 	}
 
 	/* Strip trailing slashes */
-	while (end >= path && IS_SLASH_P(end)) {
+	while (end >= path && IS_SLASH_P_EX(end, end == path)) {
 		end--;
 	}
 	if (end < path) {
@@ -2133,7 +2133,7 @@ ZEND_API size_t zend_dirname(char *path, size_t len)
 	}
 
 	/* Strip filename */
-	while (end >= path && !IS_SLASH_P(end)) {
+	while (end >= path && !IS_SLASH_P_EX(end, end == path)) {
 		end--;
 	}
 	if (end < path) {
@@ -2144,7 +2144,7 @@ ZEND_API size_t zend_dirname(char *path, size_t len)
 	}
 
 	/* Strip slashes which came before the file name */
-	while (end >= path && IS_SLASH_P(end)) {
+	while (end >= path && IS_SLASH_P_EX(end, end == path)) {
 		end--;
 	}
 	if (end < path) {
@@ -3661,6 +3661,12 @@ static uint32_t zend_compile_args(
 					"Cannot use argument unpacking after named arguments");
 			}
 
+			/* Unpack may contain named arguments. */
+			may_have_undef = 1;
+			if (!fbc || (fbc->common.fn_flags & ZEND_ACC_VARIADIC)) {
+				*may_have_extra_named_args = 1;
+			}
+
 			uses_arg_unpack = 1;
 			fbc = NULL;
 
@@ -3669,11 +3675,6 @@ static uint32_t zend_compile_args(
 			opline->op2.num = arg_count;
 			opline->result.var = EX_NUM_TO_VAR(arg_count - 1);
 
-			/* Unpack may contain named arguments. */
-			may_have_undef = 1;
-			if (!fbc || (fbc->common.fn_flags & ZEND_ACC_VARIADIC)) {
-				*may_have_extra_named_args = 1;
-			}
 			continue;
 		}
 
@@ -8220,7 +8221,13 @@ link_unbound:
 	}
 
 	opline->op1_type = IS_CONST;
-	LITERAL_STR(opline->op1, lcname);
+	/* It's possible that `lcname` is not an interned string because it was not yet in the interned string table.
+	 * However, by this point another thread may have caused `lcname` to be added in the interned string table.
+	 * This will cause `lcname` to get freed once it is found in the interned string table. If we were to use
+	 * LITERAL_STR() here we would not change the `lcname` pointer to the new value, and it would point to the
+	 * now-freed string. This will cause issues when we use `lcname` in the code below. We solve this by using
+	 * zend_add_literal_string() which gives us the new value. */
+	opline->op1.constant = zend_add_literal_string(&lcname);
 
 	if (decl->flags & ZEND_ACC_ANON_CLASS) {
 		opline->opcode = ZEND_DECLARE_ANON_CLASS;
@@ -10679,6 +10686,8 @@ static zend_op *zend_compile_var_inner(znode *result, zend_ast *ast, uint32_t ty
 
 static zend_op *zend_compile_var(znode *result, zend_ast *ast, uint32_t type, bool by_ref) /* {{{ */
 {
+	zend_check_stack_limit();
+
 	uint32_t checkpoint = zend_short_circuiting_checkpoint();
 	zend_op *opcode = zend_compile_var_inner(result, ast, type, by_ref);
 	zend_short_circuiting_commit(checkpoint, result, ast);
@@ -10687,6 +10696,8 @@ static zend_op *zend_compile_var(znode *result, zend_ast *ast, uint32_t type, bo
 
 static zend_op *zend_delayed_compile_var(znode *result, zend_ast *ast, uint32_t type, bool by_ref) /* {{{ */
 {
+	zend_check_stack_limit();
+
 	switch (ast->kind) {
 		case ZEND_AST_VAR:
 			return zend_compile_simple_var(result, ast, type, 1);

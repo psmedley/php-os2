@@ -872,7 +872,7 @@ ZEND_COLD void zend_match_unhandled_error(const zval *value)
 {
 	smart_str msg = {0};
 
-	if (Z_TYPE_P(value) <= IS_STRING) {
+	if (!EG(exception_ignore_args) && Z_TYPE_P(value) <= IS_STRING) {
 		smart_str_append_scalar(&msg, value, EG(exception_string_param_max_len));
 	} else {
 		smart_str_appendl(&msg, "of type ", sizeof("of type ")-1);
@@ -3232,6 +3232,9 @@ static zend_always_inline void zend_fetch_property_address(zval *result, zval *c
 				return;
 			}
 		}
+	} else if (prop_op_type == IS_CONST) {
+		/* CE mismatch, make cache slot consistent */
+		cache_slot[0] = cache_slot[1] = cache_slot[2] = NULL;
 	}
 
 	/* Pointer on property callback is required */
