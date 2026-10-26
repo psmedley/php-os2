@@ -7,7 +7,7 @@ m4trace:configure.ac:11: -1- m4_include([build/php.m4])
 m4trace:configure.ac:12: -1- m4_include([build/pkg.m4])
 m4trace:configure.ac:13: -1- m4_include([TSRM/threads.m4])
 m4trace:configure.ac:14: -1- m4_include([TSRM/tsrm.m4])
-m4trace:configure.ac:20: -1- AC_INIT([PHP], [8.1.31], [https://github.com/php/php-src/issues], [php], [https://www.php.net])
+m4trace:configure.ac:20: -1- AC_INIT([PHP], [8.1.34], [https://github.com/php/php-src/issues], [php], [https://www.php.net])
 m4trace:configure.ac:20: -1- m4_pattern_forbid([^_?A[CHUM]_])
 m4trace:configure.ac:20: -1- m4_pattern_forbid([_AC_])
 m4trace:configure.ac:20: -1- m4_pattern_forbid([^LIBOBJS$], [do not use LIBOBJS directly, use AC_LIBOBJ (see section 'AC_LIBOBJ vs LIBOBJS'])
@@ -137,15 +137,6 @@ m4trace:configure.ac:20: -1- AH_OUTPUT([PACKAGE_URL], [/* Define to the home pag
 m4trace:configure.ac:20: -1- AC_SUBST([DEFS])
 m4trace:configure.ac:20: -1- AC_SUBST_TRACE([DEFS])
 m4trace:configure.ac:20: -1- m4_pattern_allow([^DEFS$])
-m4trace:configure.ac:20: -1- AC_SUBST([ECHO_C])
-m4trace:configure.ac:20: -1- AC_SUBST_TRACE([ECHO_C])
-m4trace:configure.ac:20: -1- m4_pattern_allow([^ECHO_C$])
-m4trace:configure.ac:20: -1- AC_SUBST([ECHO_N])
-m4trace:configure.ac:20: -1- AC_SUBST_TRACE([ECHO_N])
-m4trace:configure.ac:20: -1- m4_pattern_allow([^ECHO_N$])
-m4trace:configure.ac:20: -1- AC_SUBST([ECHO_T])
-m4trace:configure.ac:20: -1- AC_SUBST_TRACE([ECHO_T])
-m4trace:configure.ac:20: -1- m4_pattern_allow([^ECHO_T$])
 m4trace:configure.ac:20: -1- AC_SUBST([LIBS])
 m4trace:configure.ac:20: -1- AC_SUBST_TRACE([LIBS])
 m4trace:configure.ac:20: -1- m4_pattern_allow([^LIBS$])
@@ -158,6 +149,15 @@ m4trace:configure.ac:20: -1- m4_pattern_allow([^host_alias$])
 m4trace:configure.ac:20: -1- AC_SUBST([target_alias])
 m4trace:configure.ac:20: -1- AC_SUBST_TRACE([target_alias])
 m4trace:configure.ac:20: -1- m4_pattern_allow([^target_alias$])
+m4trace:configure.ac:20: -1- AC_SUBST([ECHO_C])
+m4trace:configure.ac:20: -1- AC_SUBST_TRACE([ECHO_C])
+m4trace:configure.ac:20: -1- m4_pattern_allow([^ECHO_C$])
+m4trace:configure.ac:20: -1- AC_SUBST([ECHO_N])
+m4trace:configure.ac:20: -1- AC_SUBST_TRACE([ECHO_N])
+m4trace:configure.ac:20: -1- m4_pattern_allow([^ECHO_N$])
+m4trace:configure.ac:20: -1- AC_SUBST([ECHO_T])
+m4trace:configure.ac:20: -1- AC_SUBST_TRACE([ECHO_T])
+m4trace:configure.ac:20: -1- m4_pattern_allow([^ECHO_T$])
 m4trace:configure.ac:22: -1- AC_CONFIG_AUX_DIR([build])
 m4trace:configure.ac:25: -1- AC_SUBST([GREP])
 m4trace:configure.ac:25: -1- AC_SUBST_TRACE([GREP])
@@ -315,6 +315,10 @@ m4trace:configure.ac:135: -1- AH_OUTPUT([USE_SYSTEM_EXTENSIONS], [/* Enable exte
 #ifndef _ALL_SOURCE
 # undef _ALL_SOURCE
 #endif
+/* Enable extensions on Cosmopolitan Libc. */
+#ifndef _COSMO_SOURCE
+# undef _COSMO_SOURCE
+#endif
 /* Enable general extensions on macOS.  */
 #ifndef _DARWIN_C_SOURCE
 # undef _DARWIN_C_SOURCE
@@ -432,6 +436,8 @@ m4trace:configure.ac:135: -1- AH_OUTPUT([HAVE_MINIX_CONFIG_H], [/* Define to 1 i
 @%:@undef HAVE_MINIX_CONFIG_H])
 m4trace:configure.ac:135: -1- AC_DEFINE_TRACE_LITERAL([_ALL_SOURCE])
 m4trace:configure.ac:135: -1- m4_pattern_allow([^_ALL_SOURCE$])
+m4trace:configure.ac:135: -1- AC_DEFINE_TRACE_LITERAL([_COSMO_SOURCE])
+m4trace:configure.ac:135: -1- m4_pattern_allow([^_COSMO_SOURCE$])
 m4trace:configure.ac:135: -1- AC_DEFINE_TRACE_LITERAL([_DARWIN_C_SOURCE])
 m4trace:configure.ac:135: -1- m4_pattern_allow([^_DARWIN_C_SOURCE$])
 m4trace:configure.ac:135: -1- AC_DEFINE_TRACE_LITERAL([_GNU_SOURCE])
@@ -2741,9 +2747,12 @@ m4trace:ext/intl/config.m4:87: -1- m4_pattern_allow([^CPPFLAGS$])
 m4trace:ext/intl/config.m4:87: -1- AC_SUBST([CXXCPP])
 m4trace:ext/intl/config.m4:87: -1- AC_SUBST_TRACE([CXXCPP])
 m4trace:ext/intl/config.m4:87: -1- m4_pattern_allow([^CXXCPP$])
-m4trace:ext/intl/config.m4:88: -1- AC_SUBST([HAVE_CXX11])
-m4trace:ext/intl/config.m4:88: -1- AC_SUBST_TRACE([HAVE_CXX11])
-m4trace:ext/intl/config.m4:88: -1- m4_pattern_allow([^HAVE_CXX11$])
+m4trace:ext/intl/config.m4:90: -1- AC_SUBST([HAVE_CXX17])
+m4trace:ext/intl/config.m4:90: -1- AC_SUBST_TRACE([HAVE_CXX17])
+m4trace:ext/intl/config.m4:90: -1- m4_pattern_allow([^HAVE_CXX17$])
+m4trace:ext/intl/config.m4:90: -1- AC_SUBST([HAVE_CXX11])
+m4trace:ext/intl/config.m4:90: -1- AC_SUBST_TRACE([HAVE_CXX11])
+m4trace:ext/intl/config.m4:90: -1- m4_pattern_allow([^HAVE_CXX11$])
 m4trace:configure.ac:1070: -1- sinclude([ext/json/config.m4])
 m4trace:ext/json/config.m4:3: -1- AC_DEFINE_TRACE_LITERAL([HAVE_JSON])
 m4trace:ext/json/config.m4:3: -1- m4_pattern_allow([^HAVE_JSON$])
@@ -3062,59 +3071,59 @@ m4trace:ext/opcache/config.m4:27: -1- AC_DEFINE_TRACE_LITERAL([HAVE_HUGE_CODE_PA
 m4trace:ext/opcache/config.m4:27: -1- m4_pattern_allow([^HAVE_HUGE_CODE_PAGES$])
 m4trace:ext/opcache/config.m4:27: -1- AH_OUTPUT([HAVE_HUGE_CODE_PAGES], [/* Define to enable copying PHP CODE pages into HUGE PAGES (experimental) */
 @%:@undef HAVE_HUGE_CODE_PAGES])
-m4trace:ext/opcache/config.m4:42: -1- AC_DEFINE_TRACE_LITERAL([HAVE_JIT])
-m4trace:ext/opcache/config.m4:42: -1- m4_pattern_allow([^HAVE_JIT$])
-m4trace:ext/opcache/config.m4:42: -1- AH_OUTPUT([HAVE_JIT], [/* Define to enable JIT */
+m4trace:ext/opcache/config.m4:46: -1- AC_DEFINE_TRACE_LITERAL([HAVE_JIT])
+m4trace:ext/opcache/config.m4:46: -1- m4_pattern_allow([^HAVE_JIT$])
+m4trace:ext/opcache/config.m4:46: -1- AH_OUTPUT([HAVE_JIT], [/* Define to enable JIT */
 @%:@undef HAVE_JIT])
-m4trace:ext/opcache/config.m4:72: -1- AC_SUBST([CAPSTONE_CFLAGS])
-m4trace:ext/opcache/config.m4:72: -1- AC_SUBST_TRACE([CAPSTONE_CFLAGS])
-m4trace:ext/opcache/config.m4:72: -1- m4_pattern_allow([^CAPSTONE_CFLAGS$])
-m4trace:ext/opcache/config.m4:72: -1- AC_SUBST([CAPSTONE_LIBS])
-m4trace:ext/opcache/config.m4:72: -1- AC_SUBST_TRACE([CAPSTONE_LIBS])
-m4trace:ext/opcache/config.m4:72: -1- m4_pattern_allow([^CAPSTONE_LIBS$])
-m4trace:ext/opcache/config.m4:75: -1- AC_DEFINE_TRACE_LITERAL([HAVE_CAPSTONE])
-m4trace:ext/opcache/config.m4:75: -1- m4_pattern_allow([^HAVE_CAPSTONE$])
-m4trace:ext/opcache/config.m4:75: -1- AH_OUTPUT([HAVE_CAPSTONE], [/* */
+m4trace:ext/opcache/config.m4:76: -1- AC_SUBST([CAPSTONE_CFLAGS])
+m4trace:ext/opcache/config.m4:76: -1- AC_SUBST_TRACE([CAPSTONE_CFLAGS])
+m4trace:ext/opcache/config.m4:76: -1- m4_pattern_allow([^CAPSTONE_CFLAGS$])
+m4trace:ext/opcache/config.m4:76: -1- AC_SUBST([CAPSTONE_LIBS])
+m4trace:ext/opcache/config.m4:76: -1- AC_SUBST_TRACE([CAPSTONE_LIBS])
+m4trace:ext/opcache/config.m4:76: -1- m4_pattern_allow([^CAPSTONE_LIBS$])
+m4trace:ext/opcache/config.m4:79: -1- AC_DEFINE_TRACE_LITERAL([HAVE_CAPSTONE])
+m4trace:ext/opcache/config.m4:79: -1- m4_pattern_allow([^HAVE_CAPSTONE$])
+m4trace:ext/opcache/config.m4:79: -1- AH_OUTPUT([HAVE_CAPSTONE], [/* */
 @%:@undef HAVE_CAPSTONE])
-m4trace:ext/opcache/config.m4:94: -1- AC_DEFINE_TRACE_LITERAL([HAVE_OPROFILE])
-m4trace:ext/opcache/config.m4:94: -1- m4_pattern_allow([^HAVE_OPROFILE$])
-m4trace:ext/opcache/config.m4:94: -1- AH_OUTPUT([HAVE_OPROFILE], [/* */
+m4trace:ext/opcache/config.m4:98: -1- AC_DEFINE_TRACE_LITERAL([HAVE_OPROFILE])
+m4trace:ext/opcache/config.m4:98: -1- m4_pattern_allow([^HAVE_OPROFILE$])
+m4trace:ext/opcache/config.m4:98: -1- AH_OUTPUT([HAVE_OPROFILE], [/* */
 @%:@undef HAVE_OPROFILE])
-m4trace:ext/opcache/config.m4:109: -1- AH_OUTPUT([HAVE_MPROTECT], [/* Define to 1 if you have the \'mprotect\' function. */
+m4trace:ext/opcache/config.m4:113: -1- AH_OUTPUT([HAVE_MPROTECT], [/* Define to 1 if you have the \'mprotect\' function. */
 @%:@undef HAVE_MPROTECT])
-m4trace:ext/opcache/config.m4:109: -1- AC_DEFINE_TRACE_LITERAL([HAVE_MPROTECT])
-m4trace:ext/opcache/config.m4:109: -1- m4_pattern_allow([^HAVE_MPROTECT$])
-m4trace:ext/opcache/config.m4:178: -1- AC_DEFINE_TRACE_LITERAL([HAVE_SHM_IPC])
-m4trace:ext/opcache/config.m4:178: -1- m4_pattern_allow([^HAVE_SHM_IPC$])
-m4trace:ext/opcache/config.m4:178: -1- AH_OUTPUT([HAVE_SHM_IPC], [/* Define if you have SysV IPC SHM support */
+m4trace:ext/opcache/config.m4:113: -1- AC_DEFINE_TRACE_LITERAL([HAVE_MPROTECT])
+m4trace:ext/opcache/config.m4:113: -1- m4_pattern_allow([^HAVE_MPROTECT$])
+m4trace:ext/opcache/config.m4:182: -1- AC_DEFINE_TRACE_LITERAL([HAVE_SHM_IPC])
+m4trace:ext/opcache/config.m4:182: -1- m4_pattern_allow([^HAVE_SHM_IPC$])
+m4trace:ext/opcache/config.m4:182: -1- AH_OUTPUT([HAVE_SHM_IPC], [/* Define if you have SysV IPC SHM support */
 @%:@undef HAVE_SHM_IPC])
-m4trace:ext/opcache/config.m4:240: -1- AC_DEFINE_TRACE_LITERAL([HAVE_SHM_MMAP_ANON])
-m4trace:ext/opcache/config.m4:240: -1- m4_pattern_allow([^HAVE_SHM_MMAP_ANON$])
-m4trace:ext/opcache/config.m4:240: -1- AH_OUTPUT([HAVE_SHM_MMAP_ANON], [/* Define if you have mmap(MAP_ANON) SHM support */
+m4trace:ext/opcache/config.m4:244: -1- AC_DEFINE_TRACE_LITERAL([HAVE_SHM_MMAP_ANON])
+m4trace:ext/opcache/config.m4:244: -1- m4_pattern_allow([^HAVE_SHM_MMAP_ANON$])
+m4trace:ext/opcache/config.m4:244: -1- AH_OUTPUT([HAVE_SHM_MMAP_ANON], [/* Define if you have mmap(MAP_ANON) SHM support */
 @%:@undef HAVE_SHM_MMAP_ANON])
-m4trace:ext/opcache/config.m4:244: -1- AC_DEFINE_TRACE_LITERAL([HAVE_SHM_OPEN])
-m4trace:ext/opcache/config.m4:244: -1- m4_pattern_allow([^HAVE_SHM_OPEN$])
-m4trace:ext/opcache/config.m4:244: -1- AH_OUTPUT([HAVE_SHM_OPEN], [/* */
+m4trace:ext/opcache/config.m4:248: -1- AC_DEFINE_TRACE_LITERAL([HAVE_SHM_OPEN])
+m4trace:ext/opcache/config.m4:248: -1- m4_pattern_allow([^HAVE_SHM_OPEN$])
+m4trace:ext/opcache/config.m4:248: -1- AH_OUTPUT([HAVE_SHM_OPEN], [/* */
 @%:@undef HAVE_SHM_OPEN])
-m4trace:ext/opcache/config.m4:244: -1- AC_DEFINE_TRACE_LITERAL([HAVE_LIBRT])
-m4trace:ext/opcache/config.m4:244: -1- m4_pattern_allow([^HAVE_LIBRT$])
-m4trace:ext/opcache/config.m4:244: -1- AH_OUTPUT([HAVE_LIBRT], [/* */
+m4trace:ext/opcache/config.m4:248: -1- AC_DEFINE_TRACE_LITERAL([HAVE_LIBRT])
+m4trace:ext/opcache/config.m4:248: -1- m4_pattern_allow([^HAVE_LIBRT$])
+m4trace:ext/opcache/config.m4:248: -1- AH_OUTPUT([HAVE_LIBRT], [/* */
 @%:@undef HAVE_LIBRT])
-m4trace:ext/opcache/config.m4:244: -1- AC_DEFINE_TRACE_LITERAL([HAVE_SHM_OPEN])
-m4trace:ext/opcache/config.m4:244: -1- m4_pattern_allow([^HAVE_SHM_OPEN$])
-m4trace:ext/opcache/config.m4:244: -1- AH_OUTPUT([HAVE_SHM_OPEN], [/* */
+m4trace:ext/opcache/config.m4:248: -1- AC_DEFINE_TRACE_LITERAL([HAVE_SHM_OPEN])
+m4trace:ext/opcache/config.m4:248: -1- m4_pattern_allow([^HAVE_SHM_OPEN$])
+m4trace:ext/opcache/config.m4:248: -1- AH_OUTPUT([HAVE_SHM_OPEN], [/* */
 @%:@undef HAVE_SHM_OPEN])
-m4trace:ext/opcache/config.m4:244: -1- AC_DEFINE_TRACE_LITERAL([HAVE_LIBROOT])
-m4trace:ext/opcache/config.m4:244: -1- m4_pattern_allow([^HAVE_LIBROOT$])
-m4trace:ext/opcache/config.m4:244: -1- AH_OUTPUT([HAVE_LIBROOT], [/* */
+m4trace:ext/opcache/config.m4:248: -1- AC_DEFINE_TRACE_LITERAL([HAVE_LIBROOT])
+m4trace:ext/opcache/config.m4:248: -1- m4_pattern_allow([^HAVE_LIBROOT$])
+m4trace:ext/opcache/config.m4:248: -1- AH_OUTPUT([HAVE_LIBROOT], [/* */
 @%:@undef HAVE_LIBROOT])
-m4trace:ext/opcache/config.m4:311: -1- AC_DEFINE_TRACE_LITERAL([HAVE_SHM_MMAP_POSIX])
-m4trace:ext/opcache/config.m4:311: -1- m4_pattern_allow([^HAVE_SHM_MMAP_POSIX$])
-m4trace:ext/opcache/config.m4:311: -1- AH_OUTPUT([HAVE_SHM_MMAP_POSIX], [/* Define if you have POSIX mmap() SHM support */
+m4trace:ext/opcache/config.m4:315: -1- AC_DEFINE_TRACE_LITERAL([HAVE_SHM_MMAP_POSIX])
+m4trace:ext/opcache/config.m4:315: -1- m4_pattern_allow([^HAVE_SHM_MMAP_POSIX$])
+m4trace:ext/opcache/config.m4:315: -1- AH_OUTPUT([HAVE_SHM_MMAP_POSIX], [/* Define if you have POSIX mmap() SHM support */
 @%:@undef HAVE_SHM_MMAP_POSIX])
-m4trace:ext/opcache/config.m4:316: -1- AC_DEFINE_TRACE_LITERAL([COMPILE_DL_OPCACHE])
-m4trace:ext/opcache/config.m4:316: -1- m4_pattern_allow([^COMPILE_DL_OPCACHE$])
-m4trace:ext/opcache/config.m4:316: -1- AH_OUTPUT([COMPILE_DL_OPCACHE], [/* Whether to build opcache as dynamic module */
+m4trace:ext/opcache/config.m4:320: -1- AC_DEFINE_TRACE_LITERAL([COMPILE_DL_OPCACHE])
+m4trace:ext/opcache/config.m4:320: -1- m4_pattern_allow([^COMPILE_DL_OPCACHE$])
+m4trace:ext/opcache/config.m4:320: -1- AH_OUTPUT([COMPILE_DL_OPCACHE], [/* Whether to build opcache as dynamic module */
 @%:@undef COMPILE_DL_OPCACHE])
 m4trace:configure.ac:1070: -1- sinclude([ext/pcntl/config.m4])
 m4trace:ext/pcntl/config.m4:7: -1- AH_OUTPUT([HAVE_FORK], [/* Define to 1 if you have the \'fork\' function. */
@@ -4492,8 +4501,8 @@ m4trace:configure.ac:1495: -1- m4_pattern_allow([^PHP_VERSION$])
 m4trace:configure.ac:1496: -1- AC_SUBST([PHP_VERSION_ID])
 m4trace:configure.ac:1496: -1- AC_SUBST_TRACE([PHP_VERSION_ID])
 m4trace:configure.ac:1496: -1- m4_pattern_allow([^PHP_VERSION_ID$])
-m4trace:configure.ac:1537: -1- _m4_warn([cross], [AC_RUN_IFELSE called without default to allow cross compiling], [./lib/autoconf/general.m4:2979: AC_RUN_IFELSE is expanded from...
-lib/m4sugar/m4sh.m4:697: AS_IF is expanded from...
+m4trace:configure.ac:1537: -1- _m4_warn([cross], [AC_RUN_IFELSE called without default to allow cross compiling], [./lib/autoconf/general.m4:3037: AC_RUN_IFELSE is expanded from...
+lib/m4sugar/m4sh.m4:696: AS_IF is expanded from...
 build/ax_check_compile_flag.m4:39: AX_CHECK_COMPILE_FLAG is expanded from...
 configure.ac:1537: the top level])
 m4trace:configure.ac:1576: -1- AC_SUBST([AR_FLAGS], [cr])
