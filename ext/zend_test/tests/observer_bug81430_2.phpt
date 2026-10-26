@@ -30,4 +30,5 @@ call_user_func([$r->getAttributes(A::class)[0], 'newInstance']);
   <A::__construct>
 
 Fatal error: Allowed memory size of %d bytes exhausted %s in %s on line %d
-
+  </A::__construct>
+</file '%s'>
