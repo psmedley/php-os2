@@ -41,6 +41,8 @@
 # include <iphlpapi.h>
 #else
 # include <netdb.h>
+#define NI_MAXHOST 1025
+#define NI_NUMERICHOST	1
 #endif
 
 PHPAPI zend_string* php_inet_ntop(const struct sockaddr *addr) {
