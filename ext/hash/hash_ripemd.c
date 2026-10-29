@@ -33,7 +33,8 @@ const php_hash_ops php_hash_ripemd128_ops = {
 	16,
 	64,
 	sizeof(PHP_RIPEMD128_CTX),
-	1
+	1,
+	0
 };
 
 const php_hash_ops php_hash_ripemd160_ops = {
@@ -48,7 +49,8 @@ const php_hash_ops php_hash_ripemd160_ops = {
 	20,
 	64,
 	sizeof(PHP_RIPEMD160_CTX),
-	1
+	1,
+	0
 };
 
 const php_hash_ops php_hash_ripemd256_ops = {
@@ -63,7 +65,8 @@ const php_hash_ops php_hash_ripemd256_ops = {
 	32,
 	64,
 	sizeof(PHP_RIPEMD256_CTX),
-	1
+	1,
+	0
 };
 
 const php_hash_ops php_hash_ripemd320_ops = {
@@ -78,7 +81,8 @@ const php_hash_ops php_hash_ripemd320_ops = {
 	40,
 	64,
 	sizeof(PHP_RIPEMD320_CTX),
-	1
+	1,
+	0
 };
 
 /* {{{ PHP_RIPEMD128Init
@@ -271,7 +275,8 @@ static void RIPEMD128Transform(uint32_t state[4], const unsigned char block[64])
  */
 PHP_HASH_API void PHP_RIPEMD128Update(PHP_RIPEMD128_CTX * context, const unsigned char *input, size_t inputLen)
 {
-	unsigned int i, index, partLen;
+	unsigned int index, partLen;
+	size_t i;
 
 	/* Compute number of bytes mod 64 */
 	index = (unsigned int) ((context->count[0] >> 3) & 0x3F);
@@ -280,7 +285,7 @@ PHP_HASH_API void PHP_RIPEMD128Update(PHP_RIPEMD128_CTX * context, const unsigne
 	if ((context->count[0] += ((uint32_t) inputLen << 3)) < ((uint32_t) inputLen << 3)) {
 		context->count[1]++;
 	}
-	context->count[1] += ((uint32_t) inputLen >> 29);
+	context->count[1] += (uint32_t) (inputLen >> 29);
 
 	partLen = 64 - index;
 
@@ -369,7 +374,8 @@ static void RIPEMD256Transform(uint32_t state[8], const unsigned char block[64])
  */
 PHP_HASH_API void PHP_RIPEMD256Update(PHP_RIPEMD256_CTX * context, const unsigned char *input, size_t inputLen)
 {
-	unsigned int i, index, partLen;
+	unsigned int index, partLen;
+	size_t i;
 
 	/* Compute number of bytes mod 64 */
 	index = (unsigned int) ((context->count[0] >> 3) & 0x3F);
@@ -378,7 +384,7 @@ PHP_HASH_API void PHP_RIPEMD256Update(PHP_RIPEMD256_CTX * context, const unsigne
 	if ((context->count[0] += ((uint32_t) inputLen << 3)) < ((uint32_t) inputLen << 3)) {
 		context->count[1]++;
 	}
-	context->count[1] += ((uint32_t) inputLen >> 29);
+	context->count[1] += (uint32_t) (inputLen >> 29);
 
 	partLen = 64 - index;
 
@@ -468,7 +474,8 @@ static void RIPEMD160Transform(uint32_t state[5], const unsigned char block[64])
  */
 PHP_HASH_API void PHP_RIPEMD160Update(PHP_RIPEMD160_CTX * context, const unsigned char *input, size_t inputLen)
 {
-	unsigned int i, index, partLen;
+	unsigned int index, partLen;
+	size_t i;
 
 	/* Compute number of bytes mod 64 */
 	index = (unsigned int) ((context->count[0] >> 3) & 0x3F);
@@ -477,7 +484,7 @@ PHP_HASH_API void PHP_RIPEMD160Update(PHP_RIPEMD160_CTX * context, const unsigne
 	if ((context->count[0] += ((uint32_t) inputLen << 3)) < ((uint32_t) inputLen << 3)) {
 		context->count[1]++;
 	}
-	context->count[1] += ((uint32_t) inputLen >> 29);
+	context->count[1] += (uint32_t) (inputLen >> 29);
 
 	partLen = 64 - index;
 
@@ -576,7 +583,8 @@ static void RIPEMD320Transform(uint32_t state[10], const unsigned char block[64]
  */
 PHP_HASH_API void PHP_RIPEMD320Update(PHP_RIPEMD320_CTX * context, const unsigned char *input, size_t inputLen)
 {
-	unsigned int i, index, partLen;
+	unsigned int index, partLen;
+	size_t i;
 
 	/* Compute number of bytes mod 64 */
 	index = (unsigned int) ((context->count[0] >> 3) & 0x3F);
@@ -585,7 +593,7 @@ PHP_HASH_API void PHP_RIPEMD320Update(PHP_RIPEMD320_CTX * context, const unsigne
 	if ((context->count[0] += ((uint32_t) inputLen << 3)) < ((uint32_t) inputLen << 3)) {
 		context->count[1]++;
 	}
-	context->count[1] += ((uint32_t) inputLen >> 29);
+	context->count[1] += (uint32_t) (inputLen >> 29);
 
 	partLen = 64 - index;
 

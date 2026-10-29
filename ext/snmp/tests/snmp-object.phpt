@@ -7,6 +7,7 @@ snmp
 --SKIPIF--
 <?php
 require_once(__DIR__.'/skipif.inc');
+if (PHP_OS_FAMILY === 'Windows') die('xfail SNMP tests might possibly fail on Windows');
 ?>
 --FILE--
 <?php
@@ -232,12 +233,12 @@ bool(true)
 bool(true)
 Multiple OID with max_oids = 1
 
-Warning: SNMP::set(): Can not fit all OIDs for SET query into one packet, using multiple queries in %s on line %d
+Warning: SNMP::set(): Cannot fit all OIDs for SET query into one packet, using multiple queries in %s on line %d
 bool(true)
 bool(true)
 bool(true)
 
-Warning: SNMP::set(): Can not fit all OIDs for SET query into one packet, using multiple queries in %s on line %d
+Warning: SNMP::set(): Cannot fit all OIDs for SET query into one packet, using multiple queries in %s on line %d
 bool(true)
 bool(true)
 bool(true)

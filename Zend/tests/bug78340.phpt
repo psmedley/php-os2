@@ -4,9 +4,10 @@ Bug #78340: Include of stream wrapper not reading whole file
 <?php
 
 class lib {
+  public $context;
   public static $files= [];
 
-  private $bytes, $pos;
+  private $bytes, $pos, $ino;
 
   function stream_open($path, $mode, $options, $opened_path) {
     $this->bytes= self::$files[$path];
@@ -31,7 +32,7 @@ class lib {
 
   function stream_stat() {
     return [
-      'dev'   => 3632233996,
+      'dev'   => PHP_INT_MAX,
       'size'  => strlen($this->bytes),
       'ino'   => $this->ino
     ];

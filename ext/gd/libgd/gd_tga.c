@@ -191,7 +191,10 @@ int read_header_tga(gdIOCtx *ctx, oTga *tga)
 			return -1;
 		}
 
-		gdGetBuf(tga->ident, tga->identsize, ctx);
+		if (gdGetBuf(tga->ident, tga->identsize, ctx) != tga->identsize) {
+			gd_error("fail to read header ident");
+			return -1;
+		}
 	}
 
 	return 1;
@@ -236,7 +239,7 @@ int read_image_tga( gdIOCtx *ctx, oTga *tga )
 	/*!	\brief Allocate memmory for image block
 	 *  Allocate a chunk of memory for the image block to be passed into.
 	 */
-	tga->bitmap = (int *) gdMalloc(image_block_size * sizeof(int));
+	tga->bitmap = (int *) gdFMalloc(image_block_size * sizeof(int));
 	if (tga->bitmap == NULL)
 		return -1;
 
@@ -245,7 +248,7 @@ int read_image_tga( gdIOCtx *ctx, oTga *tga )
 		/*! \brief Read in uncompressed RGB TGA
 		 *  Chunk load the pixel data from an uncompressed RGB type TGA.
 		 */
-		conversion_buffer = (unsigned char *) gdMalloc(image_block_size * sizeof(unsigned char));
+		conversion_buffer = (unsigned char *) gdFMalloc(image_block_size * sizeof(unsigned char));
 		if (conversion_buffer == NULL) {
 			return -1;
 		}
@@ -268,11 +271,11 @@ int read_image_tga( gdIOCtx *ctx, oTga *tga )
 		/*! \brief Read in RLE compressed RGB TGA
 		 *  Chunk load the pixel data from an RLE compressed RGB type TGA.
 		 */
-		decompression_buffer = (int*) gdMalloc(image_block_size * sizeof(int));
+		decompression_buffer = (int*) gdFMalloc(image_block_size * sizeof(int));
 		if (decompression_buffer == NULL) {
 			return -1;
 		}
-		conversion_buffer = (unsigned char *) gdMalloc(image_block_size * sizeof(unsigned char));
+		conversion_buffer = (unsigned char *) gdFMalloc(image_block_size * sizeof(unsigned char));
 		if (conversion_buffer == NULL) {
 			gd_error("gd-tga: premature end of image data\n");
 			gdFree( decompression_buffer );

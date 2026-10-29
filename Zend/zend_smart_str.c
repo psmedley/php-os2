@@ -17,6 +17,7 @@
 #include <zend.h>
 #include "zend_smart_str.h"
 #include "zend_smart_string.h"
+#include "zend_enum.h"
 
 #ifdef __OS2__
 pid_t    _getpid(void);
@@ -30,32 +31,72 @@ pid_t    _getpid(void);
 #define SMART_STR_NEW_LEN(len) \
 	(ZEND_MM_ALIGNED_SIZE_EX(len + SMART_STR_OVERHEAD, SMART_STR_PAGE) - SMART_STR_OVERHEAD)
 
-ZEND_API void ZEND_FASTCALL smart_str_erealloc(smart_str *str, size_t len)
+static zend_always_inline bool i_smart_str_erealloc(smart_str *str, size_t len, bool fallible)
 {
 	if (UNEXPECTED(!str->s)) {
-		str->a = len <= SMART_STR_START_LEN
+		size_t a = len <= SMART_STR_START_LEN
 				? SMART_STR_START_LEN
 				: SMART_STR_NEW_LEN(len);
-		str->s = zend_string_alloc(str->a, 0);
+		str->s = zend_string_falloc(a, /* persistent */ false, fallible);
+		if (ZEND_CONST_COND(fallible, true) && !str->s) {
+			return false;
+		}
+		str->a = a;
 		ZSTR_LEN(str->s) = 0;
 	} else {
-		str->a = SMART_STR_NEW_LEN(len);
-		str->s = (zend_string *) erealloc2(str->s, str->a + _ZSTR_HEADER_SIZE + 1, _ZSTR_HEADER_SIZE + ZSTR_LEN(str->s));
+		size_t a = SMART_STR_NEW_LEN(len);
+		zend_string *s = (zend_string *) ferealloc2(str->s, a + _ZSTR_HEADER_SIZE + 1, _ZSTR_HEADER_SIZE + ZSTR_LEN(str->s), fallible);
+		if (ZEND_CONST_COND(fallible, true) && !s) {
+			return false;
+		}
+		str->a = a;
+		str->s = s;
 	}
+	return true;
+}
+
+ZEND_API void ZEND_FASTCALL smart_str_erealloc(smart_str *str, size_t len)
+{
+	i_smart_str_erealloc(str, len, /* fallible */ false);
+}
+
+ZEND_API bool ZEND_FASTCALL smart_str_ferealloc(smart_str *str, size_t len, bool fallible)
+{
+	return i_smart_str_erealloc(str, len, fallible);
+}
+
+static zend_always_inline bool i_smart_str_realloc(smart_str *str, size_t len, bool fallible)
+{
+	if (UNEXPECTED(!str->s)) {
+		size_t a = len <= SMART_STR_START_LEN
+				? SMART_STR_START_LEN
+				: SMART_STR_NEW_LEN(len);
+		str->s = zend_string_falloc(a, /* persistent */ true, fallible);
+		if (ZEND_CONST_COND(fallible, true) && !str->s) {
+			return false;
+		}
+		str->a = a;
+		ZSTR_LEN(str->s) = 0;
+	} else {
+		size_t a = SMART_STR_NEW_LEN(len);
+		zend_string *s = (zend_string *) safe_fperealloc(str->s, 1, a, _ZSTR_HEADER_SIZE + 1, /* persistent */ true, fallible);
+		if (ZEND_CONST_COND(fallible, true) && !s) {
+			return false;
+		}
+		str->a = a;
+		str->s = s;
+	}
+	return true;
 }
 
 ZEND_API void ZEND_FASTCALL smart_str_realloc(smart_str *str, size_t len)
 {
-	if (UNEXPECTED(!str->s)) {
-		str->a = len <= SMART_STR_START_LEN
-				? SMART_STR_START_LEN
-				: SMART_STR_NEW_LEN(len);
-		str->s = zend_string_alloc(str->a, 1);
-		ZSTR_LEN(str->s) = 0;
-	} else {
-		str->a = SMART_STR_NEW_LEN(len);
-		str->s = (zend_string *) perealloc(str->s, str->a + _ZSTR_HEADER_SIZE + 1, 1);
-	}
+	i_smart_str_realloc(str, len, /* fallible */ false);
+}
+
+ZEND_API bool ZEND_FASTCALL smart_str_frealloc(smart_str *str, size_t len, bool fallible)
+{
+	return i_smart_str_realloc(str, len, fallible);
 }
 
 /* Windows uses VK_ESCAPE instead of \e */
@@ -134,6 +175,13 @@ ZEND_API void smart_str_append_printf(smart_str *dest, const char *format, ...) 
 	va_end(arg);
 }
 
+ZEND_API void smart_string_append_printf(smart_string *dest, const char *format, ...) {
+	va_list arg;
+	va_start(arg, format);
+	zend_printf_to_smart_string(dest, format, arg);
+	va_end(arg);
+}
+
 #define SMART_STRING_OVERHEAD   (ZEND_MM_OVERHEAD + 1)
 #define SMART_STRING_START_SIZE 256
 #define SMART_STRING_START_LEN  (SMART_STRING_START_SIZE - SMART_STRING_OVERHEAD)
@@ -151,7 +199,7 @@ ZEND_API void ZEND_FASTCALL _smart_string_alloc_persistent(smart_string *str, si
 		str->c = pemalloc(str->a + 1, 1);
 	} else {
 		if (UNEXPECTED((size_t) len > SIZE_MAX - str->len)) {
-			zend_error(E_ERROR, "String size overflow");
+			zend_error_noreturn(E_ERROR, "String size overflow");
 		}
 		len += str->len;
 		str->a = ZEND_MM_ALIGNED_SIZE_EX(len + SMART_STRING_OVERHEAD, SMART_STRING_PAGE) - SMART_STRING_OVERHEAD;
@@ -177,7 +225,7 @@ ZEND_API void ZEND_FASTCALL _smart_string_alloc(smart_string *str, size_t len)
 		}
 	} else {
 		if (UNEXPECTED((size_t) len > SIZE_MAX - str->len)) {
-			zend_error(E_ERROR, "String size overflow");
+			zend_error_noreturn(E_ERROR, "String size overflow");
 		}
 		len += str->len;
 		str->a = ZEND_MM_ALIGNED_SIZE_EX(len + SMART_STRING_OVERHEAD, SMART_STRING_PAGE) - SMART_STRING_OVERHEAD;
@@ -198,7 +246,7 @@ ZEND_API void ZEND_FASTCALL _smart_string_alloc(smart_string *str, size_t len)
 #endif
 }
 
-ZEND_API void ZEND_FASTCALL smart_str_append_escaped_truncated(smart_str *str, zend_string *value, size_t length)
+ZEND_API void ZEND_FASTCALL smart_str_append_escaped_truncated(smart_str *str, const zend_string *value, size_t length)
 {
 	smart_str_append_escaped(str, ZSTR_VAL(value), MIN(length, ZSTR_LEN(value)));
 
@@ -207,7 +255,7 @@ ZEND_API void ZEND_FASTCALL smart_str_append_escaped_truncated(smart_str *str, z
 	}
 }
 
-ZEND_API void ZEND_FASTCALL smart_str_append_scalar(smart_str *dest, zval *value, size_t truncate) {
+ZEND_API void ZEND_FASTCALL smart_str_append_scalar(smart_str *dest, const zval *value, size_t truncate) {
 	ZEND_ASSERT(Z_TYPE_P(value) <= IS_STRING);
 
 	switch (Z_TYPE_P(value)) {
@@ -237,4 +285,18 @@ ZEND_API void ZEND_FASTCALL smart_str_append_scalar(smart_str *dest, zval *value
 
 		EMPTY_SWITCH_DEFAULT_CASE();
 	}
+}
+
+ZEND_API zend_result ZEND_FASTCALL smart_str_append_zval(smart_str *dest, const zval *value, size_t truncate)
+{
+	if (Z_TYPE_P(value) <= IS_STRING) {
+		smart_str_append_scalar(dest, value, truncate);
+	} else if (Z_TYPE_P(value) == IS_OBJECT && (Z_OBJCE_P(value)->ce_flags & ZEND_ACC_ENUM)) {
+		smart_str_append(dest, Z_OBJCE_P(value)->name);
+		smart_str_appends(dest, "::");
+		smart_str_append(dest, Z_STR_P(zend_enum_fetch_case_name(Z_OBJ_P(value))));
+	} else {
+		return FAILURE;
+	}
+	return SUCCESS;
 }

@@ -126,6 +126,16 @@
 # define TIMELIB_BREAK_INTENTIONALLY_MISSING
 #endif
 
+#if defined(__has_builtin)
+# if __has_builtin(__builtin_saddll_overflow)
+#  define TIMELIB_HAVE_BUILTIN_SADDLL_OVERFLOW 1
+# endif
+#endif
+
+#ifndef TIMELIB_HAVE_BUILTIN_SADDLL_OVERFLOW
+# define TIMELIB_HAVE_BUILTIN_SADDLL_OVERFLOW 0
+#endif
+
 struct _ttinfo
 {
 	int32_t      offset;
@@ -156,6 +166,7 @@ extern "C" {
 #endif
 
 /* From unixtime2tm.c */
+void timelib_date_from_epoch_days(timelib_sll epoch_days, timelib_sll *y, timelib_sll *m, timelib_sll *d);
 int timelib_apply_localtime(timelib_time *t, unsigned int localtime);
 
 /* From parse_posix.c */

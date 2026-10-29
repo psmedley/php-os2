@@ -4,6 +4,10 @@ Bug #75708 (getimagesize with "&$imageinfo" fails on StreamWrappers)
 <?php
 
 class FSStreamWrapper {
+    public $context;
+
+    public $handle;
+
     function stream_open($file, $mode) {
         $this->handle = fopen(str_replace('fs://', __DIR__ . '/', $file), $mode);
         return true;
@@ -37,7 +41,7 @@ var_dump(getimagesize('fs://bug75708.jpg', $info));
 
 ?>
 --EXPECT--
-array(7) {
+array(9) {
   [0]=>
   int(10)
   [1]=>
@@ -52,5 +56,8 @@ array(7) {
   int(3)
   ["mime"]=>
   string(10) "image/jpeg"
+  ["width_unit"]=>
+  string(2) "px"
+  ["height_unit"]=>
+  string(2) "px"
 }
-

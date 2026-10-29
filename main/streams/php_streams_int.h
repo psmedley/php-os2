@@ -14,6 +14,8 @@
   +----------------------------------------------------------------------+
 */
 
+/* internal header; not supposed to be installed; FIXME but unfortunately is */
+
 #if ZEND_DEBUG
 
 #define emalloc_rel_orig(size)	\
@@ -61,5 +63,6 @@
  * ones. result should be a char[5]. */
 void php_stream_mode_sanitize_fdopen_fopencookie(php_stream *stream, char *result);
 
-void php_stream_tidy_wrapper_error_log(php_stream_wrapper *wrapper);
-void php_stream_display_wrapper_errors(php_stream_wrapper *wrapper, const char *path, const char *caption);
+/* Escapes NUL and backslash bytes so a host containing them cannot truncate or
+ * collide the persistent stream hash key. */
+zend_string *php_stream_escape_persistent_key(const char *host, size_t hostlen);

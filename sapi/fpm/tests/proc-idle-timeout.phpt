@@ -3,7 +3,7 @@ FPM: Process manager config pm.process_idle_timeout
 --SKIPIF--
 <?php
 include "skipif.inc";
-if (!getenv("FPM_RUN_RESOURCE_HEAVY_TESTS")) die("skip resource heavy test");
+if (!getenv("FPM_RUN_RESOURCE_HEAVY_TESTS")) die("skip FPM resource-heavy test");
 if (getenv("SKIP_SLOW_TESTS")) die("skip slow test");
 ?>
 --FILE--
@@ -30,7 +30,7 @@ EOT;
 $tester = new FPM\Tester($cfg, $code);
 $tester->start();
 $tester->expectLogStartNotices();
-$tester->multiRequest(2, null, null, null, false, 7000);
+$tester->multiRequest(2, readTimeout: 7000);
 $tester->status([
     'total processes' => 2,
 ]);

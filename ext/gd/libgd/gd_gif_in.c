@@ -244,8 +244,10 @@ gdImagePtr gdImageCreateFromGifCtx(gdIOCtxPtr fd) /* {{{ */
 					BitSet(buf[8], INTERLACE), &ZeroDataBlock);
 		} else {
 			if (!haveGlobalColormap) {
-				gdImageDestroy(im);
-				return 0;
+				// Still a valid gif, apply simple default palette as per spec
+				ColorMap[CM_RED][1] = 0xff;
+				ColorMap[CM_GREEN][1] = 0xff;
+				ColorMap[CM_BLUE][1] = 0xff;
 			}
 			ReadImage(im, fd, width, height,
 						ColorMap,
@@ -360,7 +362,7 @@ GetDataBlock(gdIOCtx *fd, unsigned char *buf, int *ZeroDataBlockP)
 		if (rv > 0) {
 			tmp = safe_emalloc(3 * rv, sizeof(char), 1);
 			for (i=0;i<rv;i++) {
-				sprintf(&tmp[3*sizeof(char)*i], " %02x", buf[i]);
+				snprintf(tmp + 3 * i, 4, " %02x", buf[i]);
 			}
 		} else {
 			tmp = estrdup("");
@@ -450,7 +452,7 @@ LWZReadByte_(gdIOCtx *fd, LZW_STATIC_DATA *sd, char flag, int input_code_size, i
 			sd->table[1][i] = i;
 		}
 		for (; i < (1<<MAX_LWZ_BITS); ++i)
-			sd->table[0][i] = sd->table[1][0] = 0;
+			sd->table[0][i] = sd->table[1][i] = 0;
 
 		sd->sp = sd->stack;
 
@@ -494,6 +496,8 @@ LWZReadByte_(gdIOCtx *fd, LZW_STATIC_DATA *sd, char flag, int input_code_size, i
 
 			if (count != 0)
 				return -2;
+
+			return -2;
 		}
 
 		incode = code;
@@ -513,11 +517,19 @@ LWZReadByte_(gdIOCtx *fd, LZW_STATIC_DATA *sd, char flag, int input_code_size, i
 				/* Bad compressed data stream */
 				return -1;
 			}
+			if(code >= (1 << MAX_LWZ_BITS)) {
+				/* Corrupted code */
+				return -1;
+			}
 			*sd->sp++ = sd->table[1][code];
 			if (code == sd->table[0][code]) {
 				/* Oh well */
 			}
 			code = sd->table[0][code];
+		}
+		if(code >= (1 << MAX_LWZ_BITS)) {
+			/* Corrupted code */
+			return -1;
 		}
 
 		*sd->sp++ = sd->firstcode = sd->table[1][code];
@@ -560,7 +572,7 @@ ReadImage(gdImagePtr im, gdIOCtx *fd, int len, int height, unsigned char (*cmap)
 	int             v;
 	int             xpos = 0, ypos = 0, pass = 0;
 	int i;
-	LZW_STATIC_DATA sd;
+	LZW_STATIC_DATA sd = {0};
 
 
 	/*

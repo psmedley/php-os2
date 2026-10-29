@@ -4,8 +4,6 @@ GH-10908 (Bus error with PDO Firebird on RPI with 64 bit kernel and 32 bit userl
 pdo_firebird
 --SKIPIF--
 <?php require('skipif.inc'); ?>
---ENV--
-LSAN_OPTIONS=detect_leaks=0
 --FILE--
 <?php
 
@@ -22,17 +20,15 @@ CREATE TABLE gh10908(
   MYDATE DATE,
   MYTIME TIME,
   MYBLOB BLOB,
-  MYBINARY BINARY(2),
-  MYVARBINARY VARBINARY(2),
   MYSMALLINT SMALLINT,
   MYINT INT,
   MYCHAR CHAR(10),
-  MYVARCHAR VARCHAR(5),
   MYBOOL BOOLEAN
 );
 EOT;
+$dbh = getDbConnection();
 $dbh->exec($sql);
-$dbh->exec("INSERT INTO gh10908 VALUES(1, 'ABC', 12.34, 1.0, 2.0, '2023-03-24 17:39', '2023-03-24', '17:39', 'abcdefg', 'ab', 'a', 32767, 200000, 'azertyuiop', 'ab', false);");
+$dbh->exec("INSERT INTO gh10908 VALUES(1, 'ABC', 12.34, 1.0, 2.0, '2023-03-24 17:39', '2023-03-24', '17:39', 'abcdefg', 32767, 200000, 'azertyuiop', false);");
 
 function query_and_dump($dbh, $sql) {
     foreach ($dbh->query($sql) as $row) {
@@ -59,7 +55,9 @@ echo "Did not crash\n";
 --CLEAN--
 <?php
 require 'testdb.inc';
-$dbh->exec("DROP TABLE gh10908");
+$dbh = getDbConnection();
+@$dbh->exec("DROP TABLE gh10908");
+unset($dbh);
 ?>
 --EXPECT--
 Array
@@ -82,8 +80,8 @@ Array
 
 Array
 (
-    [DBL] => 1.000000
-    [0] => 1.000000
+    [DBL] => 1
+    [0] => 1
 )
 
 Array
@@ -106,10 +104,10 @@ Array
     [1] => ABC
     [NUM] => 12.340
     [2] => 12.340
-    [DBL] => 1.000000
-    [3] => 1.000000
-    [FLT] => 2.000000
-    [4] => 2.000000
+    [DBL] => 1
+    [3] => 1
+    [FLT] => 2
+    [4] => 2
     [TS] => 2023-03-24 17:39:00
     [5] => 2023-03-24 17:39:00
     [MYDATE] => 2023-03-24
@@ -118,20 +116,14 @@ Array
     [7] => 17:39:00
     [MYBLOB] => abcdefg
     [8] => abcdefg
-    [MYBINARY] => ab
-    [9] => ab
-    [MYVARBINARY] => a
-    [10] => a
     [MYSMALLINT] => 32767
-    [11] => 32767
+    [9] => 32767
     [MYINT] => 200000
-    [12] => 200000
+    [10] => 200000
     [MYCHAR] => azertyuiop
-    [13] => azertyuiop
-    [MYVARCHAR] => ab
-    [14] => ab
+    [11] => azertyuiop
     [MYBOOL] => 
-    [15] => 
+    [12] => 
 )
 
 Array

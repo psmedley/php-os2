@@ -6,7 +6,6 @@ upload_max_filesize=1024
 session.save_path=
 session.name=PHPSESSID
 session.use_cookies=1
-session.use_only_cookies=0
 session.use_strict_mode=0
 session.auto_start=0
 session.upload_progress.enabled=1
@@ -44,7 +43,7 @@ session_start();
 var_dump(session_id());
 var_dump(basename(__FILE__) == $_POST[ini_get("session.upload_progress.name")]);
 var_dump($_FILES);
-var_dump($_SESSION["upload_progress_" . basename(__FILE__)]);
+var_dump($_SESSION);
 session_destroy();
 ?>
 --CLEAN--
@@ -52,17 +51,13 @@ session_destroy();
 @unlink(__DIR__ . DIRECTORY_SEPARATOR . "rfc1867_sid_invalid.post.txt");
 ?>
 --EXPECTF--
-Warning: Unknown: Session ID is too long or contains illegal characters. Only the A-Z, a-z, 0-9, "-", and "," characters are allowed in Unknown on line 0
+Warning: PHP Request Startup: Session ID is too long or contains illegal characters. Only the A-Z, a-z, 0-9, "-", and "," characters are allowed in Unknown on line 0
 
-Warning: Unknown: Failed to read session data: files (path: ) in Unknown on line 0
+Warning: PHP Request Startup: Failed to read session data: files (path: ) in Unknown on line 0
 
-Warning: Unknown: Failed to write session data (files). Please verify that the current setting of session.save_path is correct () in Unknown on line 0
+Warning: PHP Request Startup: Session ID is too long or contains illegal characters. Only the A-Z, a-z, 0-9, "-", and "," characters are allowed in Unknown on line 0
 
-Warning: Unknown: Session ID is too long or contains illegal characters. Only the A-Z, a-z, 0-9, "-", and "," characters are allowed in Unknown on line 0
-
-Warning: Unknown: Failed to read session data: files (path: ) in Unknown on line 0
-
-Warning: Unknown: Failed to write session data (files). Please verify that the current setting of session.save_path is correct () in Unknown on line 0
+Warning: PHP Request Startup: Failed to read session data: files (path: ) in Unknown on line 0
 string(%d) ""
 bool(true)
 array(2) {
@@ -97,50 +92,4 @@ array(2) {
     int(1)
   }
 }
-array(5) {
-  ["start_time"]=>
-  int(%d)
-  ["content_length"]=>
-  int(469)
-  ["bytes_processed"]=>
-  int(469)
-  ["done"]=>
-  bool(true)
-  ["files"]=>
-  array(2) {
-    [0]=>
-    array(7) {
-      ["field_name"]=>
-      string(5) "file1"
-      ["name"]=>
-      string(9) "file1.txt"
-      ["tmp_name"]=>
-      string(%d) "%s"
-      ["error"]=>
-      int(0)
-      ["done"]=>
-      bool(true)
-      ["start_time"]=>
-      int(%d)
-      ["bytes_processed"]=>
-      int(1)
-    }
-    [1]=>
-    array(7) {
-      ["field_name"]=>
-      string(5) "file2"
-      ["name"]=>
-      string(9) "file2.txt"
-      ["tmp_name"]=>
-      string(%d) "%s"
-      ["error"]=>
-      int(0)
-      ["done"]=>
-      bool(true)
-      ["start_time"]=>
-      int(%d)
-      ["bytes_processed"]=>
-      int(1)
-    }
-  }
-}
+NULL

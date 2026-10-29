@@ -2,6 +2,8 @@
 Test mb_strrpos() function : basic functionality
 --EXTENSIONS--
 mbstring
+--INI--
+internal_encoding=UTF-8
 --FILE--
 <?php
 /*
@@ -9,8 +11,6 @@ mbstring
  */
 
 echo "*** Testing mb_strrpos() : basic ***\n";
-
-mb_internal_encoding('UTF-8');
 
 $string_ascii = 'This is an English string. 0123456789.';
 //Japanese string in UTF-8
@@ -21,6 +21,9 @@ var_dump(mb_strrpos($string_ascii, 'is', 4, 'ISO-8859-1'));
 
 echo "\n-- ASCII string 2 --\n";
 var_dump(mb_strrpos($string_ascii, 'hello, world'));
+
+echo "\n-- ASCII string with negative offset --\n";
+var_dump(mb_strrpos($string_ascii, 'hello', -1, 'ISO-8859-1'));
 
 echo "\n-- Multibyte string 1 --\n";
 $needle1 = base64_decode('44CC');
@@ -39,6 +42,9 @@ echo "Done";
 int(15)
 
 -- ASCII string 2 --
+bool(false)
+
+-- ASCII string with negative offset --
 bool(false)
 
 -- Multibyte string 1 --

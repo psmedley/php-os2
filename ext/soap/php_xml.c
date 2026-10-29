@@ -24,47 +24,83 @@
 /* Channel libxml file io layer through the PHP streams subsystem.
  * This allows use of ftps:// and https:// urls */
 
-static int is_blank(const xmlChar* str)
+static bool is_blank(const xmlChar* str)
 {
 	while (*str != '\0') {
 		if (*str != ' '  && *str != 0x9 && *str != 0xa && *str != 0xd) {
-			return 0;
+			return false;
 		}
 		str++;
 	}
-	return 1;
+	return true;
 }
 
-/* removes all empty text, comments and other insignoficant nodes */
+/* removes all empty text, comments and other insignificant nodes.
+ * Iterative because recursion overflows the stack on a deep document. */
 static void cleanup_xml_node(xmlNodePtr node)
 {
-	xmlNodePtr trav;
-	xmlNodePtr del = NULL;
+	xmlNodePtr parent = node;
+	xmlNodePtr trav = node->children;
 
-	trav = node->children;
 	while (trav != NULL) {
-		if (del != NULL) {
-			xmlUnlinkNode(del);
-			xmlFreeNode(del);
-			del = NULL;
-		}
+		xmlNodePtr next = trav->next;
+
 		if (trav->type == XML_TEXT_NODE) {
 			if (is_blank(trav->content)) {
-				del = trav;
+				xmlUnlinkNode(trav);
+				xmlFreeNode(trav);
 			}
 		} else if ((trav->type != XML_ELEMENT_NODE) &&
 		           (trav->type != XML_CDATA_SECTION_NODE)) {
-			del = trav;
+			xmlUnlinkNode(trav);
+			xmlFreeNode(trav);
 		} else if (trav->children != NULL) {
-			cleanup_xml_node(trav);
+			parent = trav;
+			trav = trav->children;
+			continue;
+		}
+
+		while (next == NULL) {
+			if (parent == node) {
+				return;
+			}
+			next = parent->next;
+			parent = parent->parent;
+		}
+		trav = next;
+	}
+}
+
+#if LIBXML_VERSION < 21300
+static int is_nesting_too_deep(xmlNodePtr node)
+{
+	xmlNodePtr trav = node->children;
+	unsigned int depth = 0;
+
+	while (trav != NULL) {
+		/* An entity reference borrows its declaration as child list, and that
+		 * declaration hangs off the DTD, so descending leaves the document. */
+		if (trav->children != NULL &&
+		    trav->type != XML_ENTITY_REF_NODE &&
+		    trav->type != XML_DTD_NODE) {
+			if (++depth > SOAP_MAX_XML_DEPTH) {
+				return TRUE;
+			}
+			trav = trav->children;
+			continue;
+		}
+		while (trav->next == NULL) {
+			trav = trav->parent;
+			if (trav == node) {
+				return FALSE;
+			}
+			depth--;
 		}
 		trav = trav->next;
 	}
-	if (del != NULL) {
-		xmlUnlinkNode(del);
-		xmlFreeNode(del);
-	}
+	return FALSE;
 }
+#endif
 
 static void soap_ignorableWhitespace(void *ctx, const xmlChar *ch, int len)
 {
@@ -74,35 +110,23 @@ static void soap_Comment(void *ctx, const xmlChar *value)
 {
 }
 
-xmlDocPtr soap_xmlParseFile(const char *filename)
+/* Consumes `ctxt` */
+static xmlDocPtr soap_xmlParse_ex(xmlParserCtxtPtr ctxt)
 {
-	xmlParserCtxtPtr ctxt = NULL;
 	xmlDocPtr ret;
-	bool old_allow_url_fopen;
-
-/*
-	xmlInitParser();
-*/
-
-	old_allow_url_fopen = PG(allow_url_fopen);
-	PG(allow_url_fopen) = 1;
-	ctxt = xmlCreateFileParserCtxt(filename);
-	PG(allow_url_fopen) = old_allow_url_fopen;
 	if (ctxt) {
-		bool old;
-
 		php_libxml_sanitize_parse_ctxt_options(ctxt);
 		/* TODO: In libxml2 2.14.0 change this to the new options API so we don't rely on deprecated APIs. */
-		PHP_LIBXML_IGNORE_DEPRECATIONS_START
+		ZEND_DIAGNOSTIC_IGNORED_START("-Wdeprecated-declarations")
 		ctxt->keepBlanks = 0;
 		ctxt->options |= XML_PARSE_HUGE;
-		PHP_LIBXML_IGNORE_DEPRECATIONS_END
+		ZEND_DIAGNOSTIC_IGNORED_END
 		ctxt->sax->ignorableWhitespace = soap_ignorableWhitespace;
 		ctxt->sax->comment = soap_Comment;
 		ctxt->sax->warning = NULL;
 		ctxt->sax->error = NULL;
 		/*ctxt->sax->fatalError = NULL;*/
-		old = php_libxml_disable_entity_loader(1);
+		bool old = php_libxml_disable_entity_loader(true);
 		xmlParseDocument(ctxt);
 		php_libxml_disable_entity_loader(old);
 		if (ctxt->wellFormed) {
@@ -119,12 +143,28 @@ xmlDocPtr soap_xmlParseFile(const char *filename)
 	} else {
 		ret = NULL;
 	}
+	return ret;
+}
 
-/*
-	xmlCleanupParser();
-*/
+xmlDocPtr soap_xmlParseFile(const char *filename)
+{
+	bool old_allow_url_fopen = PG(allow_url_fopen);
+	PG(allow_url_fopen) = true;
+	xmlParserCtxtPtr ctxt = xmlCreateFileParserCtxt(filename);
+	PG(allow_url_fopen) = old_allow_url_fopen;
+
+	xmlDocPtr ret = soap_xmlParse_ex(ctxt);
 
 	if (ret) {
+#if LIBXML_VERSION < 21300
+		if (is_nesting_too_deep((xmlNodePtr)ret)) {
+			/* php_sdl.c reports xmlGetLastError() as the reason, and libxml2 did
+			 * not fail here, so drop the error an earlier parse left behind. */
+			xmlResetLastError();
+			xmlFreeDoc(ret);
+			return NULL;
+		}
+#endif
 		cleanup_xml_node((xmlNodePtr)ret);
 	}
 	return ret;
@@ -132,48 +172,15 @@ xmlDocPtr soap_xmlParseFile(const char *filename)
 
 xmlDocPtr soap_xmlParseMemory(const void *buf, size_t buf_size)
 {
-	xmlParserCtxtPtr ctxt = NULL;
-	xmlDocPtr ret;
+	xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt(buf, buf_size);
+	xmlDocPtr ret = soap_xmlParse_ex(ctxt);
 
-
-/*
-	xmlInitParser();
-*/
-	ctxt = xmlCreateMemoryParserCtxt(buf, buf_size);
-	if (ctxt) {
-		bool old;
-
-		php_libxml_sanitize_parse_ctxt_options(ctxt);
-		ctxt->sax->ignorableWhitespace = soap_ignorableWhitespace;
-		ctxt->sax->comment = soap_Comment;
-		ctxt->sax->warning = NULL;
-		ctxt->sax->error = NULL;
-		/*ctxt->sax->fatalError = NULL;*/
-		/* TODO: In libxml2 2.14.0 change this to the new options API so we don't rely on deprecated APIs. */
-		PHP_LIBXML_IGNORE_DEPRECATIONS_START
-		ctxt->options |= XML_PARSE_HUGE;
-		PHP_LIBXML_IGNORE_DEPRECATIONS_END
-		old = php_libxml_disable_entity_loader(1);
-		xmlParseDocument(ctxt);
-		php_libxml_disable_entity_loader(old);
-		if (ctxt->wellFormed) {
-			ret = ctxt->myDoc;
-			if (ret->URL == NULL && ctxt->directory != NULL) {
-				ret->URL = xmlCharStrdup(ctxt->directory);
-			}
-		} else {
-			ret = NULL;
-			xmlFreeDoc(ctxt->myDoc);
-			ctxt->myDoc = NULL;
-		}
-		xmlFreeParserCtxt(ctxt);
-	} else {
+#if LIBXML_VERSION < 21300
+	if (ret && is_nesting_too_deep((xmlNodePtr)ret)) {
+		xmlFreeDoc(ret);
 		ret = NULL;
 	}
-
-/*
-	xmlCleanupParser();
-*/
+#endif
 
 /*
 	if (ret) {
@@ -181,17 +188,6 @@ xmlDocPtr soap_xmlParseMemory(const void *buf, size_t buf_size)
 	}
 */
 	return ret;
-}
-
-xmlNsPtr attr_find_ns(xmlAttrPtr node)
-{
-	if (node->ns) {
-		return node->ns;
-	} else if (node->parent->ns) {
-		return node->parent->ns;
-	} else {
-		return xmlSearchNs(node->doc, node->parent, NULL);
-	}
 }
 
 xmlNsPtr node_find_ns(xmlNodePtr node)
@@ -203,29 +199,31 @@ xmlNsPtr node_find_ns(xmlNodePtr node)
 	}
 }
 
-int attr_is_equal_ex(xmlAttrPtr node, char *name, char *ns)
+int attr_is_equal_ex(xmlAttrPtr node, const char *name, const char *ns)
 {
-	if (name == NULL || ((node->name) && strcmp((char*)node->name, name) == 0)) {
+	if (node->name && strcmp((const char *) node->name, name) == 0) {
+		xmlNsPtr nsPtr = node->ns;
 		if (ns) {
-			xmlNsPtr nsPtr = attr_find_ns(node);
 			if (nsPtr) {
-				return (strcmp((char*)nsPtr->href, ns) == 0);
+				return (strcmp((const char *) nsPtr->href, ns) == 0);
 			} else {
 				return FALSE;
 			}
+		} else if (nsPtr) {
+			return FALSE;
 		}
 		return TRUE;
 	}
 	return FALSE;
 }
 
-int node_is_equal_ex(xmlNodePtr node, char *name, char *ns)
+int node_is_equal_ex(xmlNodePtr node, const char *name, const char *ns)
 {
 	if (name == NULL || ((node->name) && strcmp((char*)node->name, name) == 0)) {
 		if (ns) {
 			xmlNsPtr nsPtr = node_find_ns(node);
 			if (nsPtr) {
-				return (strcmp((char*)nsPtr->href, ns) == 0);
+				return strcmp((const char *) nsPtr->href, ns) == 0;
 			} else {
 				return FALSE;
 			}
@@ -235,10 +233,41 @@ int node_is_equal_ex(xmlNodePtr node, char *name, char *ns)
 	return FALSE;
 }
 
+int node_is_equal_ex_one_of(xmlNodePtr node, const char *name, const char *const *namespaces)
+{
+	if ((node->name) && strcmp((char*)node->name, name) == 0) {
+		xmlNsPtr nsPtr = node_find_ns(node);
+		if (nsPtr) {
+			do {
+				if (strcmp((const char *) nsPtr->href, *namespaces) == 0) {
+					return TRUE;
+				}
+				namespaces++;
+			} while (*namespaces != NULL);
+		}
+		return FALSE;
+	}
+	return FALSE;
+}
 
-xmlAttrPtr get_attribute_ex(xmlAttrPtr node, char *name, char *ns)
+xmlAttrPtr get_attribute_any_ns(xmlAttrPtr node, const char *name)
 {
 	while (node!=NULL) {
+		if (node->name && strcmp((const char *) node->name, name) == 0) {
+			return node;
+		}
+		node = node->next;
+	}
+	return NULL;
+}
+
+/* Finds an attribute by name and namespace.
+ * If ns is NULL, the attribute must not be in any namespace.
+ * If ns is not NULL, the attribute must be in the specified namespace.
+ */
+xmlAttrPtr get_attribute_ex(xmlAttrPtr node, const char *name, const char *ns)
+{
+	while (node != NULL) {
 		if (attr_is_equal_ex(node, name, ns)) {
 			return node;
 		}
@@ -247,7 +276,7 @@ xmlAttrPtr get_attribute_ex(xmlAttrPtr node, char *name, char *ns)
 	return NULL;
 }
 
-xmlNodePtr get_node_ex(xmlNodePtr node, char *name, char *ns)
+xmlNodePtr get_node_ex(xmlNodePtr node, const char *name, const char *ns)
 {
 	while (node!=NULL) {
 		if (node_is_equal_ex(node, name, ns)) {
@@ -258,23 +287,7 @@ xmlNodePtr get_node_ex(xmlNodePtr node, char *name, char *ns)
 	return NULL;
 }
 
-xmlNodePtr get_node_recurisve_ex(xmlNodePtr node, char *name, char *ns)
-{
-	while (node != NULL) {
-		if (node_is_equal_ex(node, name, ns)) {
-			return node;
-		} else if (node->children != NULL) {
-			xmlNodePtr tmp = get_node_recurisve_ex(node->children, name, ns);
-			if (tmp) {
-				return tmp;
-			}
-		}
-		node = node->next;
-	}
-	return NULL;
-}
-
-xmlNodePtr get_node_with_attribute_ex(xmlNodePtr node, char *name, char *name_ns, char *attribute, char *value, char *attr_ns)
+xmlNodePtr get_node_with_attribute_ex(xmlNodePtr node, const char *name, const char *name_ns, const char *attribute, const char *value, const char *attr_ns)
 {
 	xmlAttrPtr attr;
 
@@ -295,8 +308,10 @@ xmlNodePtr get_node_with_attribute_ex(xmlNodePtr node, char *name, char *name_ns
 	return NULL;
 }
 
-xmlNodePtr get_node_with_attribute_recursive_ex(xmlNodePtr node, char *name, char *name_ns, char *attribute, char *value, char *attr_ns)
+xmlNodePtr get_node_with_attribute_recursive_ex(xmlNodePtr node, const char *name, const char *name_ns, const char *attribute, const char *value, const char *attr_ns)
 {
+	unsigned int depth = 0;
+
 	while (node != NULL) {
 		if (node_is_equal_ex(node, name, name_ns)) {
 			xmlAttrPtr attr = get_attribute_ex(node->properties, attribute, attr_ns);
@@ -304,28 +319,35 @@ xmlNodePtr get_node_with_attribute_recursive_ex(xmlNodePtr node, char *name, cha
 				return node;
 			}
 		}
-		if (node->children != NULL) {
-			xmlNodePtr tmp = get_node_with_attribute_recursive_ex(node->children, name, name_ns, attribute, value, attr_ns);
-			if (tmp) {
-				return tmp;
+		if (node->children != NULL &&
+		    node->type != XML_ENTITY_REF_NODE &&
+		    node->type != XML_DTD_NODE) {
+			node = node->children;
+			depth++;
+			continue;
+		}
+		while (node->next == NULL) {
+			if (depth == 0) {
+				return NULL;
 			}
+			node = node->parent;
+			depth--;
 		}
 		node = node->next;
 	}
 	return NULL;
 }
 
-int parse_namespace(const xmlChar *inval, char **value, char **namespace)
+/* namespace is either a copy or NULL, value is never NULL and never a copy. */
+void parse_namespace(const xmlChar *inval, const char **value, char **namespace)
 {
-	char *found = strrchr((char*)inval, ':');
+	const char *found = strrchr((const char *) inval, ':');
 
-	if (found != NULL && found != (char*)inval) {
-		(*namespace) = estrndup((char*)inval, found - (char*)inval);
-		(*value) = estrdup(++found);
+	if (found != NULL && found != (const char *) inval) {
+		(*namespace) = estrndup((const char *) inval, found - (const char *) inval);
+		(*value) = ++found;
 	} else {
-		(*value) = estrdup((char*)inval);
+		(*value) = (const char *) inval;
 		(*namespace) = NULL;
 	}
-
-	return FALSE;
 }

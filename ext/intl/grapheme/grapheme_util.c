@@ -14,7 +14,7 @@
 
 /* {{{ includes */
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include <config.h>
 #endif
 
 #include <php.h>
@@ -27,8 +27,6 @@
 #include <unicode/ustring.h>
 #include <unicode/ubrk.h>
 #include <unicode/usearch.h>
-
-#include "ext/standard/php_string.h"
 
 ZEND_EXTERN_MODULE_GLOBALS( intl )
 
@@ -53,7 +51,7 @@ void grapheme_substr_ascii(char *str, size_t str_len, int32_t f, int32_t l, char
 	*sub_str = NULL;
 
 	if(str_len > INT32_MAX) {
-		/* We can not return long strings from ICU functions, so we won't here too */
+		/* We cannot return long strings from ICU functions, so we won't here too */
 		return;
 	}
 
@@ -89,14 +87,14 @@ void grapheme_substr_ascii(char *str, size_t str_len, int32_t f, int32_t l, char
 #define STRPOS_CHECK_STATUS(status, error) \
 	if ( U_FAILURE( (status) ) ) { \
 		intl_error_set_code( NULL, (status) ); \
-		intl_error_set_custom_msg( NULL, (error), 0 ); \
+		intl_error_set_custom_msg( NULL, (error)); \
 		ret_pos = -1; \
 		goto finish; \
 	}
 
 
 /* {{{ grapheme_strpos_utf16 - strrpos using utf16*/
-int32_t grapheme_strpos_utf16(char *haystack, size_t haystack_len, char *needle, size_t needle_len, int32_t offset, int32_t *puchar_pos, int f_ignore_case, int last)
+int32_t grapheme_strpos_utf16(char *haystack, size_t haystack_len, char *needle, size_t needle_len, int32_t offset, int32_t *puchar_pos, int f_ignore_case, int last, const char* locale)
 {
 	UChar *uhaystack = NULL, *uneedle = NULL;
 	int32_t uhaystack_len = 0, uneedle_len = 0, char_pos, ret_pos, offset_pos = 0;
@@ -107,6 +105,9 @@ int32_t grapheme_strpos_utf16(char *haystack, size_t haystack_len, char *needle,
 
 	if(puchar_pos) {
 		*puchar_pos = -1;
+	}
+	if (haystack_len == 0 && needle_len > 0) {
+		return -1;
 	}
 	/* convert the strings to UTF-16. */
 
@@ -133,12 +134,16 @@ int32_t grapheme_strpos_utf16(char *haystack, size_t haystack_len, char *needle,
 			ret_pos = -1;
 			goto finish;
 		}
-		ret_pos = last && offset >= 0 ? uhaystack_len : offset_pos;
+		if (last && offset >= 0) {
+			ret_pos = grapheme_count_graphemes(bi, uhaystack, uhaystack_len);
+		} else {
+			ret_pos = grapheme_count_graphemes(bi, uhaystack, offset_pos);
+		}
 		goto finish;
 	}
 
 	status = U_ZERO_ERROR;
-	src = usearch_open(uneedle, uneedle_len, uhaystack, uhaystack_len, "", bi, &status);
+	src = usearch_open(uneedle, uneedle_len, uhaystack, uhaystack_len, locale, bi, &status);
 	STRPOS_CHECK_STATUS(status, "Error creating search object");
 
 	if(f_ignore_case) {
@@ -168,7 +173,7 @@ int32_t grapheme_strpos_utf16(char *haystack, size_t haystack_len, char *needle,
 			if(char_pos < offset_pos) {
 				/* last one is beyond our start offset */
 				char_pos = USEARCH_DONE;
-			}			
+			}
 		} else {
 			/* searching backwards is broken, so we search forwards, albeit it's less efficient */
 			int32_t prev_pos = USEARCH_DONE;
@@ -179,6 +184,12 @@ int32_t grapheme_strpos_utf16(char *haystack, size_t haystack_len, char *needle,
 					break;
 				}
 				prev_pos = char_pos;
+				int32_t next_pos = ubrk_following(bi, char_pos);
+				if (next_pos == UBRK_DONE) {
+					break;
+				}
+				usearch_setOffset(src, next_pos, &status);
+				STRPOS_CHECK_STATUS(status, "Invalid search offset");
 			} while(1);
 		}
 	} else {
@@ -188,7 +199,7 @@ int32_t grapheme_strpos_utf16(char *haystack, size_t haystack_len, char *needle,
 	if(char_pos != USEARCH_DONE && ubrk_isBoundary(bi, char_pos)) {
 		ret_pos = grapheme_count_graphemes(bi, uhaystack,char_pos);
 		if(puchar_pos) {
-			*puchar_pos = char_pos;
+			*puchar_pos = u_countChar32(uhaystack, char_pos);
 		}
 	} else {
 		ret_pos = -1;

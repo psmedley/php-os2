@@ -1,8 +1,9 @@
 --TEST--
 Bug GH-9411 (PgSQL large object resource is incorrectly closed)
+--EXTENSIONS--
+pdo_pgsql
 --SKIPIF--
 <?php
-if (!extension_loaded('pdo') || !extension_loaded('pdo_pgsql')) die('skip not loaded');
 require __DIR__ . '/config.inc';
 require __DIR__ . '/../../../ext/pdo/tests/pdo_test.inc';
 PDOTest::skip();
@@ -33,9 +34,18 @@ var_dump($lob = $db->pgsqlLOBOpen($oid, 'wb'));
 var_dump(fgets($lob));
 ?>
 --EXPECTF--
+Deprecated: Method PDO::pgsqlLOBCreate() is deprecated since 8.5, use Pdo\Pgsql::lobCreate() instead in %s on line %d
+
+Deprecated: Method PDO::pgsqlLOBOpen() is deprecated since 8.5, use Pdo\Pgsql::lobOpen() instead in %s on line %d
 resource(%d) of type (stream)
 resource(%d) of type (Unknown)
+
+Deprecated: Method PDO::pgsqlLOBCreate() is deprecated since 8.5, use Pdo\Pgsql::lobCreate() instead in %s on line %d
+
+Deprecated: Method PDO::pgsqlLOBOpen() is deprecated since 8.5, use Pdo\Pgsql::lobOpen() instead in %s on line %d
 resource(%d) of type (stream)
 resource(%d) of type (Unknown)
+
+Deprecated: Method PDO::pgsqlLOBOpen() is deprecated since 8.5, use Pdo\Pgsql::lobOpen() instead in %s on line %d
 resource(%d) of type (stream)
 string(4) "test"

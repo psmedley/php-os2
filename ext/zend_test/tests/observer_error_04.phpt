@@ -37,10 +37,18 @@ echo 'Done.' . PHP_EOL;
   <main>
     <!-- init foo() -->
     <foo>
+      <!-- init SoapClient::__construct() -->
+      <SoapClient::__construct>
+        <!-- Exception: SoapFault -->
+      </SoapClient::__construct:NULL>
       <!-- Exception: SoapFault -->
     </foo:NULL>
     <!-- Exception: SoapFault -->
   </main:NULL>
+  <!-- init Exception::getMessage() -->
+  <Exception::getMessage>
+  </Exception::getMessage:'SOAP-ERROR: Parsing WSDL: %s
+'>
 SOAP-ERROR: Parsing WSDL: %s
 
 Done.

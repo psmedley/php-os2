@@ -210,6 +210,7 @@ void shutdown_scanner(void)
 	zend_ptr_stack_destroy(&SCNG(heredoc_label_stack));
 	SCNG(heredoc_scan_ahead) = 0;
 	SCNG(on_event) = NULL;
+	SCNG(on_event_context) = NULL;
 }
 
 ZEND_API void zend_save_lexical_state(zend_lex_state *lex_state)
@@ -275,7 +276,7 @@ ZEND_API void zend_restore_lexical_state(zend_lex_state *lex_state)
 	CG(zend_lineno) = lex_state->lineno;
 	zend_restore_compiled_filename(lex_state->filename);
 
-	if (SCNG(script_filtered)) {
+	if (SCNG(script_filtered) && SCNG(script_filtered) != lex_state->script_filtered) {
 		efree(SCNG(script_filtered));
 		SCNG(script_filtered) = NULL;
 	}
@@ -327,14 +328,13 @@ ZEND_API zend_result zend_lex_tstring(zval *zv, unsigned char *ident)
 static const zend_encoding *zend_multibyte_detect_utf_encoding(const unsigned char *script, size_t script_size)
 {
 	const unsigned char *p;
+	size_t offset = 0;
 	int wchar_size = 2;
 	int le = 0;
 
 	/* utf-16 or utf-32? */
-	p = script;
-	assert(p >= script);
-	while ((size_t)(p-script) < script_size) {
-		p = memchr(p, 0, script_size-(p-script)-2);
+	while (offset < script_size && script_size - offset > 2) {
+		p = memchr(script + offset, 0, script_size - offset - 2);
 		if (!p) {
 			break;
 		}
@@ -344,13 +344,13 @@ static const zend_encoding *zend_multibyte_detect_utf_encoding(const unsigned ch
 		}
 
 		/* searching for UTF-32 specific byte orders, so this will do */
-		p += 4;
+		offset = p - script + 4;
 	}
 
 	/* BE or LE? */
-	p = script;
-	assert(p >= script);
-	while ((size_t)(p-script) < script_size) {
+	offset = 0;
+	while (script_size - offset >= (size_t) wchar_size) {
+		p = script + offset;
 		if (*p == '\0' && *(p+wchar_size-1) != '\0') {
 			/* BE */
 			le = 0;
@@ -360,7 +360,7 @@ static const zend_encoding *zend_multibyte_detect_utf_encoding(const unsigned ch
 			le = 1;
 			break;
 		}
-		p += wchar_size;
+		offset += wchar_size;
 	}
 
 	if (wchar_size == 2) {
@@ -581,6 +581,8 @@ ZEND_API zend_result open_file_for_scanning(zend_file_handle *file_handle)
 	zend_set_compiled_filename(compiled_filename);
 	zend_string_release_ex(compiled_filename, 0);
 
+	SCNG(on_event) = NULL;
+	SCNG(on_event_context) = NULL;
 	RESET_DOC_COMMENT();
 	CG(zend_lineno) = 1;
 	CG(increment_lineno) = 0;
@@ -614,13 +616,12 @@ static zend_op_array *zend_compile(int type)
 		}
 
 		zend_file_context_begin(&original_file_context);
-		zend_oparray_context_begin(&original_oparray_context);
+		zend_oparray_context_begin(&original_oparray_context, op_array);
 		zend_compile_top_stmt(CG(ast));
 		CG(zend_lineno) = last_lineno;
 		zend_emit_final_return(type == ZEND_USER_FUNCTION);
 		op_array->line_start = 1;
 		op_array->line_end = last_lineno;
-		zend_init_static_variables_map_ptr(op_array);
 		pass_two(op_array);
 		zend_oparray_context_end(&original_oparray_context);
 		zend_file_context_end(&original_file_context);
@@ -651,7 +652,17 @@ ZEND_API zend_op_array *compile_file(zend_file_handle *file_handle, int type)
 			}
 		}
 	} else {
+		bool orig_record_errors = EG(record_errors);
+		if (!orig_record_errors) {
+			zend_begin_record_errors();
+		}
+
 		op_array = zend_compile(ZEND_USER_FUNCTION);
+
+		if (!orig_record_errors) {
+			zend_emit_recorded_errors();
+			zend_free_recorded_errors();
+		}
 	}
 
 	zend_restore_lexical_state(&original_lex_state);
@@ -757,6 +768,8 @@ ZEND_API void zend_prepare_string_for_scanning(zval *str, zend_string *filename)
 	zend_set_compiled_filename(filename);
 	CG(zend_lineno) = 1;
 	CG(increment_lineno) = 0;
+	SCNG(on_event) = NULL;
+	SCNG(on_event_context) = NULL;
 	RESET_DOC_COMMENT();
 }
 
@@ -782,7 +795,7 @@ ZEND_API size_t zend_get_scanned_file_offset(void)
 	return offset;
 }
 
-zend_op_array *compile_string(zend_string *source_string, const char *filename)
+zend_op_array *compile_string(zend_string *source_string, const char *filename, zend_compile_position position)
 {
 	zend_lex_state original_lex_state;
 	zend_op_array *op_array = NULL;
@@ -799,7 +812,19 @@ zend_op_array *compile_string(zend_string *source_string, const char *filename)
 	filename_str = zend_string_init(filename, strlen(filename), 0);
 	zend_prepare_string_for_scanning(&tmp, filename_str);
 	zend_string_release(filename_str);
-	BEGIN(ST_IN_SCRIPTING);
+
+	switch (position) {
+		case ZEND_COMPILE_POSITION_AT_SHEBANG:
+			BEGIN(SHEBANG);
+			break;
+		case ZEND_COMPILE_POSITION_AT_OPEN_TAG:
+			BEGIN(INITIAL);
+			break;
+		case ZEND_COMPILE_POSITION_AFTER_OPEN_TAG:
+			BEGIN(ST_IN_SCRIPTING);
+			break;
+	}
+
 	op_array = zend_compile(ZEND_EVAL_CODE);
 
 	zend_restore_lexical_state(&original_lex_state);
@@ -900,7 +925,7 @@ ZEND_API void zend_multibyte_yyinput_again(zend_encoding_filter old_input_filter
 		ZVAL_STRINGL(zendlval, yytext, yyleng); \
 	}
 
-static zend_result zend_scan_escape_string(zval *zendlval, char *str, int len, char quote_type)
+static zend_result zend_scan_escape_string(zval *zendlval, char *str, size_t len, char quote_type)
 {
 	char *s, *t;
 	char *end;
@@ -910,9 +935,7 @@ static zend_result zend_scan_escape_string(zval *zendlval, char *str, int len, c
 			ZVAL_EMPTY_STRING(zendlval);
 		} else {
 			zend_uchar c = (zend_uchar)*str;
-			if (c == '\n' || c == '\r') {
-				CG(zend_lineno)++;
-			}
+			HANDLE_NEWLINE(c);
 			ZVAL_INTERNED_STR(zendlval, ZSTR_CHAR(c));
 		}
 		goto skip_escape_conversion;
@@ -1318,7 +1341,7 @@ static zend_result check_nesting_at_end(void)
 	} while (0)
 
 #define RETURN_EXIT_NESTING_TOKEN(_token) do { \
-		if (exit_nesting(_token) && PARSER_MODE()) { \
+		if (exit_nesting(_token) != SUCCESS && PARSER_MODE()) { \
 			RETURN_TOKEN(T_ERROR); \
 		} else { \
 			RETURN_TOKEN(_token); \
@@ -1326,7 +1349,7 @@ static zend_result check_nesting_at_end(void)
 	} while(0)
 
 #define RETURN_END_TOKEN do { \
-		if (check_nesting_at_end() && PARSER_MODE()) { \
+		if (check_nesting_at_end() != SUCCESS && PARSER_MODE()) { \
 			RETURN_TOKEN(T_ERROR); \
 		} else { \
 			RETURN_TOKEN(END); \
@@ -1357,6 +1380,16 @@ TABS_AND_SPACES [ \t]*
 TOKENS [;:,.|^&+-/*=%!~$<>?@]
 ANY_CHAR [^]
 NEWLINE ("\r"|"\n"|"\r\n")
+OPTIONAL_WHITESPACE [ \n\r\t]*
+/* We don't use re2c with bounds checking, we just return 0 bytes if we read past the input.
+ * If we use wildcard matching for comments, we can read past the input, which crashes
+ * once we try to report a syntax error because the 0 bytes are not actually part of
+ * the token. We prevent this by not allowing 0 bytes, which already aren't valid anyway. */
+MULTI_LINE_COMMENT "/*"([^*\x00]*"*"+)([^*/\x00][^*\x00]*"*"+)*"/"
+SINGLE_LINE_COMMENT "//"[^\x00\n\r]*[\n\r]
+HASH_COMMENT "#"(([^[\x00][^\x00\n\r]*[\n\r])|[\n\r])
+WHITESPACE_OR_COMMENTS ({WHITESPACE}|{MULTI_LINE_COMMENT}|{SINGLE_LINE_COMMENT}|{HASH_COMMENT})+
+OPTIONAL_WHITESPACE_OR_COMMENTS ({WHITESPACE}|{MULTI_LINE_COMMENT}|{SINGLE_LINE_COMMENT}|{HASH_COMMENT})*
 
 /* compute yyleng before each rule */
 <!*> := yyleng = YYCURSOR - SCNG(yy_text);
@@ -1390,7 +1423,7 @@ NEWLINE ("\r"|"\n"|"\r\n")
 	RETURN_TOKEN(T_ATTRIBUTE);
 }
 
-<ST_IN_SCRIPTING>"yield"{WHITESPACE}"from"[^a-zA-Z0-9_\x80-\xff] {
+<ST_IN_SCRIPTING>"yield"{WHITESPACE_OR_COMMENTS}"from"[^a-zA-Z0-9_\x80-\xff] {
 	yyless(yyleng - 1);
 	HANDLE_NEWLINES(yytext, yyleng);
 	RETURN_TOKEN_WITH_IDENT(T_YIELD_FROM);
@@ -1532,11 +1565,11 @@ NEWLINE ("\r"|"\n"|"\r\n")
  * The enum keyword must be followed by whitespace and another identifier.
  * This avoids the BC break of using enum in classes, namespaces, functions and constants.
  */
-<ST_IN_SCRIPTING>"enum"{WHITESPACE}("extends"|"implements") {
+<ST_IN_SCRIPTING>"enum"{WHITESPACE_OR_COMMENTS}("extends"|"implements") {
 	yyless(4);
 	RETURN_TOKEN_WITH_STR(T_STRING, 0);
 }
-<ST_IN_SCRIPTING>"enum"{WHITESPACE}[a-zA-Z_\x80-\xff] {
+<ST_IN_SCRIPTING>"enum"{WHITESPACE_OR_COMMENTS}[a-zA-Z_\x80-\xff] {
 	yyless(4);
 	RETURN_TOKEN_WITH_IDENT(T_ENUM);
 }
@@ -1576,12 +1609,6 @@ NEWLINE ("\r"|"\n"|"\r\n")
 	RETURN_TOKEN_WITH_STR(T_STRING, 0);
 }
 
-<ST_LOOKING_FOR_PROPERTY>{ANY_CHAR} {
-	yyless(0);
-	yy_pop_state();
-	goto restart;
-}
-
 <ST_IN_SCRIPTING>"::" {
 	RETURN_TOKEN(T_PAAMAYIM_NEKUDOTAYIM);
 }
@@ -1606,11 +1633,31 @@ NEWLINE ("\r"|"\n"|"\r\n")
 	RETURN_TOKEN_WITH_IDENT(T_VAR);
 }
 
-<ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("int"|"integer"){TABS_AND_SPACES}")" {
+<ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("int"){TABS_AND_SPACES}")" {
 	RETURN_TOKEN(T_INT_CAST);
 }
 
-<ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("double"|"float"){TABS_AND_SPACES}")" {
+<ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("integer"){TABS_AND_SPACES}")" {
+	if (PARSER_MODE()) {
+		zend_error(E_DEPRECATED, "Non-canonical cast (integer) is deprecated, use the (int) cast instead");
+		if (EG(exception)) {
+			RETURN_TOKEN(T_ERROR);
+		}
+	}
+	RETURN_TOKEN(T_INT_CAST);
+}
+
+<ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("float"){TABS_AND_SPACES}")" {
+	RETURN_TOKEN(T_DOUBLE_CAST);
+}
+
+<ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("double"){TABS_AND_SPACES}")" {
+	if (PARSER_MODE()) {
+		zend_error(E_DEPRECATED, "Non-canonical cast (double) is deprecated, use the (float) cast instead");
+		if (EG(exception)) {
+			RETURN_TOKEN(T_ERROR);
+		}
+	}
 	RETURN_TOKEN(T_DOUBLE_CAST);
 }
 
@@ -1622,7 +1669,17 @@ NEWLINE ("\r"|"\n"|"\r\n")
 	RETURN_TOKEN(T_DOUBLE_CAST);
 }
 
-<ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("string"|"binary"){TABS_AND_SPACES}")" {
+<ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("string"){TABS_AND_SPACES}")" {
+	RETURN_TOKEN(T_STRING_CAST);
+}
+
+<ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("binary"){TABS_AND_SPACES}")" {
+	if (PARSER_MODE()) {
+		zend_error(E_DEPRECATED, "Non-canonical cast (binary) is deprecated, use the (string) cast instead");
+		if (EG(exception)) {
+			RETURN_TOKEN(T_ERROR);
+		}
+	}
 	RETURN_TOKEN(T_STRING_CAST);
 }
 
@@ -1634,12 +1691,26 @@ NEWLINE ("\r"|"\n"|"\r\n")
 	RETURN_TOKEN(T_OBJECT_CAST);
 }
 
-<ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("bool"|"boolean"){TABS_AND_SPACES}")" {
+<ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("bool"){TABS_AND_SPACES}")" {
+	RETURN_TOKEN(T_BOOL_CAST);
+}
+
+<ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("boolean"){TABS_AND_SPACES}")" {
+	if (PARSER_MODE()) {
+		zend_error(E_DEPRECATED, "Non-canonical cast (boolean) is deprecated, use the (bool) cast instead");
+		if (EG(exception)) {
+			RETURN_TOKEN(T_ERROR);
+		}
+	}
 	RETURN_TOKEN(T_BOOL_CAST);
 }
 
 <ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("unset"){TABS_AND_SPACES}")" {
 	RETURN_TOKEN(T_UNSET_CAST);
+}
+
+<ST_IN_SCRIPTING>"("{TABS_AND_SPACES}("void"){TABS_AND_SPACES}")" {
+	RETURN_TOKEN(T_VOID_CAST);
 }
 
 <ST_IN_SCRIPTING>"eval" {
@@ -1710,18 +1781,24 @@ NEWLINE ("\r"|"\n"|"\r\n")
 	RETURN_TOKEN_WITH_IDENT(T_PROTECTED);
 }
 
+<ST_IN_SCRIPTING>"public(set)" {
+	RETURN_TOKEN_WITH_IDENT(T_PUBLIC_SET);
+}
+
+<ST_IN_SCRIPTING>"protected(set)" {
+	RETURN_TOKEN_WITH_IDENT(T_PROTECTED_SET);
+}
+
+<ST_IN_SCRIPTING>"private(set)" {
+	RETURN_TOKEN_WITH_IDENT(T_PRIVATE_SET);
+}
+
 <ST_IN_SCRIPTING>"public" {
 	RETURN_TOKEN_WITH_IDENT(T_PUBLIC);
 }
 
 <ST_IN_SCRIPTING>"readonly" {
 	RETURN_TOKEN_WITH_IDENT(T_READONLY);
-}
-
-/* Don't treat "readonly(" as a keyword, to allow using it as a function name. */
-<ST_IN_SCRIPTING>"readonly"[ \n\r\t]*"(" {
-	yyless(strlen("readonly"));
-	RETURN_TOKEN_WITH_STR(T_STRING, 0);
 }
 
 <ST_IN_SCRIPTING>"unset" {
@@ -1792,11 +1869,11 @@ NEWLINE ("\r"|"\n"|"\r\n")
 	RETURN_TOKEN(T_MUL_EQUAL);
 }
 
-<ST_IN_SCRIPTING>"*\*" {
+<ST_IN_SCRIPTING>"**" {
 	RETURN_TOKEN(T_POW);
 }
 
-<ST_IN_SCRIPTING>"*\*=" {
+<ST_IN_SCRIPTING>"**=" {
 	RETURN_TOKEN(T_POW_EQUAL);
 }
 
@@ -1836,6 +1913,10 @@ NEWLINE ("\r"|"\n"|"\r\n")
 	RETURN_TOKEN(T_COALESCE_EQUAL);
 }
 
+<ST_IN_SCRIPTING>"|>" {
+	RETURN_TOKEN(T_PIPE);
+}
+
 <ST_IN_SCRIPTING>"||" {
 	RETURN_TOKEN(T_BOOLEAN_OR);
 }
@@ -1864,7 +1945,7 @@ NEWLINE ("\r"|"\n"|"\r\n")
 	RETURN_TOKEN(T_SR);
 }
 
-<ST_IN_SCRIPTING>"&"[ \t\r\n]*("$"|"...") {
+<ST_IN_SCRIPTING>"&"{OPTIONAL_WHITESPACE_OR_COMMENTS}("$"|"...") {
 	yyless(1);
 	RETURN_TOKEN(T_AMPERSAND_FOLLOWED_BY_VAR_OR_VARARG);
 }
@@ -2179,6 +2260,10 @@ string:
 	RETURN_TOKEN_WITH_IDENT(T_FUNC_C);
 }
 
+<ST_IN_SCRIPTING>"__PROPERTY__" {
+	RETURN_TOKEN_WITH_IDENT(T_PROPERTY_C);
+}
+
 <ST_IN_SCRIPTING>"__METHOD__" {
 	RETURN_TOKEN_WITH_IDENT(T_METHOD_C);
 }
@@ -2370,7 +2455,7 @@ inline_char_handler:
 }
 
 
-<ST_IN_SCRIPTING>"#"|"//" {
+<ST_IN_SCRIPTING,ST_LOOKING_FOR_PROPERTY>"#"|"//" {
 	while (YYCURSOR < YYLIMIT) {
 		switch (*YYCURSOR++) {
 			case '\r':
@@ -2394,7 +2479,7 @@ inline_char_handler:
 	RETURN_OR_SKIP_TOKEN(T_COMMENT);
 }
 
-<ST_IN_SCRIPTING>"/*"|"/**"{WHITESPACE} {
+<ST_IN_SCRIPTING,ST_LOOKING_FOR_PROPERTY>"/*"|"/**"{WHITESPACE} {
 	int doc_com;
 
 	if (yyleng > 2) {
@@ -2428,6 +2513,12 @@ inline_char_handler:
 	}
 
 	RETURN_OR_SKIP_TOKEN(T_COMMENT);
+}
+
+<ST_LOOKING_FOR_PROPERTY>{ANY_CHAR} {
+	yyless(0);
+	yy_pop_state();
+	goto restart;
 }
 
 <ST_IN_SCRIPTING>"?>"{NEWLINE}? {
@@ -2473,9 +2564,7 @@ inline_char_handler:
 			ZVAL_EMPTY_STRING(zendlval);
 		} else {
 			zend_uchar c = (zend_uchar)*(yytext+bprefix+1);
-			if (c == '\n' || c == '\r') {
-				CG(zend_lineno)++;
-			}
+			HANDLE_NEWLINE(c);
 			ZVAL_INTERNED_STR(zendlval, ZSTR_CHAR(c));
 		}
 		goto skip_escape_conversion;
@@ -2668,6 +2757,7 @@ skip_escape_conversion:
 		SCNG(heredoc_scan_ahead) = 1;
 		SCNG(heredoc_indentation) = 0;
 		SCNG(heredoc_indentation_uses_spaces) = 0;
+		SCNG(on_event_context) = NULL;
 		LANG_SCNG(on_event) = NULL;
 		CG(doc_comment) = NULL;
 

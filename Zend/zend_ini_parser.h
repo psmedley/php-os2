@@ -73,10 +73,11 @@ extern int ini_debug;
     TC_DOLLAR_CURLY = 266,         /* TC_DOLLAR_CURLY  */
     TC_VARNAME = 267,              /* TC_VARNAME  */
     TC_QUOTED_STRING = 268,        /* TC_QUOTED_STRING  */
-    BOOL_TRUE = 269,               /* BOOL_TRUE  */
-    BOOL_FALSE = 270,              /* BOOL_FALSE  */
-    NULL_NULL = 271,               /* NULL_NULL  */
-    END_OF_LINE = 272              /* END_OF_LINE  */
+    TC_FALLBACK = 269,             /* TC_FALLBACK  */
+    BOOL_TRUE = 270,               /* BOOL_TRUE  */
+    BOOL_FALSE = 271,              /* BOOL_FALSE  */
+    NULL_NULL = 272,               /* NULL_NULL  */
+    END_OF_LINE = 273              /* END_OF_LINE  */
   };
   typedef enum ini_tokentype ini_token_kind_t;
 #endif

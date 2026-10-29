@@ -121,7 +121,6 @@ ZEND_API void zend_llist_destroy(zend_llist *l)
 ZEND_API void zend_llist_clean(zend_llist *l)
 {
 	zend_llist_destroy(l);
-	l->head = l->tail = NULL;
 }
 
 
@@ -243,11 +242,11 @@ ZEND_API void zend_llist_apply_with_arguments(zend_llist *l, llist_apply_with_ar
 	zend_llist_element *element;
 	va_list args;
 
-	va_start(args, num_args);
 	for (element=l->head; element; element=element->next) {
+		va_start(args, num_args);
 		func(element->data, num_args, args);
+		va_end(args);
 	}
-	va_end(args);
 }
 
 

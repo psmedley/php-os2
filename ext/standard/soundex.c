@@ -16,9 +16,7 @@
 
 #include "php.h"
 #include <stdlib.h>
-#include <errno.h>
 #include <ctype.h>
-#include "php_string.h"
 
 /* Simple soundex algorithm as described by Knuth in TAOCP, vol 3 */
 /* {{{ Calculate the soundex key of a string */
@@ -67,7 +65,7 @@ PHP_FUNCTION(soundex)
 		/* BUG: should also map here accented letters used in non */
 		/* English words or names (also found in English text!): */
 		/* esstsett, thorn, n-tilde, c-cedilla, s-caron, ... */
-		code = toupper((int)(unsigned char)str[i]);
+		code = toupper((unsigned char)str[i]);
 		if (code >= 'A' && code <= 'Z') {
 			if (_small == 0) {
 				/* remember first valid char */

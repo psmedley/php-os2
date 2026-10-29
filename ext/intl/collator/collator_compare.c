@@ -14,7 +14,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include <config.h>
 #endif
 
 #include "php_intl.h"
@@ -48,12 +48,7 @@ PHP_FUNCTION( collator_compare )
 	/* Fetch the object. */
 	COLLATOR_METHOD_FETCH_OBJECT;
 
-	if (!co || !co->ucoll) {
-		intl_error_set_code( NULL, COLLATOR_ERROR_CODE( co ) );
-		intl_errors_set_custom_msg( COLLATOR_ERROR_P( co ),
-			"Object not initialized", 0 );
-		zend_throw_error(NULL, "Object not initialized");
-
+	if (collator_check_initialized(co) == FAILURE) {
 		RETURN_THROWS();
 	}
 
@@ -70,8 +65,7 @@ PHP_FUNCTION( collator_compare )
 		intl_error_set_code( NULL, COLLATOR_ERROR_CODE( co ) );
 
 		/* Set error messages. */
-		intl_errors_set_custom_msg( COLLATOR_ERROR_P( co ),
-			"Error converting first argument to UTF-16", 0 );
+		intl_errors_set_custom_msg( COLLATOR_ERROR_P( co ), "Error converting first argument to UTF-16");
 		if (ustr1) {
 			efree( ustr1 );
 		}
@@ -86,8 +80,7 @@ PHP_FUNCTION( collator_compare )
 		intl_error_set_code( NULL, COLLATOR_ERROR_CODE( co ) );
 
 		/* Set error messages. */
-		intl_errors_set_custom_msg( COLLATOR_ERROR_P( co ),
-			"Error converting second argument to UTF-16", 0 );
+		intl_errors_set_custom_msg( COLLATOR_ERROR_P( co ), "Error converting second argument to UTF-16");
 		if (ustr1) {
 			efree( ustr1 );
 		}

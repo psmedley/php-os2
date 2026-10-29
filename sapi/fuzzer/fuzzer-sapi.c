@@ -30,7 +30,7 @@
 #include "fuzzer.h"
 #include "fuzzer-sapi.h"
 
-const char HARDCODED_INI[] =
+static const char HARDCODED_INI[] =
 	"html_errors=0\n"
 	"implicit_flush=1\n"
 	"output_buffering=0\n"
@@ -45,9 +45,9 @@ const char HARDCODED_INI[] =
 	"allow_url_include=0\n"
 	"allow_url_fopen=0\n"
 	"open_basedir=/tmp\n"
-	"disable_functions=dl,mail,mb_send_mail"
+	"disable_functions=dl,mail,mb_send_mail,set_error_handler"
 	",shell_exec,exec,system,proc_open,popen,passthru,pcntl_exec"
-	",chgrp,chmod,chown,copy,file_put_contents,lchgrp,lchown,link,mkdir"
+	",chdir,chgrp,chmod,chown,copy,file_put_contents,lchgrp,lchown,link,mkdir"
 	",move_uploaded_file,rename,rmdir,symlink,tempname,touch,unlink,fopen"
 	/* Networking code likes to wait and wait. */
 	",fsockopen,pfsockopen"
@@ -56,16 +56,11 @@ const char HARDCODED_INI[] =
 	",crypt"
 	/* openlog() has a known memory-management issue. */
 	",openlog"
-	/* Can cause long loops that bypass the executor step limit. */
-	"\ndisable_classes=InfiniteIterator"
 ;
 
 static int startup(sapi_module_struct *sapi_module)
 {
-	if (php_module_startup(sapi_module, NULL, 0)==FAILURE) {
-		return FAILURE;
-	}
-	return SUCCESS;
+	return php_module_startup(sapi_module, NULL);
 }
 
 static size_t ub_write(const char *str, size_t str_length)
@@ -83,7 +78,7 @@ static void send_header(sapi_header_struct *sapi_header, void *server_context)
 {
 }
 
-static char* read_cookies()
+static char* read_cookies(void)
 {
 	/* TODO: fuzz these! */
 	return NULL;
@@ -131,7 +126,26 @@ static sapi_module_struct fuzzer_module = {
 	STANDARD_SAPI_MODULE_PROPERTIES
 };
 
-int fuzzer_init_php()
+static ZEND_COLD zend_function *disable_class_get_constructor_handler(zend_object *obj) /* {{{ */
+{
+	zend_throw_error(NULL, "Cannot construct class %s, as it is disabled", ZSTR_VAL(obj->ce->name));
+	return NULL;
+}
+
+static void fuzzer_disable_classes(void)
+{
+	/* Overwrite built-in constructor for InfiniteIterator as it
+	 * can cause long loops that bypass the executor step limit. */
+	/* Lowercase as this is how the CE as stored */
+	zend_class_entry *InfiniteIterator_class = zend_hash_str_find_ptr(CG(class_table), "infiniteiterator", strlen("infiniteiterator"));
+
+	static zend_object_handlers handlers;
+	memcpy(&handlers, InfiniteIterator_class->default_object_handlers, sizeof(handlers));
+	handlers.get_constructor = disable_class_get_constructor_handler;
+	InfiniteIterator_class->default_object_handlers = &handlers;
+}
+
+int fuzzer_init_php(const char *extra_ini)
 {
 #ifdef __SANITIZE_ADDRESS__
 	/* We're going to leak all the memory allocated during startup,
@@ -142,8 +156,19 @@ int fuzzer_init_php()
 	sapi_startup(&fuzzer_module);
 	fuzzer_module.phpinfo_as_text = 1;
 
-	fuzzer_module.ini_entries = malloc(sizeof(HARDCODED_INI));
-	memcpy(fuzzer_module.ini_entries, HARDCODED_INI, sizeof(HARDCODED_INI));
+	size_t ini_len = sizeof(HARDCODED_INI);
+	size_t extra_ini_len = extra_ini ? strlen(extra_ini) : 0;
+	if (extra_ini) {
+		ini_len += extra_ini_len + 1;
+	}
+	char *p = malloc(ini_len + 1);
+	fuzzer_module.ini_entries = p;
+	p = zend_mempcpy(p, HARDCODED_INI, sizeof(HARDCODED_INI) - 1);
+	if (extra_ini) {
+		*p++ = '\n';
+		p = zend_mempcpy(p, extra_ini, extra_ini_len);
+	}
+	*p = '\0';
 
 	/*
 	 * TODO: we might want to test both Zend and malloc MM, but testing with malloc
@@ -162,7 +187,7 @@ int fuzzer_init_php()
 	return SUCCESS;
 }
 
-int fuzzer_request_startup()
+int fuzzer_request_startup(void)
 {
 	if (php_request_startup() == FAILURE) {
 		php_module_shutdown();
@@ -175,10 +200,12 @@ int fuzzer_request_startup()
 	SIGG(check) = 0;
 #endif
 
+	fuzzer_disable_classes();
+
 	return SUCCESS;
 }
 
-void fuzzer_request_shutdown()
+void fuzzer_request_shutdown(void)
 {
 	zend_try {
 		/* Destroy thrown exceptions. This does not happen as part of request shutdown. */
@@ -187,17 +214,21 @@ void fuzzer_request_shutdown()
 			EG(exception) = NULL;
 		}
 
+		zend_mm_oom_info_dtor(&EG(delayed_oom));
+
 		/* Some fuzzers (like unserialize) may create circular structures. Make sure we free them.
 		 * Two calls are performed to handle objects with destructors. */
 		zend_gc_collect_cycles();
 		zend_gc_collect_cycles();
 	} zend_end_try();
 
-	php_request_shutdown(NULL);
+	zend_try {
+		php_request_shutdown(NULL);
+	} zend_end_try();
 }
 
 /* Set up a dummy stack frame so that exceptions may be thrown. */
-void fuzzer_setup_dummy_frame()
+void fuzzer_setup_dummy_frame(void)
 {
 	static zend_execute_data execute_data;
 	static zend_function func;
@@ -225,12 +256,13 @@ int fuzzer_shutdown_php(void)
 	php_module_shutdown();
 	sapi_shutdown();
 
-	free(fuzzer_module.ini_entries);
+	free((void *)fuzzer_module.ini_entries);
 	return SUCCESS;
 }
 
 int fuzzer_do_request_from_buffer(
-		char *filename, const char *data, size_t data_len, bool execute)
+		char *filename, const char *data, size_t data_len, bool execute,
+		void (*before_shutdown)(void))
 {
 	int retval = FAILURE; /* failure by default */
 
@@ -251,14 +283,24 @@ int fuzzer_do_request_from_buffer(
 		zend_file_handle file_handle;
 		zend_stream_init_filename(&file_handle, filename);
 		file_handle.primary_script = 1;
-		file_handle.buf = estrndup(data, data_len);
+		file_handle.buf = emalloc(data_len + ZEND_MMAP_AHEAD);
+		memcpy(file_handle.buf, data, data_len);
+		memset(file_handle.buf + data_len, 0, ZEND_MMAP_AHEAD);
 		file_handle.len = data_len;
+		/* Avoid ZEND_HANDLE_FILENAME for opcache. */
+		file_handle.type = ZEND_HANDLE_STREAM;
 
 		zend_op_array *op_array = zend_compile_file(&file_handle, ZEND_REQUIRE);
 		zend_destroy_file_handle(&file_handle);
 		if (op_array) {
 			if (execute) {
 				zend_execute(op_array, NULL);
+			}
+			if (ZEND_HAS_OOM()) {
+				zend_handle_delayed_oom();
+			}
+			if (EG(exception)) {
+				zend_exception_error(EG(exception), E_WARNING);
 			}
 			zend_destroy_static_vars(op_array);
 			destroy_op_array(op_array);
@@ -267,6 +309,11 @@ int fuzzer_do_request_from_buffer(
 	} zend_end_try();
 
 	CG(compiled_filename) = NULL; /* ??? */
+	if (before_shutdown) {
+		zend_try {
+			before_shutdown();
+		} zend_end_try();
+	}
 	fuzzer_request_shutdown();
 
 	return (retval == SUCCESS) ? SUCCESS : FAILURE;
@@ -274,11 +321,13 @@ int fuzzer_do_request_from_buffer(
 
 // Call named PHP function with N zval arguments
 void fuzzer_call_php_func_zval(const char *func_name, int nargs, zval *args) {
-	zval retval, func;
+	zval retval;
 
-	ZVAL_STRING(&func, func_name);
+	zend_function *fn = zend_hash_str_find_ptr(CG(function_table), func_name, strlen(func_name));
+	ZEND_ASSERT(fn != NULL);
+
 	ZVAL_UNDEF(&retval);
-	call_user_function(CG(function_table), NULL, &func, &retval, nargs, args);
+	zend_call_known_function(fn, NULL, NULL, &retval, nargs, args, NULL);
 
 	// TODO: check result?
 	/* to ensure retval is not broken */
@@ -286,7 +335,6 @@ void fuzzer_call_php_func_zval(const char *func_name, int nargs, zval *args) {
 
 	/* cleanup */
 	zval_ptr_dtor(&retval);
-	zval_ptr_dtor(&func);
 }
 
 // Call named PHP function with N string arguments

@@ -240,7 +240,7 @@ $gb18030_BMP_Mappings = [
 findInvalidChars($toUnicode, $invalid, $truncated);
 
 function notFourByteCode($gb) {
-  return ((ord($gb) < 0x81 || ord($gb) > 0x84) && (ord($gb) < 0x90 || ord($gb) > 0xE3)) ||
+  return ((ord($gb[0]) < 0x81 || ord($gb[0]) > 0x84) && (ord($gb[0]) < 0x90 || ord($gb[0]) > 0xE3)) ||
     (strlen($gb) > 1 && (ord($gb[1]) < 0x30 || ord($gb[1]) > 0x39));
 }
 
@@ -301,6 +301,10 @@ echo "Tested GB18030 4-byte characters <-> UTF-16BE\n";
 
 testAllValidChars($fromUnicode, 'UTF-16BE', 'GB18030', false);
 echo "Tested UTF-16BE -> GB18030 (1 and 2 byte characters)\n";
+
+// Regression test
+// This was found by a fuzzer (previously the invalid codepoint would be converted to \x00)
+convertInvalidString("\xAA\xB8\x2D\x38\x00\x00\x00#", "%#", "UTF-32BE", "GB18030");
 
 // Test "long" illegal character markers
 mb_substitute_character("long");
