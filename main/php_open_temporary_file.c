@@ -43,6 +43,10 @@
 #include <sys/file.h>
 #endif
 
+#ifdef __OS2__
+#include <io.h>
+#endif
+
 #if !defined(P_tmpdir)
 #define P_tmpdir ""
 #endif

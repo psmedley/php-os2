@@ -19,6 +19,9 @@
 
 #include "zend_extensions.h"
 #include "zend_system_id.h"
+#ifdef __OS2__
+#include <ctype.h>
+#endif
 
 ZEND_API zend_llist zend_extensions;
 ZEND_API uint32_t zend_extension_flags = 0;
@@ -360,7 +363,7 @@ DL_HANDLE zend_os2_load_module(char *libname)
 {
 	DL_HANDLE handle;
 
-	errorcode = DosLoadModule(errormodule, sizeof(errormodule), libname, &handle);
+	errorcode = DosLoadModule(errormodule, sizeof(errormodule), (PCSZ) libname, (PHMODULE) &handle);
 
 	if (errorcode == 0) {
 		return handle;
@@ -373,7 +376,7 @@ void *zend_os2_query_symbol(DL_HANDLE handle, const char *sym)
 {
 	PFN func;
 
-	if (DosQueryProcAddr(handle, 0, sym, &func) == 0) {
+	if (DosQueryProcAddr((HMODULE)handle, 0, sym, &func) == 0) {
 		return func;
 	}
 

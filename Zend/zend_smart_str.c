@@ -19,9 +19,7 @@
 #include "zend_smart_string.h"
 
 #ifdef __OS2__
-#ifdef HAVE_UNISTD_H
-# include <unistd.h>
-#endif
+pid_t    _getpid(void);
 #endif
 
 #define SMART_STR_OVERHEAD   (ZEND_MM_OVERHEAD + _ZSTR_HEADER_SIZE + 1)

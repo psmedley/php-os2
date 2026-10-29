@@ -46,6 +46,9 @@
 #else
 # include <netdb.h>
 #endif
+#ifdef __OS2__
+#include <libcx/net.h>
+#endif
 
 PHPAPI zend_string* php_inet_ntop(const struct sockaddr *addr) {
 	socklen_t addrlen = sizeof(struct sockaddr_in);

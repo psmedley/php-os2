@@ -64,6 +64,10 @@
 # include <unistd.h>
 #endif
 
+#ifdef __OS2__
+#include <sys/process.h>
+#endif
+
 #ifdef ZEND_WIN32
 # include <wincrypt.h>
 # include <process.h>

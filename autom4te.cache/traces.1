@@ -137,6 +137,15 @@ m4trace:configure.ac:20: -1- AH_OUTPUT([PACKAGE_URL], [/* Define to the home pag
 m4trace:configure.ac:20: -1- AC_SUBST([DEFS])
 m4trace:configure.ac:20: -1- AC_SUBST_TRACE([DEFS])
 m4trace:configure.ac:20: -1- m4_pattern_allow([^DEFS$])
+m4trace:configure.ac:20: -1- AC_SUBST([ECHO_C])
+m4trace:configure.ac:20: -1- AC_SUBST_TRACE([ECHO_C])
+m4trace:configure.ac:20: -1- m4_pattern_allow([^ECHO_C$])
+m4trace:configure.ac:20: -1- AC_SUBST([ECHO_N])
+m4trace:configure.ac:20: -1- AC_SUBST_TRACE([ECHO_N])
+m4trace:configure.ac:20: -1- m4_pattern_allow([^ECHO_N$])
+m4trace:configure.ac:20: -1- AC_SUBST([ECHO_T])
+m4trace:configure.ac:20: -1- AC_SUBST_TRACE([ECHO_T])
+m4trace:configure.ac:20: -1- m4_pattern_allow([^ECHO_T$])
 m4trace:configure.ac:20: -1- AC_SUBST([LIBS])
 m4trace:configure.ac:20: -1- AC_SUBST_TRACE([LIBS])
 m4trace:configure.ac:20: -1- m4_pattern_allow([^LIBS$])
@@ -149,15 +158,6 @@ m4trace:configure.ac:20: -1- m4_pattern_allow([^host_alias$])
 m4trace:configure.ac:20: -1- AC_SUBST([target_alias])
 m4trace:configure.ac:20: -1- AC_SUBST_TRACE([target_alias])
 m4trace:configure.ac:20: -1- m4_pattern_allow([^target_alias$])
-m4trace:configure.ac:20: -1- AC_SUBST([ECHO_C])
-m4trace:configure.ac:20: -1- AC_SUBST_TRACE([ECHO_C])
-m4trace:configure.ac:20: -1- m4_pattern_allow([^ECHO_C$])
-m4trace:configure.ac:20: -1- AC_SUBST([ECHO_N])
-m4trace:configure.ac:20: -1- AC_SUBST_TRACE([ECHO_N])
-m4trace:configure.ac:20: -1- m4_pattern_allow([^ECHO_N$])
-m4trace:configure.ac:20: -1- AC_SUBST([ECHO_T])
-m4trace:configure.ac:20: -1- AC_SUBST_TRACE([ECHO_T])
-m4trace:configure.ac:20: -1- m4_pattern_allow([^ECHO_T$])
 m4trace:configure.ac:22: -1- AC_CONFIG_AUX_DIR([build])
 m4trace:configure.ac:25: -1- AC_SUBST([GREP])
 m4trace:configure.ac:25: -1- AC_SUBST_TRACE([GREP])
@@ -315,10 +315,6 @@ m4trace:configure.ac:135: -1- AH_OUTPUT([USE_SYSTEM_EXTENSIONS], [/* Enable exte
 #ifndef _ALL_SOURCE
 # undef _ALL_SOURCE
 #endif
-/* Enable extensions on Cosmopolitan Libc. */
-#ifndef _COSMO_SOURCE
-# undef _COSMO_SOURCE
-#endif
 /* Enable general extensions on macOS.  */
 #ifndef _DARWIN_C_SOURCE
 # undef _DARWIN_C_SOURCE
@@ -436,8 +432,6 @@ m4trace:configure.ac:135: -1- AH_OUTPUT([HAVE_MINIX_CONFIG_H], [/* Define to 1 i
 @%:@undef HAVE_MINIX_CONFIG_H])
 m4trace:configure.ac:135: -1- AC_DEFINE_TRACE_LITERAL([_ALL_SOURCE])
 m4trace:configure.ac:135: -1- m4_pattern_allow([^_ALL_SOURCE$])
-m4trace:configure.ac:135: -1- AC_DEFINE_TRACE_LITERAL([_COSMO_SOURCE])
-m4trace:configure.ac:135: -1- m4_pattern_allow([^_COSMO_SOURCE$])
 m4trace:configure.ac:135: -1- AC_DEFINE_TRACE_LITERAL([_DARWIN_C_SOURCE])
 m4trace:configure.ac:135: -1- m4_pattern_allow([^_DARWIN_C_SOURCE$])
 m4trace:configure.ac:135: -1- AC_DEFINE_TRACE_LITERAL([_GNU_SOURCE])
@@ -4501,8 +4495,8 @@ m4trace:configure.ac:1495: -1- m4_pattern_allow([^PHP_VERSION$])
 m4trace:configure.ac:1496: -1- AC_SUBST([PHP_VERSION_ID])
 m4trace:configure.ac:1496: -1- AC_SUBST_TRACE([PHP_VERSION_ID])
 m4trace:configure.ac:1496: -1- m4_pattern_allow([^PHP_VERSION_ID$])
-m4trace:configure.ac:1537: -1- _m4_warn([cross], [AC_RUN_IFELSE called without default to allow cross compiling], [./lib/autoconf/general.m4:3037: AC_RUN_IFELSE is expanded from...
-lib/m4sugar/m4sh.m4:696: AS_IF is expanded from...
+m4trace:configure.ac:1537: -1- _m4_warn([cross], [AC_RUN_IFELSE called without default to allow cross compiling], [./lib/autoconf/general.m4:3031: AC_RUN_IFELSE is expanded from...
+lib/m4sugar/m4sh.m4:697: AS_IF is expanded from...
 build/ax_check_compile_flag.m4:39: AX_CHECK_COMPILE_FLAG is expanded from...
 configure.ac:1537: the top level])
 m4trace:configure.ac:1576: -1- AC_SUBST([AR_FLAGS], [cr])

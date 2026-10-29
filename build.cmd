@@ -1,39 +1,34 @@
-/* */
-buildstart=time()
-'set LDFLAGS=-Zmap -Zhigh-mem -static-libgcc'
-'rem make clean'
-'gcc -DUSE_OMF -Zomf -Zhigh-mem -Zmap -o build/aplibtool.exe build\aplibtool.c'
-'deltree php8 /y'
-'copy u:\extras\bin\aplibtool.exe.php.high build\aplibtool.exe'
-'md php8'
-'md php8\cgi'
-'md php8\modules'
-'md php8\apache24'
-'del sapi\cgi\php-cgi.exe'
-'del sapi\cli\php.exe'
-'make 2>&1 | tee build.log'
-'copy u:\extras\bin\aplibtool.exe.php.low build\aplibtool.exe'
-'make -j 3 modphp.la 2>&1 | tee modphp.log'
-'make sapi/cli/php.exe'
-'make sapi/cgi/php-cgi.exe'
-'copy .libs\php.dll php8'
-'copy .libs\modphp.dll php8\apache24'
-'copy modules\*.dll php8\modules'
-'copy sapi\cli\php.exe php8'
-'copy sapi\cli\php.map php8'
-'copy sapi\cgi\php-cgi.exe php8\cgi\php-cgi.exe'
-'copy sapi\cgi\php-cgi.map php8\cgi\php-cgi.map'
-'rem lxlite php8\*'
-'rem lxlite php8\modules\*'
-'rem lxlite php8\apache24\*'
-'copy .libs\php.map php8'
-'copy .libs\modphp.map php8\apache24'
-'u:\dev\exceptq71-dev\bin\mapxqs.exe php8\php.map -o php8\php.xqs'
-'u:\dev\exceptq71-dev\bin\mapxqs.exe  sapi\cgi\php-cgi.map -o php8\cgi\php-cgi.xqs'
-'u:\dev\exceptq71-dev\bin\mapxqs.exe .libs\modphp.map -o php8\apache24\modphp.xqs'
-'copy readme.os2 php8'
-'copy php.ini-development php8'
-'copy php.ini-production php8'
-
-buildend=time()
-say "Compile started at "buildstart" and ended at "buildend
+set LDFLAGS=-Zmap -Zhigh-mem -static-libgcc
+rem make clean
+gcc -DUSE_OMF -Zomf -Zhigh-mem -Zmap -o build/aplibtool.exe build\aplibtool.c
+deltree php8 /y
+copy u:\extras\bin\aplibtool.exe.php.high build\aplibtool.exe
+md php8
+md php8\cgi
+md php8\modules
+md php8\apache24
+del sapi\cgi\php-cgi.exe
+del sapi\cli\php.exe
+make 2>&1 | tee build.log
+copy u:\extras\bin\aplibtool.exe.php.low build\aplibtool.exe
+make -j 3 modphp.la 2>&1 | tee modphp.log
+make sapi/cli/php.exe
+make sapi/cgi/php-cgi.exe
+copy .libs\php.dll php8
+copy .libs\modphp.dll php8\apache24
+copy modules\*.dll php8\modules
+copy sapi\cli\php.exe php8
+copy sapi\cli\php.map php8
+copy sapi\cgi\php-cgi.exe php8\cgi\php-cgi.exe
+copy sapi\cgi\php-cgi.map php8\cgi\php-cgi.map
+rem lxlite php8\*
+rem lxlite php8\modules\*
+rem lxlite php8\apache24\*
+copy .libs\php.map php8
+copy .libs\modphp.map php8\apache24
+u:\dev\exceptq71-dev\bin\mapxqs.exe php8\php.map -o php8\php.xqs
+u:\dev\exceptq71-dev\bin\mapxqs.exe  sapi\cgi\php-cgi.map -o php8\cgi\php-cgi.xqs
+u:\dev\exceptq71-dev\bin\mapxqs.exe .libs\modphp.map -o php8\apache24\modphp.xqs
+copy readme.os2 php8
+copy php.ini-development php8
+copy php.ini-production php8
