@@ -34,15 +34,19 @@
 #include "ext/filter/php_filter.h"
 #include "ext/hash/php_hash.h"
 #include "ext/json/php_json.h"
+#include "ext/lexbor/php_lexbor.h"
+#include "ext/opcache/zend_accelerator_module.h"
 #include "ext/pdo/php_pdo.h"
 #include "ext/phar/php_phar.h"
 #include "ext/posix/php_posix.h"
+#include "ext/random/php_random.h"
 #include "ext/reflection/php_reflection.h"
 #include "ext/session/php_session.h"
 #include "ext/simplexml/php_simplexml.h"
 #include "ext/spl/php_spl.h"
 #include "ext/standard/php_standard.h"
 #include "ext/tokenizer/php_tokenizer.h"
+#include "ext/uri/php_uri.h"
 #include "ext/xml/php_xml.h"
 #include "ext/xmlreader/php_xmlreader.h"
 #include "ext/xmlwriter/php_xmlwriter.h"
@@ -57,19 +61,23 @@ static zend_module_entry * const php_builtin_extensions[] = {
 	phpext_bcmath_ptr,
 	phpext_calendar_ptr,
 	phpext_ctype_ptr,
+	phpext_lexbor_ptr,
 	phpext_dom_ptr,
 	phpext_filter_ptr,
 	phpext_hash_ptr,
 	phpext_json_ptr,
+	phpext_opcache_ptr,
 	phpext_standard_ptr,
 	phpext_spl_ptr,
 	phpext_pdo_ptr,
 	phpext_phar_ptr,
 	phpext_posix_ptr,
+	phpext_random_ptr,
 	phpext_reflection_ptr,
 	phpext_session_ptr,
 	phpext_simplexml_ptr,
 	phpext_tokenizer_ptr,
+	phpext_uri_ptr,
 	phpext_xml_ptr,
 	phpext_xmlreader_ptr,
 	phpext_xmlwriter_ptr,

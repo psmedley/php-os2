@@ -123,8 +123,9 @@ static zend_always_inline uint32_t zend_hash_check_size(uint32_t nSize, bool fal
 	/* size should be between HT_MIN_SIZE and HT_MAX_SIZE */
 	if (nSize <= HT_MIN_SIZE) {
 		return HT_MIN_SIZE;
-	} else if (UNEXPECTED(nSize >= HT_MAX_SIZE)) {
-		zend_mm_safe_error_ex("Possible integer overflow in memory allocation (%u * %zu + %zu)", nSize, sizeof(Bucket), sizeof(Bucket));
+	} else if (UNEXPECTED(nSize > HT_MAX_SIZE)) {
+		zend_mm_delayed_error_or_panic(fallible, "Possible integer overflow in memory allocation (%u * %zu + %zu)", nSize, sizeof(Bucket), sizeof(Bucket));
+		return 0;
 	}
 
 #ifdef ZEND_WIN32
@@ -324,13 +325,6 @@ ZEND_API HashTable* ZEND_FASTCALL _zend_new_array_0(void)
 {
 	HashTable *ht = emalloc(sizeof(HashTable));
 	_zend_hash_init_int(ht, HT_MIN_SIZE, ZVAL_PTR_DTOR, 0);
-	return ht;
-}
-
-ZEND_API HashTable* ZEND_FASTCALL zend_new_array_singleton(void)
-{
-	HashTable *ht = _zend_new_array_0();
-	ht->nTableSize = 1;
 	return ht;
 }
 
@@ -1549,7 +1543,7 @@ static zend_result ZEND_FASTCALL zend_hash_do_fresize(HashTable *ht, bool fallib
 	} else {
 		zend_mm_delayed_error_or_panic(fallible, "Possible integer overflow in memory allocation (%u * %zu + %zu)", ht->nTableSize * 2, sizeof(Bucket) + sizeof(uint32_t), sizeof(Bucket));
 		return FAILURE;
- 	}
+	}
 	return SUCCESS;
 }
 

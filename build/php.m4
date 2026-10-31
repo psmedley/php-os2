@@ -619,7 +619,7 @@ dnl
 dnl Set libtool variable.
 dnl
 AC_DEFUN([PHP_SET_LIBTOOL_VARIABLE], [
-AS_IF([test "$ac_cv_emxos2" = "yes"], [
+AS_IF([test "$ac_cv_build" = "i386-pc-os2-emx"], [
   LIBTOOL='build/aplibtool.exe '
   gcc "-DUSE_OMF" $CFLAGS $CPPFLAGS "-o" build/aplibtool.exe build/aplibtool.c
 ], [

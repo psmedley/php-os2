@@ -3,7 +3,8 @@
 #else
 # include <php_config.h>
 #endif
-#include <php_stdint.h>
+#include <inttypes.h>
+#include <stdint.h>
 
 #include "zend.h"
 

@@ -27,6 +27,7 @@ if test "$PHP_BZ2" != "no"; then
     [AC_MSG_FAILURE([The bz2 extension requires libbz2 >= 1.0.0])],
     [-L$BZIP_DIR/$PHP_LIBDIR])
 
-  PHP_NEW_EXTENSION([bz2], [bz2.c bz2_filter.c], [$ext_shared])
-  PHP_SUBST([BZ2_SHARED_LIBADD])
+  AS_CASE([$host_alias],
+    [*os2*], [PHP_NEW_EXTENSION([phpbz2], [bz2.c bz2_filter.c], [$ext_shared])],
+    [PHP_NEW_EXTENSION([bz2], [bz2.c bz2_filter.c], [$ext_shared])])  PHP_SUBST([BZ2_SHARED_LIBADD])
 fi

@@ -105,6 +105,7 @@ char *realpath(const char *path, char resolved_path[]);
 #define DEFAULT_DIR_SEPARATOR	';'
 #define IS_SLASH(c)	((c) == '/' || (c) == '\\')
 #define IS_SLASH_P(c)	(*(c) == '/' || *(c) == '\\')
+#define IS_SLASH_P_EX(c, first_byte) IS_SLASH_P(c)
 #define COPY_WHEN_ABSOLUTE(path) (IS_SLASH(path[0]) ? 0 : 2)
 #define IS_ABSOLUTE_PATH(path, len) \
 	(len >= 2 && (/* is local */isalpha(path[0]) && path[1] == ':' || /* is UNC */IS_SLASH(path[0]) && IS_SLASH(path[1])))

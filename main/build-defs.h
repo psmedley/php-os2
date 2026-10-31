@@ -14,17 +14,11 @@
    +----------------------------------------------------------------------+
 */
 
-#define CONFIGURE_COMMAND " './configure'  '--prefix=/php8' '--includedir=/extras/include' '--disable-rpath' '--enable-ftp=shared' '--enable-exif=shared' '--with-zlib=u:/extras' '--enable-gd=shared' '--with-gettext=shared' '--enable-mbstring=shared,all' '--disable-mbregex' '--with-curl=shared,/@unixroot/usr' '--with-mysql-sock=\socket\MySQL' '--with-mysqli=shared,mysqlnd' '--with-bz2=shared,/@unixroot/usr' '--with-pdo-mysql=shared,mysqlnd' '--includedir=u:/extras/include/apr-1' '--with-apxs2=/apache24/bin/apxs' '--with-unixODBC=shared,/unixodbc' '--enable-sockets=shared' '--with-xsl=shared,/@unixroot/usr' '--with-zip=shared,/@unixroot/usr' '--with-iconv=shared,/@unixroot/usr' '--enable-soap=shared' '--enable-bcmath' '--enable-calendar' '--enable-zts' '--with-sqlite3=shared' '--with-pdo-sqlite=shared' '--with-openssl=shared,/@unixroot/usr' '--with-tidy=shared,/extras' '--disable-phpdbg' '--disable-ipv6' '--with-pgsql=shared,u:/pgsql' '--with-pdo-pgsql=shared,u:/pgsql' '--with-readline=shared,/@unixroot/usr' '--with-jpeg=shared,/@unixroot/usr' '--with-webp=shared,/@unixroot/usr' '--with-freetype=shared,/@unixroot/usr' '--enable-intl=shared,/@unixroot/usr' '--with-sodium=shared,/@unixroot/usr' '--with-ffi=shared' '--enable-fileinfo=shared' '--with-gmp=shared' '--with-libxml=shared' 'PKG_CONFIG=pkg-config.exe' 'LIBS=-L/openldap/lib -lpthread -lldap -llber -lssl -lcrypto -lz -lexpat -lssh2 -lgcrypt -lgpg-error -lbz2 -llzma /extras/lib/iconv.a -lcx -lidn -lssp'"
-#define PHP_ODBC_CFLAGS	"-I/unixodbc/include"
-#define PHP_ODBC_LFLAGS		"-L/unixodbc/lib"
-#define PHP_ODBC_LIBS		"-lodbc"
-#define PHP_ODBC_TYPE		"unixODBC"
-#define PHP_OCI8_DIR			""
-#define PHP_OCI8_ORACLE_VERSION		""
+#define CONFIGURE_COMMAND " './configure'  '--prefix=/php8' '--includedir=/extras/include' '--disable-rpath' '--enable-ftp=shared' '--enable-exif=shared' '--with-zlib=u:/extras' '--enable-gd=shared' '--with-gettext=shared' '--enable-mbstring=shared,all' '--disable-mbregex' '--with-curl=shared,/@unixroot/usr' '--with-mysql-sock=\socket\MySQL' '--with-mysqli=shared,mysqlnd' '--with-bz2=shared,/@unixroot/usr' '--with-pdo-mysql=shared,mysqlnd' '--includedir=u:/extras/include/apr-1' '--with-apxs2=/apache24/bin/apxs' '--with-unixODBC=shared,/unixodbc' '--enable-sockets=shared' '--with-xsl=shared,/@unixroot/usr' '--with-zip=shared,/@unixroot/usr' '--with-iconv=shared,/@unixroot/usr' '--enable-soap=shared' '--enable-bcmath' '--enable-calendar' '--enable-zts' '--with-sqlite3=shared' '--with-pdo-sqlite=shared' '--with-openssl=shared,/@unixroot/usr' '--with-tidy=shared,/extras' '--disable-phpdbg' '--disable-ipv6' '--with-readline=shared,/@unixroot/usr' '--with-jpeg=shared,/@unixroot/usr' '--with-webp=shared,/@unixroot/usr' '--with-freetype=shared,/@unixroot/usr' '--enable-intl=shared,/@unixroot/usr' '--with-sodium=shared,c:/usr/local/bin' '--with-ffi=shared,/@unixroot/usr' '--enable-fileinfo=shared' '--with-gmp=shared' '--with-libxml=shared' '--disable-opcache-jit' 'PKG_CONFIG=pkg-config.exe' 'LIBS=-L/openldap/lib -lpthread -lldap -llber -lssl -lcrypto -lz -lexpat -lssh2 -lgcrypt -lgpg-error -lbz2 -llzma -lcx -lidn -lssp'"
 #define PHP_PROG_SENDMAIL	"c:/tcpip/bin/sendmail.exe"
 #define PEAR_INSTALLDIR         ""
 #define PHP_INCLUDE_PATH	".:"
-#define PHP_EXTENSION_DIR       "/php8/lib/php/extensions/no-debug-zts-20210902"
+#define PHP_EXTENSION_DIR       "/php8/lib/php/extensions/no-debug-zts-20250925"
 #define PHP_PREFIX              "/php8"
 #define PHP_BINDIR              "/php8/bin"
 #define PHP_SBINDIR             "/php8/sbin"

@@ -376,12 +376,6 @@ static int find_boundary(multipart_buffer *self, char *boundary)
 	return 0;
 }
 
-static zend_bool php_mime_should_save_hdr(const char *name)
-{
-	return !strcasecmp(name, "Content-Disposition")
-		|| !strcasecmp(name, "Content-Type");
-}
-
 static char *php_mime_get_hdr_value(zend_llist header, char *key);
 
 static bool php_mime_should_save_hdr(const char *name)

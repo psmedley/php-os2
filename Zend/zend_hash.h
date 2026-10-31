@@ -344,6 +344,16 @@ static zend_always_inline zend_long zend_hash_next_free_element(const HashTable 
 ZEND_API void ZEND_FASTCALL zend_hash_rehash(HashTable *ht);
 
 #if !ZEND_DEBUG && defined(HAVE_BUILTIN_CONSTANT_P)
+# define zend_new_array(size) \
+	(__builtin_constant_p(size) ? \
+		((((uint32_t)(size)) <= HT_MIN_SIZE) ? \
+			_zend_new_array_0() \
+		: \
+			_zend_new_array((size)) \
+		) \
+	: \
+		_zend_new_array((size)) \
+	)
 # define zend_fnew_array(size) \
 	(__builtin_constant_p(size) ? \
 		((((uint32_t)(size)) <= HT_MIN_SIZE) ? \

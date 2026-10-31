@@ -55,6 +55,7 @@
 #include "zend_alloc.h"
 #include "zend_API.h"
 #include "zend_globals.h"
+#include "zend_hrtime.h"
 #include "zend_operators.h"
 #include "zend_multiply.h"
 #include "zend_bitset.h"
@@ -62,7 +63,6 @@
 #include "zend_portability.h"
 #include "zend_string.h"
 #include "zend_exceptions.h"
-#include "zend_execute.h"
 #include <signal.h>
 
 #ifdef HAVE_UNISTD_H
@@ -406,41 +406,6 @@ static ZEND_COLD ZEND_NORETURN void zend_mm_panic(const char *message)
 	kill(getpid(), SIGSEGV);
 #endif
 	_exit(1);
-}
-
-ZEND_API ZEND_COLD ZEND_NORETURN void zend_mm_safe_error_ex(const char *format, ...)
-{
-	zend_string *script_filename = NULL;
-	uint32_t script_lineno = 0;
-
-	if (zend_is_executing()) {
-		script_filename = zend_get_executed_filename_ex();
-		script_lineno = zend_get_executed_lineno();
-	} else if (zend_is_compiling()) {
-		script_filename = zend_get_compiled_filename();
-		script_lineno = zend_get_compiled_lineno();
-	}
-
-	va_list args;
-	va_start(args, format);
-
-	char buf[1024];
-	vsnprintf(buf, sizeof(buf), format, args);
-
-	va_end(args);
-
-	fprintf(stderr,
-			"\nFatal error: %s in %s on line %d\n",
-			buf,
-			script_filename ? ZSTR_VAL(script_filename) : "Unknown",
-			script_lineno);
-
-	/* See http://support.microsoft.com/kb/190351 */
-# ifdef ZEND_WIN32
-	fflush(stderr);
-# endif
-
-	abort();
 }
 
 static ZEND_COLD ZEND_NORETURN void zend_out_of_memory(void);
@@ -2264,7 +2229,6 @@ static void *zend_mm_alloc_huge(zend_mm_heap *heap, size_t size ZEND_FILE_LINE_D
 
 	if (UNEXPECTED(zend_mm_check_limit(heap, new_size, /* gc */ true, NULL ZEND_FILE_LINE_RELAY_CC) == FAILURE)) {
 		return NULL;
-		}
 	}
 
 	ptr = zend_mm_chunk_alloc(heap, new_size, ZEND_MM_CHUNK_SIZE);

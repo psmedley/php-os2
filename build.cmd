@@ -26,9 +26,9 @@ rem lxlite php8\modules\*
 rem lxlite php8\apache24\*
 copy .libs\php.map php8
 copy .libs\modphp.map php8\apache24
-u:\dev\exceptq71-dev\bin\mapxqs.exe php8\php.map -o php8\php.xqs
-u:\dev\exceptq71-dev\bin\mapxqs.exe  sapi\cgi\php-cgi.map -o php8\cgi\php-cgi.xqs
-u:\dev\exceptq71-dev\bin\mapxqs.exe .libs\modphp.map -o php8\apache24\modphp.xqs
+u:\dev\exceptq\bin\mapxqs.exe php8\php.map -o php8\php.xqs
+u:\dev\exceptq\bin\mapxqs.exe  sapi\cgi\php-cgi.map -o php8\cgi\php-cgi.xqs
+u:\dev\exceptq\bin\mapxqs.exe .libs\modphp.map -o php8\apache24\modphp.xqs
 copy readme.os2 php8
 copy php.ini-development php8
 copy php.ini-production php8

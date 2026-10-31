@@ -477,16 +477,16 @@ void php_init_config(void)
 		 * Prepare search path
 		 */
 
-+		search_path_size = MAXPATHLEN * 4 + strlen(env_location) + 3 + 1;
+		search_path_size = MAXPATHLEN * 4 + strlen(env_location) + 3 + 1;
 		php_ini_search_path = (char *) emalloc(search_path_size);
-+		free_ini_search_path = true;
+		free_ini_search_path = true;
 		php_ini_search_path[0] = 0;
 
-#if defined OS2
+#ifdef OS2
 		default_location = getenv("ETC");
 		if (default_location) {
 			if (*php_ini_search_path) {
-				strcat(php_ini_search_path, paths_separator);
+				strcat(php_ini_search_path, ";");
 			}
 			strcat(php_ini_search_path, default_location);
                 }
