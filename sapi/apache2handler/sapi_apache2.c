@@ -539,8 +539,10 @@ static apr_status_t php_server_context_cleanup(void *data_)
 }
 
 #ifdef __OS2__ // 2023-03-07 SHL trycatch debug
-char *os2_try_catch_file;		// 2023-03-07 SHL trycatch debug
-int os2_try_catch_line;			// 2023-03-07 SHL trycatch debug
+/* Defined in main/main.c - declare only, a second definition here is a
+   duplicate symbol (or a separate copy main.c never sees) */
+extern ZEND_API char *os2_try_catch_file;	// 2023-03-07 SHL trycatch debug
+extern ZEND_API int os2_try_catch_line;		// 2023-03-07 SHL trycatch debug
 #endif
 
 static int php_apache_request_ctor(request_rec *r, php_struct *ctx)
@@ -580,7 +582,7 @@ static int php_apache_request_ctor(request_rec *r, php_struct *ctx)
 
 
 #ifdef __OS2__ // 2023-03-07 SHL trycatch debug
-	os2_try_catch_file = __FILE__;	// 2023-03-07 SHL trycatch debug
+	os2_try_catch_file = (char *)__FILE__;	// 2023-03-07 SHL trycatch debug
 	os2_try_catch_line = __LINE__;	// 2023-03-07 SHL trycatch debug
 #endif
 	return php_request_startup();

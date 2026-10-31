@@ -344,6 +344,7 @@ DL_HANDLE zend_os2_load_module(char *libname)
 {
 	DL_HANDLE handle;
 
+	errormodule[0] = 0;
 	errorcode = DosLoadModule(errormodule, sizeof(errormodule), libname, &handle);
 
 	if (errorcode == 0) {
@@ -370,33 +371,35 @@ const char *zend_os2_module_error()
 	unsigned char message[1024];
 	ULONG len;
 	char *pos;
-	int c;
+	char *end;
+	ULONG c;
 
-	if (DosGetMessage(NULL, 0, message, sizeof(message), errorcode,
-					  "OSO001.MSG", &len) == 0) {
-		len--;
+	if (DosGetMessage(NULL, 0, message, sizeof(message) - 1, errorcode,
+					  "OSO001.MSG", &len) == 0 && len > 0) {
 		message[len] = 0;
 		pos = result;
+		/* Leave room for terminator */
+		end = result + sizeof(result) - 1;
 
-		if (len >= sizeof(result))
-		  len = sizeof(result-1);
-
-		for (c=0; c<len; c++) {
-		/* skip multiple whitespace */
+		for (c = 0; c < len && pos < end; c++) {
+			/* skip multiple whitespace */
 			while (isspace(message[c]) && isspace(message[c+1]))
 				c++;
 			*(pos++) = isspace(message[c]) ? ' ' : message[c];
 		}
-
+		/* Drop trailing blank left by the message's CR/LF */
+		while (pos > result && pos[-1] == ' ')
+			pos--;
 		*pos = 0;
-	} 
+	}
 	else {
-		sprintf(result, "OS/2 error %d", errorcode);
+		snprintf(result, sizeof(result), "OS/2 error %lu", (unsigned long)errorcode);
 	}
 
-	strcat(message, " (");
-	strcat(message, errormodule);
-	strcat(message, ")");
+	if (errormodule[0]) {
+		size_t used = strlen(result);
+		snprintf(result + used, sizeof(result) - used, " (%s)", errormodule);
+	}
 	return result;
 }
 #endif

@@ -1251,8 +1251,14 @@ MYSQLND_METHOD(mysqlnd_conn_data, send_close)(MYSQLND_CONN_DATA * const conn)
 #ifndef ZEND_ENABLE_STATIC_TSRMLS_CACHE
 #warning Expected ZEND_ENABLE_STATIC_TSRMLS_CACHE to be defined
 #endif
-			#define ZEND_MODULE_GLOBALS_POINTER(module_name) TSRMG_BULK_STATIC(module_name##_globals_id, zend_##module_name##_globals *)
-			if (ZEND_MODULE_GLOBALS_POINTER(mysqlnd) != NULL) {
+#ifdef ZTS
+			/* mysqlnd_globals_id is 0 until ts_allocate_id() has run, and
+			   TSRM_UNSHUFFLE_RSRC_ID(0) would index storage[-1] */
+			if (mysqlnd_globals_id != 0 &&
+			    TSRMG_BULK_STATIC(mysqlnd_globals_id, zend_mysqlnd_globals *) != NULL) {
+#else
+			{
+#endif
 				MYSQLND_DEC_GLOBAL_STATISTIC(STAT_OPENED_CONNECTIONS);
 				if (conn->persistent) {
 					MYSQLND_DEC_GLOBAL_STATISTIC(STAT_OPENED_PERSISTENT_CONNECTIONS);
@@ -2475,8 +2481,14 @@ MYSQLND_METHOD(mysqlnd_conn, close)(MYSQLND * conn_handle, const enum_connection
 #ifndef ZEND_ENABLE_STATIC_TSRMLS_CACHE
 #warning Expected ZEND_ENABLE_STATIC_TSRMLS_CACHE to be defined
 #endif
-			#define ZEND_MODULE_GLOBALS_POINTER(module_name) TSRMG_BULK_STATIC(module_name##_globals_id, zend_##module_name##_globals *)
-			if (ZEND_MODULE_GLOBALS_POINTER(mysqlnd) != NULL) {
+#ifdef ZTS
+			/* mysqlnd_globals_id is 0 until ts_allocate_id() has run, and
+			   TSRM_UNSHUFFLE_RSRC_ID(0) would index storage[-1] */
+			if (mysqlnd_globals_id != 0 &&
+			    TSRMG_BULK_STATIC(mysqlnd_globals_id, zend_mysqlnd_globals *) != NULL) {
+#else
+			{
+#endif
 				MYSQLND_INC_CONN_STATISTIC(conn->stats, close_type_to_stat_map[close_type]);
 			}
 #endif

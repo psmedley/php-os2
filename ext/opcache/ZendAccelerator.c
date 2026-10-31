@@ -1093,6 +1093,33 @@ static inline int do_validate_timestamps(zend_persistent_script *persistent_scri
 
 int validate_timestamp_and_record(zend_persistent_script *persistent_script, zend_file_handle *file_handle)
 {
+#ifdef __OS2__
+	/* Moved before the first ZCG() access, otherwise the check is too late */
+	/* 2023-02-12 SHL Avoid exception if we get here with NULL globals pointer
+	   FIXME to never happen somewhen
+	*/
+	/* Warn if ZEND_ENABLE_STATIC_TSRMLS_CACHE not defined because
+	   ZEND_MODULE_GLOBALS_POINTER depends on this.
+	*/
+#		ifndef ZEND_ENABLE_STATIC_TSRMLS_CACHE
+#		warning Expected ZEND_ENABLE_STATIC_TSRMLS_CACHE to be defined
+#		endif
+	/* Notes - FIXME to prune
+	  TSRMG_BULK_STATIC gets us a pointer we can test for NULL
+	  # define ZCG(v)	ZEND_TSRMG(accel_globals_id, zend_accel_globals *, v)
+	  #define ZEND_TSRMG TSRMG_STATIC
+	  #define TSRMG_STATIC(id, type, element)	(TSRMG_BULK_STATIC(id, type)->element)
+	  #define TSRMG_BULK_STATIC(id, type)	((type) (*((void ***) TSRMLS_CACHE))[TSRM_UNSHUFFLE_RSRC_ID(id)])
+	*/
+	/* Preloaded scripts (timestamp 0) never touch ZCG, keep them succeeding */
+	if (persistent_script->timestamp != 0 &&
+	    TSRMG_BULK_STATIC(accel_globals_id, zend_accel_globals *) == NULL) {
+		// FIXME for fprintf to be gone when we know zend_error will never trap
+		fprintf(stderr, "validate_timestamp_and_record ZCG is NULL (%u)\n", __LINE__);
+		zend_error(E_WARNING, "validate_timestamp_and_record ZCG is NULL (%u)",  __LINE__);
+		return FAILURE;
+	}
+#endif
 	if (persistent_script->timestamp == 0) {
 		return SUCCESS; /* Don't check timestamps of preloaded scripts */
 	} else if (ZCG(accel_directives).revalidate_freq &&
@@ -1101,30 +1128,6 @@ int validate_timestamp_and_record(zend_persistent_script *persistent_script, zen
 	} else if (do_validate_timestamps(persistent_script, file_handle) == FAILURE) {
 		return FAILURE;
 	} else {
-#ifdef __OS2__
-		/* 2023-02-12 SHL Avoid exception if we get here with NULL globals pointer
-		   FIXME to never happen somewhen
-		*/
-		/* Warn if ZEND_ENABLE_STATIC_TSRMLS_CACHE not defined because
-		   ZEND_MODULE_GLOBALS_POINTER depends on this.
-		*/
-#		ifndef ZEND_ENABLE_STATIC_TSRMLS_CACHE
-#		warning Expected ZEND_ENABLE_STATIC_TSRMLS_CACHE to be defined
-#		endif
-		/* Notes - FIXME to prune
-		  TSRMG_BULK_STATIC gets us a pointer we can test for NULL
-		  # define ZCG(v)	ZEND_TSRMG(accel_globals_id, zend_accel_globals *, v)
-		  #define ZEND_TSRMG TSRMG_STATIC
-		  #define TSRMG_STATIC(id, type, element)	(TSRMG_BULK_STATIC(id, type)->element)
-		  #define TSRMG_BULK_STATIC(id, type)	((type) (*((void ***) TSRMLS_CACHE))[TSRM_UNSHUFFLE_RSRC_ID(id)])
-		*/
-		if (TSRMG_BULK_STATIC(accel_globals_id, zend_accel_globals *) == NULL) {
-			// FIXME for fprintf to be gone when we know zend_error will never trap
-			fprintf(stderr, "validate_timestamp_and_record ZCG is NULL (%u)\n", __LINE__);
-			zend_error(E_WARNING, "validate_timestamp_and_record ZCG is NULL (%u)",  __LINE__);
-			return FAILURE;
-		}
-#endif
 		persistent_script->dynamic_members.revalidate = ZCG(request_time) + ZCG(accel_directives).revalidate_freq;
 		return SUCCESS;
 	}

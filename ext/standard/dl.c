@@ -111,71 +111,71 @@ PHPAPI void *php_load_shlib(char *path, char **errp)
 static void update_beginlibpath(const char *extension_dir)
 {
 	#define BLP_BUF_BYTES	((unsigned int)1024)		/* Kernel limit */
+	static const char suffix[] = ";%BEGINLIBPATH%";
 	char beginlibpath[BLP_BUF_BYTES];
-	char dir[CCHMAXPATH];
+	char dir[BLP_BUF_BYTES];
 	char *p;
 	APIRET apiret;
-	int old_blp_len;
-	int new_blp_len;
+	size_t old_blp_len;
+	size_t dir_len;
 
 	/* Assume length non-zero because checked by caller */
-	new_blp_len = strlen(extension_dir);
-	if (new_blp_len >= BLP_BUF_BYTES) {
-		php_error_docref(NULL, E_ERROR,
-				"extension_dir length (%u) exceeds %u maximum ", new_blp_len, BLP_BUF_BYTES -1);
+	dir_len = strlen(extension_dir);
+	if (dir_len >= sizeof(dir)) {
+		php_error_docref(NULL, E_WARNING,
+				"extension_dir length (%zu) exceeds %u maximum", dir_len, BLP_BUF_BYTES - 1);
 		return;
 	}
 
-	strcpy(dir, extension_dir);
+	memcpy(dir, extension_dir, dir_len + 1);
 	/* Map to DOS slashes to match kernel */
 	for (p = strchr(dir, '/'); p; p = strchr(p, '/'))
 		*p = '\\';
 
 	/* Chop trailing slash to keep kernel happy unless root */
-	p = dir + new_blp_len - 1;
+	p = dir + dir_len - 1;
 	if (*p == '\\' && p > dir && *(p - 1) != ':') {
 		*p = 0;
-		new_blp_len--;
+		dir_len--;
 	}
 
-	apiret = DosQueryExtLIBPATH((PCSZ)beginlibpath, BEGIN_LIBPATH);
+	apiret = DosQueryExtLIBPATH((PSZ)beginlibpath, BEGIN_LIBPATH);
 	if (apiret != 0) {
-		php_error_docref(NULL, E_ERROR,
+		php_error_docref(NULL, E_WARNING,
 				"update_beginlibpath DosQueryExtLIBPATH failed with error %lu", apiret);
 		return;
 	}
+	beginlibpath[sizeof(beginlibpath) - 1] = 0;
 
-	p = strcasestr(beginlibpath, dir);
-	if (p && (p == beginlibpath || *(p - 1) == ';')) {
-	char* pend = p + strlen(dir);
-	if (*pend == 0 || *pend == ';')
-		return;		/* Already in BEGINLIBPATH */
+	/* Check every occurrence, not just the first, for an exact entry match */
+	for (p = strcasestr(beginlibpath, dir); p; p = strcasestr(p + 1, dir)) {
+		char *pend = p + dir_len;
+		if ((p == beginlibpath || *(p - 1) == ';') && (*pend == 0 || *pend == ';'))
+			return;		/* Already in BEGINLIBPATH */
 	}
 
-	static char suffix[] = ";%BEGINLIBPATH%";
-
+	/* The kernel expands %BEGINLIBPATH%, so the resulting length is
+	   dir + ';' + old value */
 	old_blp_len = strlen(beginlibpath);
-	if (old_blp_len) {
-		new_blp_len = (sizeof(suffix) - 1 > old_blp_len ? sizeof(suffix) - 1 : old_blp_len) + new_blp_len;
-		if (new_blp_len >= BLP_BUF_BYTES) {
-			php_error_docref(NULL, E_ERROR,
-					"BEGINLIBPATH length (%u) exceeds %u maximum ", new_blp_len, BLP_BUF_BYTES - 1);
-			return;		       		/* Give up if too long */
-		}
+	if (old_blp_len &&
+	    (dir_len + 1 + old_blp_len >= BLP_BUF_BYTES ||
+	     dir_len + sizeof(suffix) - 1 >= BLP_BUF_BYTES)) {
+		php_error_docref(NULL, E_WARNING,
+				"BEGINLIBPATH length (%zu) would exceed %u maximum",
+				dir_len + 1 + old_blp_len, BLP_BUF_BYTES - 1);
+		return;		/* Give up if too long */
 	}
 
-	strcpy(beginlibpath, dir);
+	memcpy(beginlibpath, dir, dir_len + 1);
 	if (old_blp_len)
 		strcat(beginlibpath, suffix);	/* Use shorthand notation to avoid need to format */
 
 	apiret = DosSetExtLIBPATH((PCSZ)beginlibpath, BEGIN_LIBPATH);
 
 	if (apiret != 0) {
-		php_error_docref(NULL, E_ERROR,
+		php_error_docref(NULL, E_WARNING,
 				"update_beginlibpath DosSetExtLIBPATH failed with error %lu", apiret);
 	}
-
-	return;
 }
 #endif // __OS2__
 

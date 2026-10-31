@@ -89,6 +89,28 @@ PHP_MSHUTDOWN_FUNCTION(random)
 /* }}} */
 
 #ifdef __OS2__
+/* Try the kernel random device first. Returns 1 if buffer was filled. */
+static int os2_urandom_get(char *buffer, size_t length)
+{
+	int fd = RANDOM_G(fd);
+	size_t got;
+	ssize_t n;
+
+	if (fd < 0) {
+		fd = open("/dev/urandom", O_RDONLY | O_BINARY);
+		if (fd < 0)
+			return 0;
+		RANDOM_G(fd) = fd;
+	}
+	for (got = 0; got < length; got += (size_t) n) {
+		n = read(fd, buffer + got, length - got);
+		if (n <= 0)
+			return 0;
+	}
+	return 1;
+}
+
+/* WARNING: fallback only - php_mt_rand() is NOT cryptographically secure */
 void os2_randget(char * buffer, int length)
 {
 	unsigned int idx;
@@ -102,7 +124,7 @@ void os2_randget(char * buffer, int length)
 		unsigned int ulrandom = php_mt_rand();
 		for (; idx < length; idx++) {
 			buffer[idx] = (char)ulrandom;
-			ulrandom >>= 4;
+			ulrandom >>= 8;		/* One byte per output byte, was 4 so bytes overlapped */
 		}
 	}
 }
@@ -120,7 +142,11 @@ PHPAPI int php_random_bytes(void *bytes, size_t size, zend_bool should_throw)
 		return FAILURE;
 	}
 #elif __OS2__
-	os2_randget(bytes, size);
+	/* Prefer /dev/urandom; mt_rand is predictable and also perturbs the
+	   user visible mt_rand() sequence, so only use it if no device */
+	if (!os2_urandom_get(bytes, size)) {
+		os2_randget(bytes, size);
+	}
 #elif HAVE_DECL_ARC4RANDOM_BUF && ((defined(__OpenBSD__) && OpenBSD >= 201405) || (defined(__NetBSD__) && __NetBSD_Version__ >= 700000001))
 	arc4random_buf(bytes, size);
 #else

@@ -3494,7 +3494,7 @@ BOOL is_os2_mem_accessible(PVOID pv, PULONG pcb, PULONG pflags, APIRET *pulrc)
 static void php_putenv_destructor(zval *zv) /* {{{ */
 {
 #ifdef __OS2__
-	BOOL pe_ok;
+	BOOL pe_ok = TRUE;	/* Only cleared when pe or pe->key is inaccessible */
 	ULONG cb;
 	ULONG flags;
 	APIRET ulrc;
@@ -3516,7 +3516,7 @@ static void php_putenv_destructor(zval *zv) /* {{{ */
 		// 2023-03-12 SHL Show cb and flags
 		if (!is_os2_mem_accessible(pe->previous_value, &cb, &flags, &ulrc)) {
 			zend_error(E_WARNING, "php_putenv_destructor pe->previous_value %p points to uncommitted memory, cb 0x%x flags 0x%x ulrc %u (%u)",
-				   pe, cb, flags, ulrc, __LINE__);
+				   pe->previous_value, cb, flags, ulrc, __LINE__);
 		}
 		else
 		  putenv(pe->previous_value);
@@ -4239,7 +4239,7 @@ PHP_FUNCTION(putenv)
 	int error_code;
 #endif
 #ifdef __OS2__
-	BOOL ptr_ok;
+	BOOL ptr_ok = TRUE;	/* Must default TRUE: a new variable has no match in environ */
 	ULONG cb;
 	ULONG flags;
 	APIRET ulrc;
@@ -4296,14 +4296,13 @@ PHP_FUNCTION(putenv)
 		// 2023-02-19 SHL Avoid accessing uncommitted memory
 		// 2023-03-12 SHL Show cb and flags
 		if (!is_os2_mem_accessible(pe.key, &cb, &flags, &ulrc)) {
-			zend_error(E_WARNING, "php_putenv_destructor pe.key %p points to uncommitted memory, cb 0x%x flags 0x%x ulrc %u (%u)",
+			zend_error(E_WARNING, "putenv pe.key %p points to uncommitted memory, cb 0x%x flags 0x%x ulrc %u (%u)",
 			pe.key, cb, flags, ulrc, __LINE__);
 			ptr_ok = FALSE;
 			break;
 		}
 		else if (!strncmp(*env, pe.key, pe.key_len) && (*env)[pe.key_len] == '=') {	/* found it */
 			pe.previous_value = *env;
-			ptr_ok = TRUE;
 			break;
 		}
 #endif // __OS2__

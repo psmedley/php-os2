@@ -1163,6 +1163,7 @@ static void php_xml_parser_create_impl(INTERNAL_FUNCTION_PARAMETERS, int ns_supp
 	/* XML_ParserCreate_MM can fail to create parser */
 	if (!parser->parser) {
 		php_error_docref(NULL, E_WARNING, "XML_ParserCreate_MM failed to create parser");
+		efree(parser);
 		RETURN_FALSE;
 	}
 	else {

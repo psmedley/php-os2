@@ -61,7 +61,9 @@
 #endif
 #ifdef __OS2__
 #include <libcx/net.h>
+#ifndef AI_ADDRCONFIG
 #define AI_ADDRCONFIG 0x0400
+#endif
 #endif
 
 #include <stddef.h>

@@ -134,9 +134,11 @@ static int php_disk_total_space(char *path, double *space) /* {{{ */
 {
 	double bytestotal = 0;
 	FSALLOCATE fsinfo;
-	char drive = path[0] & 95;
+	/* Drive number: 1 = A:, ... 0 = current drive. Only use path[0] when the
+	   path really starts with a drive letter - "data/x" is not drive D: */
+	ULONG drive = (isalpha((unsigned char)path[0]) && path[1] == ':') ? (ULONG)(toupper((unsigned char)path[0]) - 'A' + 1) : 0;
 
-	if (DosQueryFSInfo( drive ? drive - 64 : 0, FSIL_ALLOC, &fsinfo, sizeof( fsinfo ) ) == 0) {
+	if (DosQueryFSInfo( drive, FSIL_ALLOC, &fsinfo, sizeof( fsinfo ) ) == 0) {
 		bytestotal = (double)fsinfo.cbSector * fsinfo.cSectorUnit * fsinfo.cUnit;
 		*space = bytestotal;
 		return SUCCESS;
@@ -234,9 +236,11 @@ static int php_disk_free_space(char *path, double *space) /* {{{ */
 {
 	double bytesfree = 0;
 	FSALLOCATE fsinfo;
-	char drive = path[0] & 95;
+	/* Drive number: 1 = A:, ... 0 = current drive. Only use path[0] when the
+	   path really starts with a drive letter - "data/x" is not drive D: */
+	ULONG drive = (isalpha((unsigned char)path[0]) && path[1] == ':') ? (ULONG)(toupper((unsigned char)path[0]) - 'A' + 1) : 0;
 
-	if (DosQueryFSInfo( drive ? drive - 64 : 0, FSIL_ALLOC, &fsinfo, sizeof( fsinfo ) ) == 0) {
+	if (DosQueryFSInfo( drive, FSIL_ALLOC, &fsinfo, sizeof( fsinfo ) ) == 0) {
 		bytesfree = (double)fsinfo.cbSector * fsinfo.cSectorUnit * fsinfo.cUnitAvail;
 		*space = bytesfree;
 		return SUCCESS;

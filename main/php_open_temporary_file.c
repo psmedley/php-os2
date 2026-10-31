@@ -180,8 +180,10 @@ static int php_do_open_temporary_file(const char *path, const char *pfx, zend_st
 #elif defined(HAVE_MKSTEMP)
 	fd = mkstemp(opened_path);
 #ifdef __OS2__
-          setmode(fd, O_BINARY);
-#endif /* if PHP_OS2 */
+	if (fd != -1) {
+		setmode(fd, O_BINARY);
+	}
+#endif /* __OS2__ */
 #else
 	if (mktemp(opened_path)) {
 		fd = VCWD_OPEN(opened_path, open_flags);

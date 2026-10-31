@@ -609,7 +609,7 @@ static void *zend_mm_mmap(size_t size)
 				/* All slots in use - time to die */
 				format_httpd_os2_timestamp(szTimestamp);
 				pid = _getpid();
-				failCnt_ = failInfo[failInfoNum].failCnt;
+				/* failInfoNum == FAILINFOCNT here - do not index failInfo */
 				fprintf(stderr, "\n%s zend_mm_mmap mmap(NULL, 0x%x) %u concurrent failures - exiting pid:%u (%x)\n",
 					szTimestamp, size,
 					FAILINFOCNT, pid, pid);
@@ -898,8 +898,9 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 		unsigned int fillcnt = 0;
 		unsigned int fillnum;
 		for (fillcnt = 0; fillcnt < MAX_FILL_CNT;) {
-			zend_mm_munmap(ptr, size);
 			offset = ZEND_MM_ALIGNED_OFFSET(ptr, alignment);
+			zend_mm_munmap(ptr, size);
+			ptr = NULL;	/* Unmapped - must not be returned if filler alloc fails */
 			/* Allocate offset sized filler chunk */
 			fillchunks[fillcnt].ptr = zend_mm_mmap(offset);
 			fillchunks[fillcnt].size = offset;
@@ -938,7 +939,7 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 				fprintf(stderr, "zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u\n", ptr, fillcnt);
 		}
 
-		if (fillcnt < MAX_FILL_CNT && ptr != NULL)
+		if (ptr != NULL && ZEND_MM_ALIGNED_OFFSET(ptr, alignment) == 0)
 			return ptr;		/* Return pointer to aligned chunk */
 
 		/* If we get here, we failed to allocate aligned chunk */
@@ -3365,7 +3366,7 @@ static ZEND_COLD ZEND_NORETURN void zend_out_of_memory(void)
 			pid_t pid = _getpid();
 			char szTimestamp[28];
 			format_httpd_os2_timestamp(szTimestamp);
-			fprintf(stderr, "%s zend_out_of_memory reporting out of memory for pid:%u (%x) tid:%u",
+			fprintf(stderr, "%s zend_out_of_memory reporting out of memory for pid:%u (%x) tid:%u\n",
 				szTimestamp, pid, pid, _gettid());
 #else
 	fprintf(stderr, "Out of memory\n");

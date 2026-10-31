@@ -1523,11 +1523,20 @@ CWD_API int virtual_rename(const char *oldname, const char *newname) /* {{{ */
 	/* MoveFileEx returns 0 on failure, other way 'round for this function */
 	retval = php_win32_ioutil_rename(oldname, newname);
 #else
-#ifdef __OS2__
-/* rename of OS/2 also fails if newname already exists, unlink it first */
-	unlink(newname);
-#endif
 	retval = rename(oldname, newname);
+#ifdef __OS2__
+	/* rename on OS/2 fails if newname already exists. Only remove the target
+	   once a plain rename has failed, so a rename that fails for any other
+	   reason (e.g. missing source) does not destroy the destination file.
+	   Never unlink when old and new name the same file (case-only rename on
+	   a case-insensitive file system), that would delete the source. */
+	if (retval != 0 && (errno == EEXIST || errno == EACCES) && strcasecmp(oldname, newname) != 0) {
+		zend_stat_t st;
+		if (php_sys_stat(oldname, &st) == 0 && unlink(newname) == 0) {
+			retval = rename(oldname, newname);
+		}
+	}
+#endif
 #endif
 
 	CWD_STATE_FREE_ERR(&old_state);

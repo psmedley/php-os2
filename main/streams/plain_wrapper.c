@@ -1085,10 +1085,11 @@ PHPAPI php_stream *_php_stream_fopen(const char *filename, const char *mode, zen
 #else
 	fd = open(realpath, open_flags, 0666);
 #endif
-#ifdef __OS2__
-          setmode(fd, O_BINARY);
-#endif
 	if (fd != -1)	{
+#ifdef __OS2__
+		/* Only after checking fd, so a failed open() keeps its errno */
+		setmode(fd, O_BINARY);
+#endif
 
 		if (options & STREAM_OPEN_FOR_INCLUDE) {
 			ret = php_stream_fopen_from_fd_int_rel(fd, mode, persistent_id);
