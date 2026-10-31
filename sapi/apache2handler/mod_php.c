@@ -28,7 +28,7 @@
 #include "php_apache.h"
 
 #ifndef __OS2__
-AP_MODULE_DECLARE_DATA module ph7_module = {
+AP_MODULE_DECLARE_DATA module php_module = {
 #else
 __declspec(dllexport) module php_module = {
 #endif

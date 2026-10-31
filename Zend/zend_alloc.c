@@ -1010,8 +1010,9 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 		unsigned int fillcnt = 0;
 		unsigned int fillnum;
 		for (fillcnt = 0; fillcnt < MAX_FILL_CNT;) {
-			zend_mm_munmap(ptr, size);
 			offset = ZEND_MM_ALIGNED_OFFSET(ptr, alignment);
+			zend_mm_munmap(ptr, size);
+			ptr = NULL;	/* Unmapped - must not be returned if filler alloc fails */
 			/* Allocate offset sized filler chunk */
 			fillchunks[fillcnt].ptr = zend_mm_mmap(offset);
 			fillchunks[fillcnt].size = offset;
@@ -1049,7 +1050,7 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 				fprintf(stderr, "zend_mm_chunk_alloc_int: ptr: %p fillcnt: %u\n", ptr, fillcnt);
 		}
 
-		if (fillcnt < MAX_FILL_CNT && ptr != NULL)
+		if (ptr != NULL && ZEND_MM_ALIGNED_OFFSET(ptr, alignment) == 0)
 			return ptr;		/* Return pointer to aligned chunk */
 
 		/* If we get here, we failed to allocate aligned chunk */
@@ -3860,7 +3861,7 @@ static void alloc_globals_ctor(zend_alloc_globals *alloc_globals)
 static void alloc_globals_dtor(zend_alloc_globals *alloc_globals)
 {
 #ifdef __OS2__				// 2022-05-01 SHL bypass call if heap NULL
-	if (alloc_globals->mm_heap == NULL)
+	if (alloc_globals->mm_heap != NULL)
 		zend_mm_shutdown(alloc_globals->mm_heap, 1, 1);
 #else
 	zend_mm_shutdown(alloc_globals->mm_heap, 1, 1);
@@ -4094,19 +4095,21 @@ ZEND_API zend_mm_heap *zend_mm_startup_ex(const zend_mm_handlers *handlers, void
 
 ZEND_API void ZEND_FASTCALL zend_handle_delayed_oom(void)
 {
-#ifdef __OS2__ /* 2022-06-22 SHL */
-			pid_t pid = _getpid();
-			char szTimestamp[28];
-			formatTimestamp(szTimestamp);
-			fprintf(stderr, "%s zend_out_of_memory reporting out of memory for pid:%u (%x) tid:%u",
-				szTimestamp, pid, pid, _gettid());
-#endif
 	zend_oom_info *info = &EG(delayed_oom);
 	zend_execute_data *execute_data = EG(current_execute_data);
 
 	if (info->state != ZEND_OOM_STATE_PENDING) {
 		return;
 	}
+#ifdef __OS2__ /* 2022-06-22 SHL */
+	{
+		pid_t pid = _getpid();
+		char szTimestamp[28];
+		formatTimestamp(szTimestamp);
+		fprintf(stderr, "%s zend_out_of_memory reporting out of memory for pid:%u (%x) tid:%u\n",
+			szTimestamp, pid, pid, _gettid());
+	}
+#endif
 	info->state = ZEND_OOM_STATE_HANDLING;
 
 	AG(mm_heap)->overflow = 1;

@@ -993,7 +993,8 @@ PHPAPI ZEND_COLD void php_print_info(int flag)
 #ifdef __OS2__	/* 2022-08-07 SHL Show BEGINLIBPATH if defined */
 		apiret = DosQueryExtLIBPATH((PCSZ)beginlibpath, BEGIN_LIBPATH);
 		if (apiret != 0) {
-			php_error_docref(NULL, E_ERROR,
+			/* Not E_ERROR: bailing out here would leave the env lock held */
+			php_error_docref(NULL, E_WARNING,
 					"php_print_info DosQueryExtLIBPATH failed with error %lu", apiret);
 		}
 		else if (*beginlibpath) {

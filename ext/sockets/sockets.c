@@ -76,8 +76,12 @@
 #endif
 #ifdef __OS2__
 #include <libcx/net.h>
+#ifndef AI_ADDRCONFIG
 #define AI_ADDRCONFIG 0x400
-#define INET6_ADDRSTRLEN INET_ADDRSTRLEN
+#endif
+#ifndef INET6_ADDRSTRLEN
+#define INET6_ADDRSTRLEN 46
+#endif
 #endif
 
 #include <stddef.h>

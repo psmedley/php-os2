@@ -1521,7 +1521,7 @@ static void php_cgi_globals_ctor(php_cgi_globals_struct *php_cgi_globals_ptr)
 {
 #if defined(ZTS) && defined(PHP_WIN32)
 	ZEND_TSRMLS_CACHE_UPDATE();
-#elif defined(__OS2__)
+#elif defined(ZTS) && defined(__OS2__)
 	os2_tsrmls_cache_update();
 #endif
 	php_cgi_globals_ptr->rfc2616_headers = 0;

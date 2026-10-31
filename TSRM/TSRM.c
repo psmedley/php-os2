@@ -271,19 +271,33 @@ static void tsrm_update_active_threads(void)
 			if (p->count < id_count) {
 				int j;
 
+#ifdef __OS2__
+				/* Do not lose the old storage array if realloc fails */
+				void **new_storage = (void **) realloc(p->storage, sizeof(void *)*id_count);
+				if (!new_storage) {
+					err = HTTP_INSUFFICIENT_STORAGE;
+					p = p->next;
+					continue;
+				}
+				p->storage = new_storage;
+#else
 				p->storage = (void *) realloc(p->storage, sizeof(void *)*id_count);
+#endif
 				for (j=p->count; j<id_count; j++) {
 					if (resource_types_table[j].fast_offset) {
 						p->storage[j] = (void *) (((char*)p) + resource_types_table[j].fast_offset);
 					} else {
 						p->storage[j] = (void *) malloc(resource_types_table[j].size);
 					}
+#ifdef __OS2__
+					/* Check before calling ctor, which would dereference NULL */
+					if (!p->storage[j]) {
+						err = HTTP_INSUFFICIENT_STORAGE;
+						continue;
+					}
+#endif
 					if (resource_types_table[j].ctor) {
 						resource_types_table[j].ctor(p->storage[j]);
-#ifdef __OS2__				// 2022-05-01 SHL return error if alloc failed
-						if (!p->storage[j])
-							err = HTTP_INSUFFICIENT_STORAGE;
-#endif
 					}
 				}
 				p->count = id_count;
@@ -404,6 +418,7 @@ TSRM_API ts_rsrc_id ts_allocate_fast_id(ts_rsrc_id *rsrc_id, size_t *offset, siz
 	err = tsrm_update_active_threads();	// 2022-03-20 SHL
 	if (err) {
 		TSRM_ERROR((TSRM_ERROR_LEVEL_ERROR, "Resource allocation failed with error %d", err));
+		tsrm_mutex_unlock(tsmm_mutex);
 		return 0;
 	}
 #else
@@ -429,6 +444,9 @@ static int allocate_new_resource(tsrm_tls_entry **thread_resources_ptr, THREAD_T
 static void allocate_new_resource(tsrm_tls_entry **thread_resources_ptr, THREAD_T thread_id)
 #endif
 {/*{{{*/
+#ifdef __OS2__
+	int err = 0;
+#endif
 	TSRM_ERROR((TSRM_ERROR_LEVEL_CORE, "Creating data structures for thread %x", thread_id));
 	(*thread_resources_ptr) = (tsrm_tls_entry *) malloc(TSRM_ALIGNED_SIZE(sizeof(tsrm_tls_entry)) + tsrm_reserved_size);
 	(*thread_resources_ptr)->storage = NULL;
@@ -454,12 +472,16 @@ static void allocate_new_resource(tsrm_tls_entry **thread_resources_ptr, THREAD_
 			} else {
 				(*thread_resources_ptr)->storage[i] = (void *) malloc(resource_types_table[i].size);
 			}
+#ifdef __OS2__				// 2022-03-11 SHL If cannot alloc storage, complain
+			/* Check before calling ctor, which would dereference NULL.
+			   Keep going so tsrm_new_thread_end_handler still runs. */
+			if ((*thread_resources_ptr)->storage[i] == NULL) {
+				err = HTTP_INSUFFICIENT_STORAGE;
+				continue;
+			}
+#endif
 			if (resource_types_table[i].ctor) {
 				resource_types_table[i].ctor((*thread_resources_ptr)->storage[i]);
-#ifdef __OS2__				// 2022-03-11 SHL If cannot alloc storage, complain
-				if ((*thread_resources_ptr)->storage[i] == NULL)
-				  return HTTP_INSUFFICIENT_STORAGE;
-#endif
 			}
 		}
 	}
@@ -469,7 +491,7 @@ static void allocate_new_resource(tsrm_tls_entry **thread_resources_ptr, THREAD_
 	}
 
 #ifdef __OS2__
-	return 0;
+	return err;
 #endif
 }/*}}}*/
 
@@ -900,11 +922,11 @@ TSRM_API const char *tsrm_api_name(void)
 }/*}}}*/
 
 #ifdef __OS2__
-TSRM_API void os2_tsrmls_cache_update() {
+TSRM_API void os2_tsrmls_cache_update(void) {
   ZEND_TSRMLS_CACHE_UPDATE();
 }
 
-void* os2_get_tsrm_ls_cache() {
+void* os2_get_tsrm_ls_cache(void) {
   return _tsrm_ls_cache;
 }
 #endif
