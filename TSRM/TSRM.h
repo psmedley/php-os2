@@ -32,9 +32,11 @@
 #  define OS2
 # endif
 #ifdef __cplusplus
- extern "C" void* os2_get_tsrm_ls_cache();
+ extern "C" void* os2_get_tsrm_ls_cache(void);
+ extern "C" void os2_tsrmls_cache_update(void);
 #else
- extern void* os2_get_tsrm_ls_cache();
+ extern void* os2_get_tsrm_ls_cache(void);
+ extern void os2_tsrmls_cache_update(void);
 #endif
 
 #endif

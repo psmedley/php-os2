@@ -460,10 +460,7 @@ static int php_pre_config(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp
 	return OK;
 }
 
-# // 2022-03-16 SHL avoid warnings
-# if defined(__OS2__)
-extern TSRM_API void os2_tsrmls_cache_update();
-# endif
+/* os2_tsrmls_cache_update() is declared in TSRM.h */
 
 
 static int

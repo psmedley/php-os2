@@ -199,7 +199,12 @@ PHPAPI int php_check_specific_open_basedir(const char *basedir, const char *path
 #if defined(PHP_WIN32) || defined(__OS2__)
 		path_file = strrchr(path_tmp, DEFAULT_SLASH);
 		if (!path_file) {
+#ifdef __OS2__
+			/* DEFAULT_SLASH is '/' on OS/2, so fall back to '\\' */
+			path_file = strrchr(path_tmp, '\\');
+#else
 			path_file = strrchr(path_tmp, '/');
+#endif
 		}
 #else
 		path_file = strrchr(path_tmp, DEFAULT_SLASH);

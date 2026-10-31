@@ -2067,13 +2067,19 @@ MYSQLND_METHOD(mysqlnd_conn, close)(MYSQLND * conn_handle, const enum_connection
 			   ZEND_MODULE_GLOBALS_POINTER depends on this.
 			   2022-05-25 SHL hack cough
 			*/
+#ifdef ZTS
 #ifndef ZEND_ENABLE_STATIC_TSRMLS_CACHE
 #warning Expected ZEND_ENABLE_STATIC_TSRMLS_CACHE to be defined
 #endif
-			#define ZEND_MODULE_GLOBALS_POINTER(module_name) TSRMG_BULK_STATIC(module_name##_globals_id, zend_##module_name##_globals *)
-			if (ZEND_MODULE_GLOBALS_POINTER(mysqlnd) != NULL) {
+			/* mysqlnd_globals_id is 0 until ts_allocate_id() has run, and
+			   TSRM_UNSHUFFLE_RSRC_ID(0) would index storage[-1] */
+			if (mysqlnd_globals_id != 0 &&
+			    TSRMG_BULK_STATIC(mysqlnd_globals_id, zend_mysqlnd_globals *) != NULL) {
 				MYSQLND_INC_CONN_STATISTIC(conn->stats, close_type_to_stat_map[close_type]);
 			}
+#else
+			MYSQLND_INC_CONN_STATISTIC(conn->stats, close_type_to_stat_map[close_type]);
+#endif
 #endif
 	}
 
