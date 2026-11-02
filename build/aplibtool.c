@@ -69,7 +69,7 @@ bool export_all = false;
 enum mode_t { mCompile, mLink, mInstall };
 enum output_type_t { otGeneral, otObject, otProgram, otStaticLibrary, otDynamicLibrary };
 
-#ifdef __EMX__
+#ifdef __OS2__
 #  define SHELL_CMD  "sh"
 #  define CC         "gcc"
 #  define GEN_EXPORTS "emxexp"

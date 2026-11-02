@@ -153,6 +153,9 @@
 /* Define to 1 if the PHP extension 'phar' is built as a dynamic module. */
 #undef COMPILE_DL_PHAR
 
+/* Define to 1 if the PHP extension 'phpbz2' is built as a dynamic module. */
+#undef COMPILE_DL_PHPBZ2
+
 /* Define to 1 if the PHP extension 'posix' is built as a dynamic module. */
 #undef COMPILE_DL_POSIX
 

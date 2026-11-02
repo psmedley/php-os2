@@ -1,3 +1,14 @@
 *.orig
 *.rej
 Makefile
+*.obj
+*.o
+*.lo
+*.la
+*.dll
+*.exe
+.libs
+php8
+*.log
+build/*.exe
+build/*.map

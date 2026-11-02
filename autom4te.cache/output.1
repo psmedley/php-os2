@@ -24334,7 +24334,263 @@ esac
 fi
 
 
+  case $host_alias in @%:@(
+  *os2*) :
+    
+  ext_builddir=ext/bz2
+  ext_srcdir=$abs_srcdir/ext/bz2
+  ext_dir=ext/bz2
+
+  ac_extra=
+
+  if test "$ext_shared" != "shared" && test "$ext_shared" != "yes" && test "" != "cli"; then
+    PHP_PHPBZ2_SHARED=no
+    
   
+  case $ext_dir in
+  "") ac_srcdir="$abs_srcdir/"; unset ac_bdir; ac_inc="-I. -I$abs_srcdir" ;;
+  /*) ac_srcdir=$(echo "$ext_dir"|cut -c 2-)"/"; ac_bdir=$ac_srcdir; ac_inc="-I$ac_bdir -I$abs_srcdir/$ac_bdir" ;;
+  *) ac_srcdir="$abs_srcdir/$ext_dir/"; ac_bdir="$ext_dir/"; ac_inc="-I$ac_bdir -I$ac_srcdir" ;;
+  esac
+
+  
+
+  b_c_pre=$php_c_pre
+  b_cxx_pre=$php_cxx_pre
+  b_c_meta=$php_c_meta
+  b_cxx_meta=$php_cxx_meta
+  b_c_post=$php_c_post
+  b_cxx_post=$php_cxx_post
+  b_lo=$php_lo
+
+
+  old_IFS=$IFS
+  for ac_src in bz2.c bz2_filter.c; do
+
+      IFS=.
+      set $ac_src
+      ac_obj=$1
+      IFS=$old_IFS
+
+      PHP_GLOBAL_OBJS="$PHP_GLOBAL_OBJS $ac_bdir$ac_obj.lo"
+
+      case $ac_src in
+        *.c) ac_comp="$b_c_pre $ac_inc $b_c_meta $ac_extra -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_c_post" ;;
+        *.s) ac_comp="$b_c_pre $ac_inc $b_c_meta $ac_extra -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_c_post" ;;
+        *.S) ac_comp="$b_c_pre $ac_inc $b_c_meta $ac_extra -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_c_post" ;;
+        *.cpp|*.cc|*.cxx) ac_comp="$b_cxx_pre $ac_inc $b_cxx_meta $ac_extra -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_cxx_post" ;;
+      esac
+
+      ac_comp="$ac_comp -MMD -MF $ac_bdir$ac_obj.dep -MT $ac_bdir$ac_obj.lo"
+
+    cat >>Makefile.objects<<EOF
+-include $ac_bdir$ac_obj.dep
+$ac_bdir$ac_obj.lo: $ac_srcdir$ac_src
+	$ac_comp
+EOF
+  done
+
+
+    EXT_STATIC="$EXT_STATIC phpbz2;$ext_dir"
+    if test "$ext_shared" != "nocli"; then
+      EXT_CLI_STATIC="$EXT_CLI_STATIC phpbz2;$ext_dir"
+    fi
+  else
+    if test "$ext_shared" = "shared" || test "$ext_shared" = "yes"; then
+      PHP_PHPBZ2_SHARED=yes
+      
+  case $ext_dir in
+  "") ac_srcdir="$abs_srcdir/"; unset ac_bdir; ac_inc="-I. -I$abs_srcdir" ;;
+  /*) ac_srcdir=$(echo "$ext_dir"|cut -c 2-)"/"; ac_bdir=$ac_srcdir; ac_inc="-I$ac_bdir -I$abs_srcdir/$ac_bdir" ;;
+  *) ac_srcdir="$abs_srcdir/$ext_dir/"; ac_bdir="$ext_dir/"; ac_inc="-I$ac_bdir -I$ac_srcdir" ;;
+  esac
+
+  
+
+  b_c_pre=$shared_c_pre
+  b_cxx_pre=$shared_cxx_pre
+  b_c_meta=$shared_c_meta
+  b_cxx_meta=$shared_cxx_meta
+  b_c_post=$shared_c_post
+  b_cxx_post=$shared_cxx_post
+  b_lo=$shared_lo
+
+
+  old_IFS=$IFS
+  for ac_src in bz2.c bz2_filter.c; do
+
+      IFS=.
+      set $ac_src
+      ac_obj=$1
+      IFS=$old_IFS
+
+      shared_objects_phpbz2="$shared_objects_phpbz2 $ac_bdir$ac_obj.lo"
+
+      case $ac_src in
+        *.c) ac_comp="$b_c_pre $ac_inc $b_c_meta $ac_extra -DZEND_COMPILE_DL_EXT=1 -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_c_post" ;;
+        *.s) ac_comp="$b_c_pre $ac_inc $b_c_meta $ac_extra -DZEND_COMPILE_DL_EXT=1 -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_c_post" ;;
+        *.S) ac_comp="$b_c_pre $ac_inc $b_c_meta $ac_extra -DZEND_COMPILE_DL_EXT=1 -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_c_post" ;;
+        *.cpp|*.cc|*.cxx) ac_comp="$b_cxx_pre $ac_inc $b_cxx_meta $ac_extra -DZEND_COMPILE_DL_EXT=1 -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_cxx_post" ;;
+      esac
+
+      ac_comp="$ac_comp -MMD -MF $ac_bdir$ac_obj.dep -MT $ac_bdir$ac_obj.lo"
+
+    cat >>Makefile.objects<<EOF
+-include $ac_bdir$ac_obj.dep
+$ac_bdir$ac_obj.lo: $ac_srcdir$ac_src
+	$ac_comp
+EOF
+  done
+
+      
+  install_modules="install-modules"
+  suffix=la
+
+  case $host_alias in @%:@(
+  *aix*) :
+    additional_flags="-Wl,-G" ;; @%:@(
+  *) :
+     ;;
+esac
+
+  if test "x" = "xyes"; then
+    PHP_ZEND_EX="$PHP_ZEND_EX \$(phplibdir)/phpbz2.$suffix"
+  else
+    PHP_MODULES="$PHP_MODULES \$(phplibdir)/phpbz2.$suffix"
+  fi
+  
+  PHP_VAR_SUBST="$PHP_VAR_SUBST shared_objects_phpbz2"
+
+  cat >>Makefile.objects<<EOF
+\$(phplibdir)/phpbz2.$suffix: $ext_builddir/phpbz2.$suffix
+	\$(LIBTOOL) --tag=CC --mode=install cp $ext_builddir/phpbz2.$suffix \$(phplibdir)
+
+$ext_builddir/phpbz2.$suffix: \$(shared_objects_phpbz2) \$(PHPBZ2_SHARED_DEPENDENCIES)
+	\$(LIBTOOL) --tag=CC --mode=link \$(CC) -shared \$(COMMON_FLAGS) \$(CFLAGS_CLEAN) \$(EXTRA_CFLAGS) \$(LDFLAGS) $additional_flags -o \$@ -export-dynamic -avoid-version -prefer-pic -module -rpath \$(phplibdir) \$(EXTRA_LDFLAGS) \$(shared_objects_phpbz2) \$(PHPBZ2_SHARED_LIBADD)
+
+EOF
+
+      
+printf "%s\n" "@%:@define COMPILE_DL_PHPBZ2 1" >>confdefs.h
+
+    fi
+  fi
+
+  if test "$ext_shared" != "shared" && test "$ext_shared" != "yes" && test "" = "cli"; then
+    PHP_PHPBZ2_SHARED=no
+    case "$PHP_SAPI" in
+      cgi|embed|phpdbg)
+        
+  
+  case $ext_dir in
+  "") ac_srcdir="$abs_srcdir/"; unset ac_bdir; ac_inc="-I. -I$abs_srcdir" ;;
+  /*) ac_srcdir=$(echo "$ext_dir"|cut -c 2-)"/"; ac_bdir=$ac_srcdir; ac_inc="-I$ac_bdir -I$abs_srcdir/$ac_bdir" ;;
+  *) ac_srcdir="$abs_srcdir/$ext_dir/"; ac_bdir="$ext_dir/"; ac_inc="-I$ac_bdir -I$ac_srcdir" ;;
+  esac
+
+  
+
+  b_c_pre=$php_c_pre
+  b_cxx_pre=$php_cxx_pre
+  b_c_meta=$php_c_meta
+  b_cxx_meta=$php_cxx_meta
+  b_c_post=$php_c_post
+  b_cxx_post=$php_cxx_post
+  b_lo=$php_lo
+
+
+  old_IFS=$IFS
+  for ac_src in bz2.c bz2_filter.c; do
+
+      IFS=.
+      set $ac_src
+      ac_obj=$1
+      IFS=$old_IFS
+
+      PHP_GLOBAL_OBJS="$PHP_GLOBAL_OBJS $ac_bdir$ac_obj.lo"
+
+      case $ac_src in
+        *.c) ac_comp="$b_c_pre $ac_inc $b_c_meta $ac_extra -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_c_post" ;;
+        *.s) ac_comp="$b_c_pre $ac_inc $b_c_meta $ac_extra -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_c_post" ;;
+        *.S) ac_comp="$b_c_pre $ac_inc $b_c_meta $ac_extra -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_c_post" ;;
+        *.cpp|*.cc|*.cxx) ac_comp="$b_cxx_pre $ac_inc $b_cxx_meta $ac_extra -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_cxx_post" ;;
+      esac
+
+      ac_comp="$ac_comp -MMD -MF $ac_bdir$ac_obj.dep -MT $ac_bdir$ac_obj.lo"
+
+    cat >>Makefile.objects<<EOF
+-include $ac_bdir$ac_obj.dep
+$ac_bdir$ac_obj.lo: $ac_srcdir$ac_src
+	$ac_comp
+EOF
+  done
+
+
+        EXT_STATIC="$EXT_STATIC phpbz2;$ext_dir"
+        ;;
+      *)
+        
+  
+  case $ext_dir in
+  "") ac_srcdir="$abs_srcdir/"; unset ac_bdir; ac_inc="-I. -I$abs_srcdir" ;;
+  /*) ac_srcdir=$(echo "$ext_dir"|cut -c 2-)"/"; ac_bdir=$ac_srcdir; ac_inc="-I$ac_bdir -I$abs_srcdir/$ac_bdir" ;;
+  *) ac_srcdir="$abs_srcdir/$ext_dir/"; ac_bdir="$ext_dir/"; ac_inc="-I$ac_bdir -I$ac_srcdir" ;;
+  esac
+
+  
+
+  b_c_pre=$php_c_pre
+  b_cxx_pre=$php_cxx_pre
+  b_c_meta=$php_c_meta
+  b_cxx_meta=$php_cxx_meta
+  b_c_post=$php_c_post
+  b_cxx_post=$php_cxx_post
+  b_lo=$php_lo
+
+
+  old_IFS=$IFS
+  for ac_src in bz2.c bz2_filter.c; do
+
+      IFS=.
+      set $ac_src
+      ac_obj=$1
+      IFS=$old_IFS
+
+      PHP_GLOBAL_OBJS="$PHP_GLOBAL_OBJS $ac_bdir$ac_obj.lo"
+
+      case $ac_src in
+        *.c) ac_comp="$b_c_pre $ac_inc $b_c_meta $ac_extra -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_c_post" ;;
+        *.s) ac_comp="$b_c_pre $ac_inc $b_c_meta $ac_extra -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_c_post" ;;
+        *.S) ac_comp="$b_c_pre $ac_inc $b_c_meta $ac_extra -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_c_post" ;;
+        *.cpp|*.cc|*.cxx) ac_comp="$b_cxx_pre $ac_inc $b_cxx_meta $ac_extra -c $ac_srcdir$ac_src -o $ac_bdir$ac_obj.$b_lo $b_cxx_post" ;;
+      esac
+
+      ac_comp="$ac_comp -MMD -MF $ac_bdir$ac_obj.dep -MT $ac_bdir$ac_obj.lo"
+
+    cat >>Makefile.objects<<EOF
+-include $ac_bdir$ac_obj.dep
+$ac_bdir$ac_obj.lo: $ac_srcdir$ac_src
+	$ac_comp
+EOF
+  done
+
+
+        ;;
+    esac
+    EXT_CLI_STATIC="$EXT_CLI_STATIC phpbz2;$ext_dir"
+  fi
+  as_fn_append BUILD_DIR " $ext_builddir"
+
+
+  if test "$ext_builddir" = "."; then
+    PHP_PECL_EXTENSION=phpbz2
+    
+  PHP_VAR_SUBST="$PHP_VAR_SUBST PHP_PECL_EXTENSION"
+
+  fi
+ ;; @%:@(
+  *) :
+    
   ext_builddir=ext/bz2
   ext_srcdir=$abs_srcdir/ext/bz2
   ext_dir=ext/bz2
@@ -24586,8 +24842,8 @@ EOF
   PHP_VAR_SUBST="$PHP_VAR_SUBST PHP_PECL_EXTENSION"
 
   fi
-
-  
+ ;;
+esac  
   PHP_VAR_SUBST="$PHP_VAR_SUBST BZ2_SHARED_LIBADD"
 
 fi
@@ -93999,7 +94255,7 @@ LIBTOOL='$(SHELL) $(top_builddir)/libtool'
 
 
 
-if test "$ac_cv_emxos2" = "yes"
+if test "$ac_cv_build" = "i386-pc-os2-emx"
 then :
   
   LIBTOOL='build/aplibtool.exe '
@@ -94020,7 +94276,7 @@ fi
 
 
 
-if test "$ac_cv_emxos2" = "yes"
+if test "$ac_cv_build" = "i386-pc-os2-emx"
 then :
   
   LIBTOOL='build/aplibtool.exe '
