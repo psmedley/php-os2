@@ -93999,45 +93999,49 @@ LIBTOOL='$(SHELL) $(top_builddir)/libtool'
 
 
 
-if test "$ac_cv_emxos2" = "yes"
+case $host_os in #(
+  *os2*|*emx*) :
+
+    if test ! -x build/aplibtool.exe
 then :
+  $CC -DUSE_OMF $CFLAGS $CPPFLAGS -o build/aplibtool.exe $srcdir/build/aplibtool.c
+fi
+    LIBTOOL='build/aplibtool.exe '
+   ;; #(
+  *) :
 
-  LIBTOOL='build/aplibtool.exe '
-  gcc "-DUSE_OMF" $CFLAGS $CPPFLAGS "-o" build/aplibtool.exe build/aplibtool.c
-
-else case e in #(
-  e)
-  if ${LIBTOOL:+false} :
+    if ${LIBTOOL:+false} :
 then :
   LIBTOOL='$(SHELL) $(top_builddir)/libtool --silent'
 else case e in #(
   e) LIBTOOL="$LIBTOOL --silent" ;;
 esac
 fi
- ;;
+   ;;
 esac
-fi
 
 
 
-if test "$ac_cv_emxos2" = "yes"
+case $host_os in #(
+  *os2*|*emx*) :
+
+    if test ! -x build/aplibtool.exe
 then :
+  $CC -DUSE_OMF $CFLAGS $CPPFLAGS -o build/aplibtool.exe $srcdir/build/aplibtool.c
+fi
+    LIBTOOL='build/aplibtool.exe '
+   ;; #(
+  *) :
 
-  LIBTOOL='build/aplibtool.exe '
-  gcc "-DUSE_OMF" $CFLAGS $CPPFLAGS "-o" build/aplibtool.exe build/aplibtool.c
-
-else case e in #(
-  e)
-  if ${LIBTOOL:+false} :
+    if ${LIBTOOL:+false} :
 then :
   LIBTOOL='$(SHELL) $(top_builddir)/libtool --preserve-dup-deps'
 else case e in #(
   e) LIBTOOL="$LIBTOOL --preserve-dup-deps" ;;
 esac
 fi
- ;;
+   ;;
 esac
-fi
 
 
 

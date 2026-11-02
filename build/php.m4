@@ -619,14 +619,19 @@ dnl
 dnl Set libtool variable.
 dnl
 AC_DEFUN([PHP_SET_LIBTOOL_VARIABLE], [
-AS_IF([test "$ac_cv_build" = "i386-pc-os2-emx"], [
-  LIBTOOL='build/aplibtool.exe '
-  gcc "-DUSE_OMF" $CFLAGS $CPPFLAGS "-o" build/aplibtool.exe build/aplibtool.c
-], [
-  AS_VAR_IF([LIBTOOL],,
-    [LIBTOOL='$(SHELL) $(top_builddir)/libtool $1'],
-    [LIBTOOL="$LIBTOOL $1"])
-])
+AC_REQUIRE([PHP_CANONICAL_HOST_TARGET])dnl
+dnl On OS/2 use aplibtool instead of GNU libtool. Detect it from the host
+dnl triplet; ac_cv_emxos2 was only ever set by autoconf 2.13's AC_EMXOS2.
+AS_CASE([$host_os],
+  [*os2*|*emx*], [
+    AS_IF([test ! -x build/aplibtool.exe],
+      [$CC -DUSE_OMF $CFLAGS $CPPFLAGS -o build/aplibtool.exe $srcdir/build/aplibtool.c])
+    LIBTOOL='build/aplibtool.exe '
+  ], [
+    AS_VAR_IF([LIBTOOL],,
+      [LIBTOOL='$(SHELL) $(top_builddir)/libtool $1'],
+      [LIBTOOL="$LIBTOOL $1"])
+  ])
 ])
 
 dnl ----------------------------------------------------------------------------
