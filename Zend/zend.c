@@ -1229,6 +1229,7 @@ void zend_shutdown(void) /* {{{ */
 #endif
 	zend_map_ptr_static_last = 0;
 	zend_map_ptr_static_size = 0;
+	global_map_ptr_last = 0;
 
 	zend_destroy_rsrc_list_dtors();
 
@@ -1506,7 +1507,9 @@ ZEND_API ZEND_COLD void zend_error_zstr_at(
 	}
 
 	// Always clear the last backtrace.
-	zval_ptr_dtor(&EG(last_fatal_error_backtrace));
+	if (EG(active)) {
+		zval_ptr_dtor(&EG(last_fatal_error_backtrace));
+	}
 	ZVAL_UNDEF(&EG(last_fatal_error_backtrace));
 
 	/* Report about uncaught exception in case of fatal errors */
@@ -1531,7 +1534,11 @@ ZEND_API ZEND_COLD void zend_error_zstr_at(
 			}
 		}
 	} else if (EG(fatal_error_backtrace_on) && (type & E_FATAL_ERRORS)) {
-		zend_fetch_debug_backtrace(&EG(last_fatal_error_backtrace), 0, EG(exception_ignore_args) ? DEBUG_BACKTRACE_IGNORE_ARGS : 0, 0);
+		// EG(last_fatal_error_backtrace) is useless when the executor is
+		// inactive, and setting it at this point would leak.
+		if (EG(active)) {
+			zend_fetch_debug_backtrace(&EG(last_fatal_error_backtrace), 0, EG(exception_ignore_args) ? DEBUG_BACKTRACE_IGNORE_ARGS : 0, 0);
+		}
 	}
 
 	zend_observer_error_notify(type, error_filename, error_lineno, message);
@@ -2028,7 +2035,6 @@ ZEND_API zend_result zend_execute_scripts(int type, zval *retval, int file_count
 		}
 		ret = zend_execute_script(type, retval, file_handle);
 	}
-
 	va_end(files);
 
 	return ret;
@@ -2149,6 +2155,7 @@ ZEND_API void zend_alloc_ce_cache(zend_string *type_name)
 	do {
 		ret = ZEND_MAP_PTR_NEW_OFFSET();
 	} while (ret <= 2);
-	GC_ADD_FLAGS(type_name, IS_STR_CLASS_NAME_MAP_PTR);
 	GC_SET_REFCOUNT(type_name, ret);
+	ZEND_ATOMIC_FENCE_RELEASE();
+	GC_ADD_FLAGS(type_name, IS_STR_CLASS_NAME_MAP_PTR);
 }

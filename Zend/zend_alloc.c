@@ -405,7 +405,11 @@ static ZEND_COLD ZEND_NORETURN void zend_mm_panic(const char *message)
 #if ZEND_DEBUG && defined(HAVE_KILL) && defined(HAVE_GETPID)
 	kill(getpid(), SIGSEGV);
 #endif
+#ifdef __OS2__
 	_exit(1);
+#else
+	abort();
+#endif
 }
 
 static ZEND_COLD ZEND_NORETURN void zend_out_of_memory(void);
@@ -1030,6 +1034,9 @@ static void *zend_mm_chunk_alloc_int(size_t size, size_t alignment)
 #endif /* __OS2__ */
 		zend_mm_munmap(ptr, size);
 		ptr = zend_mm_mmap(size + alignment - REAL_PAGE_SIZE);
+		if (ptr == NULL) {
+			return NULL;
+		}
 #ifdef _WIN32
 		offset = ZEND_MM_ALIGNED_OFFSET(ptr, alignment);
 		if (offset != 0) {
@@ -1995,8 +2002,9 @@ static zend_always_inline void *zend_mm_realloc_heap(zend_mm_heap *heap, void *p
 
 				/* Check if requested size fits into current bin */
 				if (size <= old_size) {
-					/* Check if truncation is necessary */
-					if (old_bin_num > 0 && size < bin_data_size[old_bin_num - 1]) {
+					/* Check if truncation is necessary. A size that fits the
+					 * bin below moves there, as efree_size() maps it to that bin. */
+					if (old_bin_num > 0 && size <= bin_data_size[old_bin_num - 1]) {
 						/* truncation */
 						ret = zend_mm_alloc_small(heap, ZEND_MM_SMALL_SIZE_TO_BIN(size) ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 						if (UNEXPECTED(ret == NULL)) {
@@ -4120,7 +4128,7 @@ ZEND_API void ZEND_FASTCALL zend_handle_delayed_oom(void)
 	}
 }
 
-ZEND_API void * __zend_malloc(size_t len)
+ZEND_API void * __zend_malloc(size_t len ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC)
 {
 	void *tmp = malloc(len);
 	if (EXPECTED(tmp || !len)) {

@@ -95,6 +95,12 @@ zend_class_entry *php_session_update_timestamp_iface_entry;
 		return FAILURE;													\
 	}
 
+#define SESSION_CHECK_UPLOAD_PROGRESS_STATE \
+	if (PS(rfc1867_enabled) && stage == ZEND_INI_STAGE_RUNTIME) { \
+		zend_throw_error(NULL, "Session ini settings cannot be changed at runtime when session.upload_progress.enabled is On");	\
+		return FAILURE;													\
+	}
+
 #define SESSION_FORBIDDEN_CHARS "=,;.[ \t\r\n\013\014"
 #define SESSION_FORBIDDEN_CHARS_FOR_ERROR_MSG "=,;.[ \\t\\r\\n\\013\\014"
 
@@ -122,6 +128,8 @@ static inline void php_rinit_session_globals(void)
 	PS(module_number) = my_module_number;
 	PS(in_rfc1867_update) = false;
 	ZVAL_UNDEF(&PS(http_session_vars));
+	PS(session_started_filename) = NULL;
+	PS(session_started_lineno) = 0;
 }
 
 static inline void php_session_headers_already_sent_error(int severity, const char *message) {
@@ -367,14 +375,18 @@ PHPAPI zend_string *php_session_create_id(PS_CREATE_SID_ARGS)
 
 /* Default session id char validation function allowed by ps_modules.
  * If you change the logic here, please also update the error message in
- * ps_modules appropriately */
-PHPAPI zend_result php_session_valid_key(const char *key)
+ * ps_modules appropriately. */
+static zend_result php_session_valid_key_len(const char *key, size_t key_len)
 {
-	size_t key_len;
-	const char *p;
-	char c;
+	/* Somewhat arbitrary length limit here, but should be way more than
+	   anyone needs and avoids file-level warnings later on if we exceed MAX_PATH */
+	if (key_len == 0 || key_len > PS_MAX_SID_LENGTH) {
+		return FAILURE;
+	}
 
-	for (p = key; (c = *p); p++) {
+	for (size_t i = 0; i < key_len; i++) {
+		unsigned char c = (unsigned char) key[i];
+
 		/* valid characters are [a-z], [A-Z], [0-9], - (hyphen) and , (comma) */
 		if (!((c >= 'a' && c <= 'z')
 				|| (c >= 'A' && c <= 'Z')
@@ -385,17 +397,21 @@ PHPAPI zend_result php_session_valid_key(const char *key)
 		}
 	}
 
-	key_len = p - key;
-
-	/* Somewhat arbitrary length limit here, but should be way more than
-	   anyone needs and avoids file-level warnings later on if we exceed MAX_PATH */
-	if (key_len == 0 || key_len > PS_MAX_SID_LENGTH) {
-		return FAILURE;
-	}
-
 	return SUCCESS;
 }
 
+/* Validate the full zend_string, including embedded NUL bytes. */
+zend_result php_session_valid_key_ex(const zend_string *key)
+{
+	return php_session_valid_key_len(ZSTR_VAL(key), ZSTR_LEN(key));
+}
+
+/* C-string compatibility wrapper. Callers that have a zend_string should use
+ * php_session_valid_key_ex() instead. */
+PHPAPI zend_result php_session_valid_key(const char *key)
+{
+	return php_session_valid_key_len(key, strlen(key));
+}
 
 static zend_long php_session_gc(bool immediate)
 {
@@ -607,6 +623,7 @@ static PHP_INI_MH(OnUpdateSaveHandler)
 	const ps_module *tmp;
 	int err_type = E_ERROR;
 
+	SESSION_CHECK_UPLOAD_PROGRESS_STATE;
 	SESSION_CHECK_ACTIVE_STATE;
 	SESSION_CHECK_OUTPUT_STATE;
 
@@ -641,6 +658,7 @@ static PHP_INI_MH(OnUpdateSerializer)
 {
 	const ps_serializer *tmp;
 
+	SESSION_CHECK_UPLOAD_PROGRESS_STATE;
 	SESSION_CHECK_ACTIVE_STATE;
 	SESSION_CHECK_OUTPUT_STATE;
 
@@ -668,6 +686,7 @@ static PHP_INI_MH(OnUpdateSerializer)
 
 static PHP_INI_MH(OnUpdateSaveDir)
 {
+	SESSION_CHECK_UPLOAD_PROGRESS_STATE;
 	SESSION_CHECK_ACTIVE_STATE;
 	SESSION_CHECK_OUTPUT_STATE;
 
@@ -701,6 +720,7 @@ static PHP_INI_MH(OnUpdateSaveDir)
 
 static PHP_INI_MH(OnUpdateName)
 {
+	SESSION_CHECK_UPLOAD_PROGRESS_STATE;
 	SESSION_CHECK_ACTIVE_STATE;
 	SESSION_CHECK_OUTPUT_STATE;
 
@@ -732,6 +752,7 @@ static PHP_INI_MH(OnUpdateName)
 
 static PHP_INI_MH(OnUpdateCookieLifetime)
 {
+	SESSION_CHECK_UPLOAD_PROGRESS_STATE;
 	SESSION_CHECK_ACTIVE_STATE;
 	SESSION_CHECK_OUTPUT_STATE;
 
@@ -753,6 +774,7 @@ static PHP_INI_MH(OnUpdateCookieLifetime)
 
 static PHP_INI_MH(OnUpdateSessionLong)
 {
+	SESSION_CHECK_UPLOAD_PROGRESS_STATE;
 	SESSION_CHECK_ACTIVE_STATE;
 	SESSION_CHECK_OUTPUT_STATE;
 	return OnUpdateLong(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage);
@@ -760,6 +782,7 @@ static PHP_INI_MH(OnUpdateSessionLong)
 
 static PHP_INI_MH(OnUpdateSessionStr)
 {
+	SESSION_CHECK_UPLOAD_PROGRESS_STATE;
 	SESSION_CHECK_ACTIVE_STATE;
 	SESSION_CHECK_OUTPUT_STATE;
 	return OnUpdateStr(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage);
@@ -768,6 +791,7 @@ static PHP_INI_MH(OnUpdateSessionStr)
 
 static PHP_INI_MH(OnUpdateSessionBool)
 {
+	SESSION_CHECK_UPLOAD_PROGRESS_STATE;
 	SESSION_CHECK_ACTIVE_STATE;
 	SESSION_CHECK_OUTPUT_STATE;
 	return OnUpdateBool(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage);
@@ -779,6 +803,7 @@ static PHP_INI_MH(OnUpdateSidLength)
 	zend_long val;
 	char *endptr = NULL;
 
+	SESSION_CHECK_UPLOAD_PROGRESS_STATE;
 	SESSION_CHECK_ACTIVE_STATE;
 	SESSION_CHECK_OUTPUT_STATE;
 	val = ZEND_STRTOL(ZSTR_VAL(new_value), &endptr, 10);
@@ -801,6 +826,7 @@ static PHP_INI_MH(OnUpdateSidBits)
 	zend_long val;
 	char *endptr = NULL;
 
+	SESSION_CHECK_UPLOAD_PROGRESS_STATE;
 	SESSION_CHECK_ACTIVE_STATE;
 	SESSION_CHECK_OUTPUT_STATE;
 	val = ZEND_STRTOL(ZSTR_VAL(new_value), &endptr, 10);
@@ -820,6 +846,7 @@ static PHP_INI_MH(OnUpdateSidBits)
 
 static PHP_INI_MH(OnUpdateSessionGcProbability)
 {
+    SESSION_CHECK_UPLOAD_PROGRESS_STATE;
     SESSION_CHECK_ACTIVE_STATE;
     SESSION_CHECK_OUTPUT_STATE;
 
@@ -838,6 +865,7 @@ static PHP_INI_MH(OnUpdateSessionGcProbability)
 
 static PHP_INI_MH(OnUpdateSessionDivisor)
 {
+    SESSION_CHECK_UPLOAD_PROGRESS_STATE;
     SESSION_CHECK_ACTIVE_STATE;
     SESSION_CHECK_OUTPUT_STATE;
 
@@ -875,6 +903,7 @@ static PHP_INI_MH(OnUpdateRfc1867Freq)
 
 static PHP_INI_MH(OnUpdateUseOnlyCookies)
 {
+	SESSION_CHECK_UPLOAD_PROGRESS_STATE;
 	SESSION_CHECK_ACTIVE_STATE;
 	SESSION_CHECK_OUTPUT_STATE;
 	bool *p = (bool *) ZEND_INI_GET_ADDR();
@@ -887,6 +916,7 @@ static PHP_INI_MH(OnUpdateUseOnlyCookies)
 
 static PHP_INI_MH(OnUpdateUseTransSid)
 {
+	SESSION_CHECK_UPLOAD_PROGRESS_STATE;
 	SESSION_CHECK_ACTIVE_STATE;
 	SESSION_CHECK_OUTPUT_STATE;
 	bool *p = (bool *) ZEND_INI_GET_ADDR();
@@ -899,6 +929,7 @@ static PHP_INI_MH(OnUpdateUseTransSid)
 
 static PHP_INI_MH(OnUpdateRefererCheck)
 {
+	SESSION_CHECK_UPLOAD_PROGRESS_STATE;
 	SESSION_CHECK_ACTIVE_STATE;
 	SESSION_CHECK_OUTPUT_STATE;
 	if (ZSTR_LEN(new_value) != 0) {
@@ -936,7 +967,7 @@ PHP_INI_BEGIN()
 
 	/* Upload progress */
 	STD_PHP_INI_BOOLEAN("session.upload_progress.enabled",
-	                                                "1",     ZEND_INI_PERDIR, OnUpdateBool,        rfc1867_enabled, php_ps_globals, ps_globals)
+	                                                "0",     ZEND_INI_PERDIR, OnUpdateBool,        rfc1867_enabled, php_ps_globals, ps_globals)
 	STD_PHP_INI_BOOLEAN("session.upload_progress.cleanup",
 	                                                "1",     ZEND_INI_PERDIR, OnUpdateBool,        rfc1867_cleanup, php_ps_globals, ps_globals)
 	STD_PHP_INI_ENTRY("session.upload_progress.prefix",
@@ -2419,7 +2450,13 @@ PHP_FUNCTION(session_regenerate_id)
 			RETURN_FALSE;
 		}
 	}
+
 	PS(mod)->s_close(&PS(mod_data));
+
+	if (PS(session_status) != php_session_active) {
+		php_error_docref(NULL, E_WARNING, "Session ID cannot be regenerated because the save handler closed the session");
+		RETURN_FALSE;
+	}
 
 	/* New session data */
 	if (PS(session_vars)) {
@@ -2503,7 +2540,7 @@ PHP_FUNCTION(session_create_id)
             zend_argument_value_error(1, "cannot be longer than %d characters", PS_MAX_SID_LENGTH);
             RETURN_THROWS();
         }
-		if (php_session_valid_key(ZSTR_VAL(prefix)) == FAILURE) {
+		if (php_session_valid_key_ex(prefix) == FAILURE) {
 			/* E_ERROR raised for security reason. */
 			php_error_docref(NULL, E_WARNING, "Prefix cannot contain special characters. Only the A-Z, a-z, 0-9, \"-\", and \",\" characters are allowed");
 			RETURN_FALSE;
@@ -2969,6 +3006,7 @@ static PHP_GINIT_FUNCTION(ps)
 	ps_globals->serializer = NULL;
 	ps_globals->mod_data = NULL;
 	ps_globals->in_rfc1867_update = false;
+	ps_globals->rfc1867_enabled = false;
 	ps_globals->session_status = php_session_none;
 	ps_globals->default_mod = NULL;
 	ps_globals->mod_user_implemented = 0;
@@ -3219,7 +3257,7 @@ static zend_result php_session_rfc1867_callback(unsigned int event, void *event_
 	if (php_session_rfc1867_orig_callback) {
 		retval = php_session_rfc1867_orig_callback(event, event_data, extra);
 	}
-	if (!PS(rfc1867_enabled) || true) {
+	if (!PS(rfc1867_enabled)) {
 		return retval;
 	}
 	if (PG(modules_activated)) {

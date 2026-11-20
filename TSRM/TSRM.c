@@ -860,14 +860,16 @@ TSRM_API size_t tsrm_get_ls_cache_tcb_offset(void)
     // TODO: Implement support for fast JIT ZTS code ???
 	return 0;
 #elif defined(__x86_64__) && defined(__GNUC__) && !defined(__FreeBSD__) && \
-	!defined(__OpenBSD__) && !defined(__MUSL__) && !defined(__HAIKU__)
+	!defined(__NetBSD__) && !defined(__OpenBSD__) && !defined(__MUSL__) && \
+	!defined(__HAIKU__) && !defined(__CYGWIN__)
 	size_t ret;
 
 	asm ("movq _tsrm_ls_cache@gottpoff(%%rip),%0"
           : "=r" (ret));
 	return ret;
 #elif defined(__i386__) && defined(__GNUC__) && !defined(__FreeBSD__) && \
-	!defined(__OpenBSD__) && !defined(__MUSL__) && !defined(__HAIKU__) && !defined(__OS2__)
+	!defined(__NetBSD__) && !defined(__OpenBSD__) && !defined(__MUSL__) && \
+	!defined(__HAIKU__) && !defined(__CYGWIN__) && !defined(__OS2__)
 	size_t ret;
 
 	asm ("leal _tsrm_ls_cache@ntpoff,%0"

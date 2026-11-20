@@ -376,8 +376,6 @@ static int find_boundary(multipart_buffer *self, char *boundary)
 	return 0;
 }
 
-static char *php_mime_get_hdr_value(zend_llist header, char *key);
-
 static bool php_mime_should_save_hdr(const char *name)
 {
 	return !strcasecmp(name, "Content-Disposition")
@@ -440,6 +438,10 @@ static int multipart_buffer_headers(multipart_buffer *self, zend_llist *header)
 			smart_string_appends(&buf_value, line);
 		} else {
 			continue;
+		}
+
+		if (ZEND_HAS_OOM()) {
+			goto oom;
 		}
 	}
 
@@ -552,7 +554,7 @@ static char *php_ap_getword_conf(const zend_encoding *encoding, char *str)
 	} else {
 		char *strend = str;
 
-		while (*strend && !isspace(*strend)) {
+		while (*strend && !isspace((unsigned char)*strend)) {
 			++strend;
 		}
 		return substring_conf(str, (size_t)(strend - str), 0);
